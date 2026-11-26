@@ -11,9 +11,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from holt.agent.signals import build_threads, compute
-from holt.evidence import github_graphql as gql
-from holt.types import Window
+from prscout.agent.signals import build_threads, compute
+from prscout.evidence import github_graphql as gql
+from prscout.types import Window
 
 NOW = datetime(2026, 9, 28, 12, tzinfo=UTC)
 

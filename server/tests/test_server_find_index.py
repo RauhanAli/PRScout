@@ -1,4 +1,4 @@
-"""/v1/find answers from Holt's own index first (reports + repo_meta), then adds
+"""/v1/find answers from PRScout's own index first (reports + repo_meta), then adds
 the GitHub search's repos that aren't already listed; the index still answers
 when the search fails or the caller is over their work limit."""
 
@@ -12,18 +12,18 @@ from datetime import timedelta
 import pytest
 
 from conftest import STATS, canned_report
-from holt.starter import RULES_VERSION
-from holt_server import find as find_mod
-from holt_server.db import FindCache, RepoMeta, Report, StarterCache, now
+from prscout.starter import RULES_VERSION
+from prscout_server import find as find_mod
+from prscout_server.db import FindCache, RepoMeta, Report, StarterCache, now
 from sqlalchemy import select, update
 
 
 @pytest.fixture
 def finder(monkeypatch):
-    """A stand-in `holt.starter`: `results` is what the search returns,
+    """A stand-in `prscout.starter`: `results` is what the search returns,
     `fail` makes it raise, `gate` holds it; `issues[repo]` is what reading a
     repo's starter issues returns."""
-    mod = types.ModuleType("holt.starter")
+    mod = types.ModuleType("prscout.starter")
     mod.RULES_VERSION = RULES_VERSION
     state = types.SimpleNamespace(results=[], fail=None, gate=threading.Event(), calls=[],
                                   issues={}, read=[])
@@ -43,7 +43,7 @@ def finder(monkeypatch):
         return state.issues.get(repo, [])
 
     mod.find, mod.starter_issues = find, starter_issues
-    monkeypatch.setitem(sys.modules, "holt.starter", mod)
+    monkeypatch.setitem(sys.modules, "prscout.starter", mod)
     return state
 
 
@@ -223,7 +223,7 @@ def test_a_failed_search_still_leaves_the_index(h, finder):
 
 
 def test_over_the_work_limit_the_index_is_the_answer(make_harness, finder):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=1)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=1)
     indexed(h, "py/good")
     indexed(h, "go/good", language="Go")
     h.wait(find(h, languages=["go"]).json()["job_id"], kind="find")  # spends the limit

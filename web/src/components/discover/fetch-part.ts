@@ -3,9 +3,26 @@
 import type { Part } from "@/lib/parts";
 import type { Result } from "@/lib/types";
 
-export async function fetchPart<T>(url: string, init?: RequestInit): Promise<Result<Part<T>>> {
+export async function fetchPart<T>(
+  url: string,
+  init?: RequestInit,
+): Promise<Result<Part<T>>> {
   const res = await fetch(url, init);
   const body = await res.json().catch(() => null);
-  if (res.ok && Array.isArray(body?.items)) return { ok: true, data: { items: body.items, next: body.next ?? null, total: body.total ?? 0 } };
-  return { ok: false, status: res.status, error: body?.error?.code ? body.error : { code: "upstream", message: "Holt didn't answer. Try again." } };
+  if (res.ok && Array.isArray(body?.items))
+    return {
+      ok: true,
+      data: {
+        items: body.items,
+        next: body.next ?? null,
+        total: body.total ?? 0,
+      },
+    };
+  return {
+    ok: false,
+    status: res.status,
+    error: body?.error?.code
+      ? body.error
+      : { code: "upstream", message: "PRScout didn't answer. Try again." },
+  };
 }

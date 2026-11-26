@@ -1,4 +1,4 @@
-# Holt web app (web/). Build context: web/.
+# PRScout web app (web/). Build context: web/.
 #   docker build -f deploy/web/Dockerfile web
 #
 # Uses Next.js standalone output when web/next.config sets

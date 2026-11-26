@@ -1,4 +1,4 @@
-"""Re-record the `holt start` fixtures from live GitHub. Not run by the tests.
+"""Re-record the `prscout start` fixtures from live GitHub. Not run by the tests.
 
     GITHUB_TOKEN=... uv run python tests/recordings/starter/record.py
 
@@ -16,8 +16,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-from holt import starter
-from holt.evidence.redact import redact_payload
+from prscout import starter
+from prscout.evidence.redact import redact_payload
 
 HERE = Path(__file__).parent
 FIND_ARGS = {"languages": ["python"], "topics": [], "hacktoberfest": True,

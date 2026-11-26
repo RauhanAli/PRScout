@@ -9,9 +9,9 @@ import time
 import types
 
 import pytest
-from holt_server import api
-from holt_server.db import Job
-from holt_server.errors import ApiError
+from prscout_server import api
+from prscout_server.db import Job
+from prscout_server.errors import ApiError
 from sqlalchemy import select
 
 
@@ -37,7 +37,7 @@ def test_internal_key_required(h):
     assert r.status_code == 401
     assert r.json()["error"]["code"] == "unauthorized"
     r = h.client.post("/v1/analyses", json={"repo": "pallets/flask"},
-                      headers={"X-Holt-Internal-Key": "wrong"})
+                      headers={"X-prscout-Internal-Key": "wrong"})
     assert r.status_code == 401
 
 
@@ -267,7 +267,7 @@ def test_events_error(h):
 
 
 def test_anonymous_rate_limit_per_ip(make_harness):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=2)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=2)
     for repo in ("octo/one", "octo/two"):
         assert h.post("/v1/analyses", {"repo": repo}, ip="1.1.1.1").status_code == 202
     r = h.post("/v1/analyses", {"repo": "octo/three"}, ip="1.1.1.1")
@@ -282,7 +282,7 @@ def test_anonymous_rate_limit_per_ip(make_harness):
 
 
 def test_cache_hits_do_not_count(make_harness):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=1)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=1)
     job = h.post("/v1/analyses", {"repo": "octo/one"}, ip="9.9.9.9").json()["job_id"]
     h.wait(job)
     for _ in range(3):
@@ -375,7 +375,7 @@ def test_badge(h):
     h.wait(jobs[0].id)
     r = h.client.get("/badge/Pallets/Flask.svg")
     assert "merges outsiders · replies in ~3h" in r.text
-    assert "https://githolt.com/pallets/flask\"" in r.text
+    assert "https://gitprscout.com/pallets/flask\"" in r.text
 
 
 @pytest.mark.parametrize("verdict", ["not_viable", "insufficient_evidence"])
@@ -387,7 +387,7 @@ def test_badge_turns_neutral_when_a_repo_stops_passing(make_harness, verdict):
     h.engine.verdict = verdict
     h.wait(h.post("/v1/analyses", {"repo": "octo/one", "refresh": True}).json()["job_id"])
     r = h.client.get("/badge/octo/one.svg")
-    assert "Holt: see report" in r.text and "merges" not in r.text
+    assert "PRScout: see report" in r.text and "merges" not in r.text
     assert "#1a7f37" not in r.text  # never green, and never a red verdict either
     assert "not worth" not in r.text.lower() and "enough evidence" not in r.text
 
@@ -396,7 +396,7 @@ def test_badge_turns_neutral_when_a_repo_stops_passing(make_harness, verdict):
 
 
 def test_starter_endpoints_501_until_module_exists(h, monkeypatch):
-    monkeypatch.setitem(sys.modules, "holt.starter", None)
+    monkeypatch.setitem(sys.modules, "prscout.starter", None)
     r = h.get("/v1/repos/pallets/flask/starter-issues")
     assert r.status_code == 501
     assert r.json()["error"]["code"] == "not_implemented"
@@ -408,7 +408,7 @@ def test_starter_endpoints_501_until_module_exists(h, monkeypatch):
 def fake_starter(monkeypatch):
     from datetime import UTC, datetime
 
-    mod = types.ModuleType("holt.starter")
+    mod = types.ModuleType("prscout.starter")
     seen = {}
 
     def starter_issues(repo, token, limit, as_of=None):
@@ -429,7 +429,7 @@ def fake_starter(monkeypatch):
 
     mod.starter_issues = starter_issues
     mod.find = find
-    monkeypatch.setitem(sys.modules, "holt.starter", mod)
+    monkeypatch.setitem(sys.modules, "prscout.starter", mod)
     return seen
 
 
@@ -449,7 +449,7 @@ def test_starter_issues(h, fake_starter):
 
 
 def test_starter_issues_say_who_is_already_on_each(h, fake_starter, monkeypatch):
-    mod = sys.modules["holt.starter"]
+    mod = sys.modules["prscout.starter"]
     monkeypatch.setattr(mod, "starter_issues", lambda repo, token, limit, as_of=None: [
         {"number": 1, "title": "a", "people": 0, "open_prs": 0},
         {"number": 2, "title": "b", "people": 2, "open_prs": 1}])
@@ -461,7 +461,7 @@ def test_starter_issues_say_who_is_already_on_each(h, fake_starter, monkeypatch)
 def test_starter_issues_leave_out_taken_ones_when_enough_are_free(h, fake_starter, monkeypatch):
     listed = [{"number": 1, "title": "a", "people": 1, "open_prs": 1},
               *({"number": n, "title": "b", "people": 0, "open_prs": 0} for n in (2, 3))]
-    mod = sys.modules["holt.starter"]
+    mod = sys.modules["prscout.starter"]
     monkeypatch.setattr(mod, "starter_issues", lambda repo, token, limit, as_of=None: listed)
 
     def numbers(repo):
@@ -539,7 +539,7 @@ def test_anonymous_without_client_ip_is_rejected(h):
 
 
 def test_badge_refreshes_have_their_own_limits(make_harness):
-    h = make_harness(run_jobs=False, HOLT_BADGE_RATE_PER_IP=1, HOLT_ANON_RATE_PER_HOUR=1)
+    h = make_harness(run_jobs=False, PRSCOUT_BADGE_RATE_PER_IP=1, PRSCOUT_ANON_RATE_PER_HOUR=1)
     headers = {"CF-Connecting-IP": "5.5.5.5"}
     h.client.get("/badge/octo/one.svg", headers=headers)
     h.client.get("/badge/octo/two.svg", headers=headers)  # over this client's badge limit
@@ -587,7 +587,7 @@ def test_joining_a_badge_job_promotes_it(make_harness):
 def test_only_stale_running_jobs_are_requeued(make_harness):
     from datetime import timedelta
 
-    from holt_server.db import now
+    from prscout_server.db import now
 
     h = make_harness(run_jobs=False)
 
@@ -625,7 +625,7 @@ def test_result_from_a_runner_that_lost_the_job_is_dropped(make_harness):
 
 def test_docs_only_in_dev(make_harness):
     assert make_harness().client.get("/openapi.json").status_code == 404
-    dev = make_harness(HOLT_ENV="dev")
+    dev = make_harness(PRSCOUT_ENV="dev")
     assert dev.client.get("/openapi.json").status_code == 200
     assert dev.client.get("/docs").status_code == 200
 
@@ -648,14 +648,14 @@ def test_report_list_for_sitemaps(h):
 def test_badge_work_has_its_own_lane(make_harness):
     """Staging runs one user worker; badge and warm jobs must not starve there,
     and must not take that worker either."""
-    h = make_harness(run_jobs=False, HOLT_JOB_CONCURRENCY=1)
+    h = make_harness(run_jobs=False, PRSCOUT_JOB_CONCURRENCY=1)
     runner = h.svc.runner
     assert (runner.concurrency, runner.badge_concurrency) == (1, 1)
     h.client.get("/badge/octo/one.svg")
     user_job = h.post("/v1/analyses", {"repo": "octo/two"}).json()["job_id"]
     assert h.client.portal.call(runner._claim, "user").id == user_job
     assert h.client.portal.call(runner._claim, "background").priority == 10
-    off = make_harness(run_jobs=False, HOLT_JOB_CONCURRENCY=1, HOLT_BADGE_CONCURRENCY=0)
+    off = make_harness(run_jobs=False, PRSCOUT_JOB_CONCURRENCY=1, PRSCOUT_BADGE_CONCURRENCY=0)
     assert off.svc.runner.badge_concurrency == 0
     off.client.get("/badge/octo/one.svg")
     assert off.client.portal.call(off.svc.runner._claim, "user") is None

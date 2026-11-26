@@ -1,12 +1,12 @@
 "use client";
 
-// "Swap hub for holt", acted out (the expressive design plan, pattern 2): the
-// letters of "hub" in github.com flip over to "holt" like a split-flap board,
+// "Swap hub for PRScout", acted out (the expressive design plan, pattern 2): the
+// letters of "hub" in github.com flip over to "PRScout" like a split-flap board,
 // and back, only while the line is on screen. Click to flip it yourself. The
 // server HTML shows the answer (this site's host). Reduced motion: before and
-// after, side by side. A deployed host that isn't *githolt.com is shown
+// after, side by side. A deployed host that isn't *gitprscout.com is shown
 // plainly, since the flip would name a host that isn't this one; local dev
-// flips to githolt.com so the animation can be worked on.
+// flips to gitprscout.com so the animation can be worked on.
 // `big`: the URL-trick section's version, a whole address at display size.
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -18,18 +18,28 @@ const TO = ["h", "o", "l", "t"];
 
 const DEV = process.env.NODE_ENV === "development";
 
-export function SwapHost({ path = "", big = false }: { path?: string; big?: boolean }) {
-  const host = /githolt\.com$/.test(SITE_HOST) || !DEV ? SITE_HOST : "githolt.com";
-  const m = /^(.*)githolt(\.com)$/.exec(host);
+export function SwapHost({
+  path = "",
+  big = false,
+}: {
+  path?: string;
+  big?: boolean;
+}) {
+  const host =
+    /gitprscout\.com$/.test(SITE_HOST) || !DEV ? SITE_HOST : "gitprscout.com";
+  const m = /^(.*)gitprscout(\.com)$/.exec(host);
   const { ref, on } = useOnScreen<HTMLSpanElement>();
   const still = useReducedMotion();
-  // true = "holt", as in the server HTML.
+  // true = "PRScout", as in the server HTML.
   const [swapped, setSwapped] = useState(true);
 
   useEffect(() => {
     if (still || !on) return;
-    // holt (3.2s) → hub (1.6s) → holt …
-    const t = window.setTimeout(() => setSwapped((s) => !s), swapped ? 3200 : 1600);
+    // PRScout (3.2s) → hub (1.6s) → PRScout …
+    const t = window.setTimeout(
+      () => setSwapped((s) => !s),
+      swapped ? 3200 : 1600,
+    );
     return () => window.clearTimeout(t);
   }, [still, on, swapped]);
 
@@ -38,7 +48,7 @@ export function SwapHost({ path = "", big = false }: { path?: string; big?: bool
   const tryIt = big && path && (
     <span className="mt-[clamp(1.75rem,5svh,3rem)] block">
       <Link href={path} prefetch={false} className="bracket-link">
-        [ try it on {path.slice(1)} → ]
+        Try it on {path.slice(1)} →
       </Link>
     </span>
   );
@@ -46,7 +56,11 @@ export function SwapHost({ path = "", big = false }: { path?: string; big?: bool
   if (!m) {
     return (
       <>
-        <code className={`font-mono ${size}`}>github.com{path}</code> → <code className={`font-mono text-muted ${size}`}>{SITE_HOST}{path}</code>
+        <code className={`font-mono ${size}`}>github.com{path}</code> →{" "}
+        <code className={`font-mono text-muted ${size}`}>
+          {SITE_HOST}
+          {path}
+        </code>
       </>
     );
   }
@@ -56,11 +70,13 @@ export function SwapHost({ path = "", big = false }: { path?: string; big?: bool
       <span className={big ? "block" : ""}>
         <code className={`font-mono ${size} ${big ? "block space-y-1" : ""}`}>
           <span className={big ? "block text-faint" : ""}>
-            git<span className="text-orange line-through decoration-2">hub</span>.com{path}
+            git
+            <span className="text-orange line-through decoration-2">hub</span>
+            .com{path}
           </span>
           {big ? null : " → "}
           <span className={big ? "block" : "text-muted"}>
-            {sub}git<span className="swap-on">holt</span>
+            {sub}git<span className="swap-on">PRScout</span>
             {tld}
             {tail}
           </span>
@@ -79,11 +95,15 @@ export function SwapHost({ path = "", big = false }: { path?: string; big?: bool
         aria-label={`github.com${path} becomes ${host}${path}. Press to flip it.`}
       >
         <span aria-hidden="true">
-          {/* "staging." only belongs to the holt side: it fades out for "hub". */}
+          {/* "staging." only belongs to the PRScout side: it fades out for "hub". */}
           <span className="swap-sub">{sub}</span>git
           <span className="swap-flaps">
             {TO.map((to, i) => (
-              <span key={i} className="swap-flap" style={{ ["--i" as string]: i }}>
+              <span
+                key={i}
+                className="swap-flap"
+                style={{ ["--i" as string]: i }}
+              >
                 <span className="swap-from">{FROM[i] || " "}</span>
                 <span className="swap-to">{to}</span>
               </span>

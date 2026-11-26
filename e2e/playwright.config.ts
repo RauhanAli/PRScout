@@ -1,5 +1,5 @@
-// Smoke tests against a deployed Holt. BASE_URL defaults to staging
-// (https://$STAGING_HOST, staging.githolt.com unless set).
+// Smoke tests against a deployed PRScout. BASE_URL defaults to staging
+// (https://$STAGING_HOST, staging.gitprscout.com unless set).
 // Uses the server's cached Chromium (~/.cache/ms-playwright) instead of
 // downloading browsers: set CHROMIUM_PATH to point somewhere else.
 //
@@ -24,7 +24,9 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI ? "list" : [["list"]],
   use: {
-    baseURL: process.env.BASE_URL || `https://${process.env.STAGING_HOST || "staging.githolt.com"}`,
+    baseURL:
+      process.env.BASE_URL ||
+      `https://${process.env.STAGING_HOST || "staging.gitprscout.com"}`,
     launchOptions: executablePath ? { executablePath } : {},
     trace: "off",
     screenshot: "only-on-failure",
@@ -33,11 +35,19 @@ export default defineConfig({
   projects: [
     {
       name: "phone",
-      use: { ...devices["iPhone 13"], browserName: "chromium", defaultBrowserType: "chromium", viewport: { width: 390, height: 844 } },
+      use: {
+        ...devices["iPhone 13"],
+        browserName: "chromium",
+        defaultBrowserType: "chromium",
+        viewport: { width: 390, height: 844 },
+      },
     },
     {
       name: "desktop",
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } },
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+      },
     },
   ],
 });

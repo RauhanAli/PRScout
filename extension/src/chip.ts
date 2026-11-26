@@ -1,9 +1,14 @@
 import { reportPageUrl } from "./config";
 import type { Lookup, Report, Repo, Tone } from "./types";
 
-export const CHIP_CLASS = "holt-chip";
+export const CHIP_CLASS = "prscout-chip";
 
-const TONES: readonly string[] = ["good", "bad", "warn", "neutral"] satisfies Tone[];
+const TONES: readonly string[] = [
+  "good",
+  "bad",
+  "warn",
+  "neutral",
+] satisfies Tone[];
 const MAX_HEADLINE = 60;
 
 export type ChipState = { state: "loading" } | Lookup<Report>;
@@ -19,35 +24,45 @@ export interface ChipView {
 export function chipView(s: ChipState, r: Repo): ChipView {
   const name = `${r.owner}/${r.repo}`;
   if (s.state === "loading") {
-    return { tone: "unknown", label: "Holt", stat: "checking…", title: `Looking up ${name} on Holt` };
+    return {
+      tone: "unknown",
+      label: "PRScout",
+      stat: "checking…",
+      title: `Looking up ${name} on PRScout`,
+    };
   }
-  // An older version of Holt's rules made this report: its verdict may be out
+  // An older version of PRScout's rules made this report: its verdict may be out
   // of date, so it isn't shown. The report page checks again.
   if (s.state === "found" && s.data.outdated === true) {
     return {
       tone: "unknown",
-      label: "Holt: updating",
+      label: "PRScout: updating",
       stat: null,
-      title: `Holt's rules were updated. Click to check ${name} again.`,
+      title: `PRScout's rules were updated. Click to check ${name} again.`,
     };
   }
   // The server words and colours the verdict; the chip only shows it. Anything
   // that isn't a short headline is treated as no answer.
   const headline = s.state === "found" ? s.data.headline : undefined;
-  if (s.state === "found" && typeof headline === "string" && headline && headline.length <= MAX_HEADLINE) {
+  if (
+    s.state === "found" &&
+    typeof headline === "string" &&
+    headline &&
+    headline.length <= MAX_HEADLINE
+  ) {
     const tone = s.data.tone;
     return {
       tone: typeof tone === "string" && TONES.includes(tone) ? tone : "unknown",
-      label: `Holt: ${headline}`,
+      label: `PRScout: ${headline}`,
       stat: statLine(s.data),
-      title: `Holt's verdict for newcomers to ${name}. Click for the full report.`,
+      title: `PRScout's verdict for newcomers to ${name}. Click for the full report.`,
     };
   }
   return {
     tone: "unknown",
-    label: "Check with Holt",
+    label: "Check with PRScout",
     stat: null,
-    title: `See whether ${name} is worth a first contribution. Opens Holt.`,
+    title: `See whether ${name} is worth a first contribution. Opens PRScout.`,
   };
 }
 
@@ -75,20 +90,24 @@ function isCount(n: unknown): n is number {
 }
 
 /** Builds the chip element. Text only goes in via textContent, never HTML. */
-export function createChip(doc: Document, r: Repo, s: ChipState): HTMLAnchorElement {
+export function createChip(
+  doc: Document,
+  r: Repo,
+  s: ChipState,
+): HTMLAnchorElement {
   const a = doc.createElement("a");
   a.className = CHIP_CLASS;
   a.href = reportPageUrl(r.owner, r.repo);
   a.target = "_blank";
   a.rel = "noopener noreferrer";
-  a.dataset.holtRepo = `${r.owner}/${r.repo}`.toLowerCase();
+  a.dataset.prscoutRepo = `${r.owner}/${r.repo}`.toLowerCase();
   const dot = doc.createElement("span");
-  dot.className = "holt-chip__dot";
+  dot.className = "prscout-chip__dot";
   dot.setAttribute("aria-hidden", "true");
   const label = doc.createElement("span");
-  label.className = "holt-chip__label";
+  label.className = "prscout-chip__label";
   const stat = doc.createElement("span");
-  stat.className = "holt-chip__stat";
+  stat.className = "prscout-chip__stat";
   a.append(dot, label, stat);
   updateChip(a, r, s);
   return a;
@@ -96,16 +115,16 @@ export function createChip(doc: Document, r: Repo, s: ChipState): HTMLAnchorElem
 
 export function updateChip(a: HTMLAnchorElement, r: Repo, s: ChipState): void {
   const v = chipView(s, r);
-  a.dataset.holtTone = v.tone;
-  a.dataset.holtState = s.state;
+  a.dataset.prscoutTone = v.tone;
+  a.dataset.prscoutState = s.state;
   // While loading the chip is a skeleton (content.css): the words are still
   // there for assistive tech, drawn as blocks with a shimmer for everyone else.
   if (s.state === "loading") a.setAttribute("aria-busy", "true");
   else a.removeAttribute("aria-busy");
   a.title = v.title;
   a.setAttribute("aria-label", v.stat ? `${v.label}. ${v.stat}.` : v.label);
-  a.querySelector(".holt-chip__label")!.textContent = v.label;
-  const stat = a.querySelector<HTMLElement>(".holt-chip__stat")!;
+  a.querySelector(".prscout-chip__label")!.textContent = v.label;
+  const stat = a.querySelector<HTMLElement>(".prscout-chip__stat")!;
   stat.textContent = v.stat ?? "";
   stat.hidden = !v.stat;
 }
@@ -118,7 +137,9 @@ const ANCHORS: Array<[selector: string, where: "append" | "after"]> = [
   ["[itemprop='name'] > a[href]", "after"],
 ];
 
-export function findAnchor(doc: Document): { el: Element; where: "append" | "after" } | null {
+export function findAnchor(
+  doc: Document,
+): { el: Element; where: "append" | "after" } | null {
   for (const [sel, where] of ANCHORS) {
     const el = doc.querySelector(sel);
     if (el) return { el, where };
@@ -131,10 +152,18 @@ export function findAnchor(doc: Document): { el: Element; where: "append" | "aft
  * chip, or null when the page has no title to attach to. Idempotent: calling it
  * again on an unchanged page does nothing.
  */
-export function ensureChip(doc: Document, r: Repo, s: ChipState): HTMLAnchorElement | null {
+export function ensureChip(
+  doc: Document,
+  r: Repo,
+  s: ChipState,
+): HTMLAnchorElement | null {
   const key = `${r.owner}/${r.repo}`.toLowerCase();
-  const chips = Array.from(doc.querySelectorAll<HTMLAnchorElement>(`a.${CHIP_CLASS}`));
-  const keep = chips.find((c) => c.dataset.holtRepo === key && c.isConnected);
+  const chips = Array.from(
+    doc.querySelectorAll<HTMLAnchorElement>(`a.${CHIP_CLASS}`),
+  );
+  const keep = chips.find(
+    (c) => c.dataset.prscoutRepo === key && c.isConnected,
+  );
   for (const c of chips) if (c !== keep) c.remove();
   if (keep) return keep;
   const anchor = findAnchor(doc);

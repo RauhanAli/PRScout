@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from holt import model
+from prscout import model
 
 SECRET = "ghp_" + "a" * 36
 

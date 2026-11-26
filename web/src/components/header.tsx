@@ -6,7 +6,7 @@ import { signOut } from "@/auth";
 import { HOME } from "@/lib/home";
 import { EXAMPLES_PATH } from "@/lib/examples";
 import type { SessionUser } from "@/lib/session";
-import { CatFace } from "./cat-face";
+import { Logo as BrandLogo } from "./brand/logo";
 import { PublicNav } from "./shell/public-nav";
 import { LogoLink } from "./shell/logo-link";
 import { Icon } from "./shell/icons";
@@ -20,13 +20,13 @@ export async function doSignOut() {
 }
 
 // Sizes and gaps in em: the marketing header grows them with the landing on a wide screen (globals.css, --nav-base).
-const LOGO = "cat-perk inline-flex min-h-11 shrink-0 items-center gap-[0.75em]";
+const LOGO = "inline-flex min-h-11 shrink-0 items-center";
 
 function LogoBody() {
   return (
     <>
-      <CatFace className="text-[1.05em]" perk />
-      <span className="text-[0.95em] font-semibold tracking-tight">holt<span className="sr-only"> home</span></span>
+      <BrandLogo markClassName="size-[1.75em]" />
+      <span className="sr-only"> home</span>
     </>
   );
 }
@@ -41,29 +41,80 @@ function Logo({ href }: { href: string }) {
 
 /** Your account: who you're signed in as, settings, sign out. */
 export function AccountMenu({ user }: { user: SessionUser }) {
-  const initial = (user.name || user.email || "?").trim().charAt(0).toUpperCase();
+  const initial = (user.name || user.email || "?")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
   return (
     <>
-      <button id="account-button" type="button" popoverTarget="account-menu" className="flex h-11 items-center gap-1 pl-2 pr-1" aria-label="Your account">
+      <button
+        id="account-button"
+        type="button"
+        popoverTarget="account-menu"
+        className="flex h-11 items-center gap-1 pl-2 pr-1"
+        aria-label="Your account"
+      >
         {user.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={user.image} alt="" width={28} height={28} className="size-7 rounded-full border border-line-strong" />
+          <img
+            src={user.image}
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 rounded-full border border-line-strong"
+          />
         ) : (
-          <span className="grid size-7 place-items-center rounded-full bg-blue text-[0.82rem] font-bold text-on-accent">{initial}</span>
+          <span className="grid size-7 place-items-center rounded-full bg-blue text-[0.82rem] font-bold text-on-accent">
+            {initial}
+          </span>
         )}
-        <svg className="menu-chevron size-3.5 text-faint" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          className="menu-chevron size-3.5 text-faint"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M4 6l4 4 4-4" />
         </svg>
       </button>
-      <div id="account-menu" popover="auto" data-lenis-prevent className="menu w-60 text-[0.88rem]">
+      <div
+        id="account-menu"
+        popover="auto"
+        data-lenis-prevent
+        className="menu w-60 text-[0.88rem]"
+      >
         <div className="px-3 py-2">
           <p className="truncate text-ink">{user.name || user.email}</p>
         </div>
-        <Link href="/settings/profile" className="block px-3 py-2.5 transition-colors hover:bg-panel-2">Settings</Link>
-        <Link href="/settings/plan" className="block px-3 py-2.5 transition-colors hover:bg-panel-2">Plan</Link>
-        <Link href="/how-it-works" className="block px-3 py-2.5 transition-colors hover:bg-panel-2">How Holt works</Link>
+        <Link
+          href="/settings/profile"
+          className="block px-3 py-2.5 transition-colors hover:bg-panel-2"
+        >
+          Settings
+        </Link>
+        <Link
+          href="/settings/plan"
+          className="block px-3 py-2.5 transition-colors hover:bg-panel-2"
+        >
+          Plan
+        </Link>
+        <Link
+          href="/how-it-works"
+          className="block px-3 py-2.5 transition-colors hover:bg-panel-2"
+        >
+          How PRScout works
+        </Link>
         <form action={doSignOut}>
-          <button type="submit" className="block w-full px-3 py-2.5 text-left text-muted transition-colors hover:bg-panel-2">Sign out</button>
+          <button
+            type="submit"
+            className="block w-full px-3 py-2.5 text-left text-muted transition-colors hover:bg-panel-2"
+          >
+            Sign out
+          </button>
         </form>
       </div>
     </>
@@ -72,7 +123,12 @@ export function AccountMenu({ user }: { user: SessionUser }) {
 
 function MenuButton({ target, label }: { target: string; label: string }) {
   return (
-    <button type="button" popoverTarget={target} className="grid size-11 place-items-center text-muted lg:hidden" aria-label={label}>
+    <button
+      type="button"
+      popoverTarget={target}
+      className="grid size-11 place-items-center text-muted lg:hidden"
+      aria-label={label}
+    >
       <Icon name="menu" className="icon-open size-5" />
       <Icon name="close" className="icon-close size-5" />
     </button>
@@ -80,13 +136,16 @@ function MenuButton({ target, label }: { target: string; label: string }) {
 }
 
 /**
- * Pages that explain or sell Holt, and every page while signed out: the
+ * Pages that explain or sell PRScout, and every page while signed out: the
  * core product tasks, an example to try, and sign in (or,
  * signed in, your account menu and a button into the app).
  */
 export function MarketingHeader({ user }: { user: SessionUser | null }) {
   return (
-    <header className="site-header sticky top-0 z-40 border-b border-line bg-header" style={{ viewTransitionName: "site-header" }}>
+    <header
+      className="site-header sticky top-0 z-40 border-b border-line bg-header"
+      style={{ viewTransitionName: "site-header" }}
+    >
       <div className="wrap flex min-h-[60px] items-center gap-2 sm:gap-4">
         <span className="mr-auto">
           {/* Signed out, on the landing page it glides back to the hero (lib/shell.ts, logoAction). */}
@@ -94,27 +153,72 @@ export function MarketingHeader({ user }: { user: SessionUser | null }) {
             <LogoBody />
           </LogoLink>
         </span>
-        <PublicNav signedIn={!!user} className="hidden items-center gap-[1.5em] text-[0.84em] text-muted lg:flex" />
+        <PublicNav
+          signedIn={!!user}
+          className="hidden items-center gap-[1.5em] text-[0.84em] text-muted lg:flex"
+        />
         <div className="flex items-center gap-1">
           <ThemeToggle />
           {user ? (
             <>
-              <Link href={HOME} className="btn-primary ml-1 min-h-11 whitespace-nowrap px-[1.2em] text-[0.84em] sm:min-h-10">open Holt →</Link>
+              <Link
+                href={HOME}
+                className="btn-primary ml-1 min-h-11 whitespace-nowrap px-[1.2em] text-[0.84em] sm:min-h-10"
+              >
+                Open PRScout
+              </Link>
               <AccountMenu user={user} />
             </>
           ) : (
             <>
-              <Link href={EXAMPLES_PATH} className="hidden min-h-11 items-center px-[0.87em] text-[0.86em] text-ink transition-colors hover:text-blue sm:inline-flex">try an example</Link>
-              <Link href="/signin" className="btn-primary ml-1 min-h-11 whitespace-nowrap px-[1.2em] text-[0.84em] sm:min-h-10">sign in</Link>
+              <Link
+                href="/signin"
+                className="hidden min-h-11 items-center rounded-lg px-[0.87em] text-[0.86em] font-medium text-ink transition-colors hover:bg-panel-2 sm:inline-flex"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/signup"
+                className="btn-primary ml-1 min-h-11 whitespace-nowrap px-[1.1em] text-[0.84em] sm:min-h-10"
+              >
+                Get started
+              </Link>
             </>
           )}
           <MenuButton target="mobile-nav" label="Menu" />
-          <nav id="mobile-nav" popover="auto" data-lenis-prevent aria-label="Mobile" className="sheet text-[0.95rem] lg:hidden">
-            <PublicNav signedIn={!!user} item="block min-h-11 px-4 py-3 transition-colors hover:bg-panel-2 aria-[current]:font-semibold aria-[current]:text-blue" />
+          <nav
+            id="mobile-nav"
+            popover="auto"
+            data-lenis-prevent
+            aria-label="Mobile"
+            className="sheet text-[0.95rem] lg:hidden"
+          >
+            <PublicNav
+              signedIn={!!user}
+              item="block min-h-11 px-4 py-3 transition-colors hover:bg-panel-2 aria-[current]:font-semibold aria-[current]:text-blue"
+            />
             {user ? (
-              <Link href={HOME} className="block px-4 py-3 text-blue transition-colors hover:bg-panel-2">open Holt →</Link>
+              <Link
+                href={HOME}
+                className="block px-4 py-3 text-blue transition-colors hover:bg-panel-2"
+              >
+                Open PRScout
+              </Link>
             ) : (
-              <Link href={EXAMPLES_PATH} className="block px-4 py-3 transition-colors hover:bg-panel-2">try an example</Link>
+              <>
+                <Link
+                  href={EXAMPLES_PATH}
+                  className="block px-4 py-3 transition-colors hover:bg-panel-2"
+                >
+                  Try an example
+                </Link>
+                <Link
+                  href="/signin"
+                  className="block px-4 py-3 transition-colors hover:bg-panel-2"
+                >
+                  Sign in
+                </Link>
+              </>
             )}
           </nav>
         </div>
@@ -124,9 +228,22 @@ export function MarketingHeader({ user }: { user: SessionUser | null }) {
 }
 
 /** App pages, signed in: the sidebar holds the places and, on desktop, the logo, so this bar stays small. */
-export function AppTopBar({ user, railCollapsed, drawer, bell }: { user: SessionUser; railCollapsed: boolean; drawer: React.ReactNode; /** PR watch's bell (components/alerts). */ bell?: React.ReactNode }) {
+export function AppTopBar({
+  user,
+  railCollapsed,
+  drawer,
+  bell,
+}: {
+  user: SessionUser;
+  railCollapsed: boolean;
+  drawer: React.ReactNode;
+  /** PR watch's bell (components/alerts). */ bell?: React.ReactNode;
+}) {
   return (
-    <header className="site-header sticky top-0 z-40 border-b border-line bg-header" style={{ viewTransitionName: "site-header" }}>
+    <header
+      className="site-header sticky top-0 z-40 border-b border-line bg-header"
+      style={{ viewTransitionName: "site-header" }}
+    >
       {/* On desktop the rail carries the logo, the bar starts with the rail's toggle, and the check box lines up with the page (.app-bar). */}
       <div className="app-bar">
         <MenuButton target="app-drawer" label="Menu" />

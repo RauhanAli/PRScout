@@ -10,14 +10,14 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 
-from holt.agent import pipeline
-from holt.agent.signals import MIN_AGE_HOURS, build_threads, compute
-from holt.agent.verdict import classify, rule_codes
-from holt.agent.findings import Findings
-from holt.evidence.fixtures import FixtureProvider
-from holt.evidence.provider import EvidenceProvider
-from holt.report import Verdict
-from holt.types import EvidenceRecord, Window
+from prscout.agent import pipeline
+from prscout.agent.signals import MIN_AGE_HOURS, build_threads, compute
+from prscout.agent.verdict import classify, rule_codes
+from prscout.agent.findings import Findings
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.evidence.provider import EvidenceProvider
+from prscout.report import Verdict
+from prscout.types import EvidenceRecord, Window
 
 NOW = datetime(2026, 9, 25, 12, tzinfo=UTC)
 

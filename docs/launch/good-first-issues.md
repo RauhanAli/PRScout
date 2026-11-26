@@ -8,16 +8,16 @@ Every issue gets the `good first issue` label plus one area label: `area:engine`
 `area:cli`, `area:tui`, `area:extension` or `area:docs`. Each body ends with the
 same footer:
 
-> New to Holt? [CONTRIBUTING.md](../../CONTRIBUTING.md#your-first-pr-in-15-minutes)
+> New to PRScout? [CONTRIBUTING.md](../../CONTRIBUTING.md#your-first-pr-in-15-minutes)
 > gets you from clone to pull request in about 15 minutes. Comment here before
 > you start so two people don't pick the same issue.
 
 ---
 
-## 1. `holt start --hacktoberfest` misses labels like "Hacktoberfest 2026"
+## 1. `prscout start --hacktoberfest` misses labels like "Hacktoberfest 2026"
 
 **Labels:** good first issue, area:engine
-**Files:** `src/holt/starter.py` (`_HACK`), `tests/test_starter.py`
+**Files:** `src/prscout/starter.py` (`_HACK`), `tests/test_starter.py`
 
 `label_kinds()` only treats a label as Hacktoberfest when, after normalising,
 it is exactly `hacktoberfest` (`_HACK = re.compile(r"^hacktoberfest$")`). Many
@@ -34,7 +34,7 @@ each case. Run `uv run pytest tests/test_starter.py -q`.
 ## 2. Recognise "good first task" and "good first feature" labels
 
 **Labels:** good first issue, area:engine
-**Files:** `src/holt/starter.py` (`_BEGINNER`), `tests/test_starter.py`
+**Files:** `src/prscout/starter.py` (`_BEGINNER`), `tests/test_starter.py`
 
 `_BEGINNER` matches `good first issue|bug|pr|contribution` but not
 `good first task` or `good first feature`, which some large projects use.
@@ -43,63 +43,63 @@ Issues with only those labels are currently treated as unlabelled.
 **Done when:** both labels give the `beginner` kind, and
 `test_label_variants` in `tests/test_starter.py` has cases for them.
 
-## 3. Add `holt --version`
+## 3. Add `PRScout --version`
 
 **Labels:** good first issue, area:cli
-**Files:** `src/holt/cli.py` (`main`), a test in `tests/test_beginner_first_run.py`
+**Files:** `src/prscout/cli.py` (`main`), a test in `tests/test_beginner_first_run.py`
 
 There is no way to ask which version is installed, and bug reports need it.
 Add `parser.add_argument("--version", action="version", ...)` using
-`importlib.metadata.version("holt-cli")`, with a fallback when the package
+`importlib.metadata.version("prscout-cli")`, with a fallback when the package
 metadata is missing (for example when running from a source tree).
 
-**Done when:** `holt --version` prints `holt 0.2.0` (or whatever is installed),
-and a test checks that it exits 0 and prints the word `holt`.
+**Done when:** `PRScout --version` prints `PRScout 0.2.0` (or whatever is installed),
+and a test checks that it exits 0 and prints the word `PRScout`.
 
-## 4. Show examples in `holt start --help`
+## 4. Show examples in `prscout start --help`
 
 **Labels:** good first issue, area:cli
-**Files:** `src/holt/cli.py` (the `start` sub-parser)
+**Files:** `src/prscout/cli.py` (the `start` sub-parser)
 
-`holt start --help` lists its flags, but a beginner has to guess how they
+`prscout start --help` lists its flags, but a beginner has to guess how they
 combine. Add an `epilog` with three examples, using
 `formatter_class=argparse.RawDescriptionHelpFormatter` as the top-level parser
 already does:
 
 ```text
-holt start --lang python
-holt start --topic cli,web --hacktoberfest
-holt start pallets/flask
+prscout start --lang python
+prscout start --topic cli,web --hacktoberfest
+prscout start pallets/flask
 ```
 
-**Done when:** the examples appear in `holt start --help` and
+**Done when:** the examples appear in `prscout start --help` and
 `tests/test_beginner_first_run.py::test_help_has_no_statistics_jargon` still
 passes (add `["start", "--help"]` to its list while you are there).
 
-## 5. Name an example model for each provider in `holt models --help`
+## 5. Name an example model for each provider in `prscout models --help`
 
 **Labels:** good first issue, area:cli
-**Files:** `src/holt/cli.py` (the `models` sub-parser)
+**Files:** `src/prscout/cli.py` (the `models` sub-parser)
 
 `--model` says "e.g. claude-opus-5, llama3.2". Someone who has just picked
 Gemini or OpenRouter has no idea what to type. Add an epilog with one working
 line per common provider, for example:
 
 ```text
-holt models --provider gemini --model gemini-2.5-flash
-holt models --provider openrouter --model <a model id from openrouter.ai/models>
-holt models --provider ollama --model llama3.2
+prscout models --provider gemini --model gemini-2.5-flash
+prscout models --provider openrouter --model <a model id from openrouter.ai/models>
+prscout models --provider ollama --model llama3.2
 ```
 
-**Done when:** the examples show in `holt models --help`, and each provider
+**Done when:** the examples show in `prscout models --help`, and each provider
 named there is a key of `model.PROVIDER_PRESETS`.
 
 ## 6. utf-8 in `discover.py`, and extend the test that enforces it
 
 **Labels:** good first issue, area:engine
-**Files:** `src/holt/discover.py`, `tests/test_library_api.py`
+**Files:** `src/prscout/discover.py`, `tests/test_library_api.py`
 
-Windows defaults to a legacy code page, so every text read and write in Holt
+Windows defaults to a legacy code page, so every text read and write in PRScout
 should say `encoding="utf-8"`. `test_every_file_call_in_the_engine_names_utf8`
 enforces this for `agent/`, `evidence/`, `reponame.py` and `model.py` only.
 `discover.py` still has `read_text()` and `write_text()` calls without it
@@ -109,10 +109,10 @@ enforces this for `agent/`, `evidence/`, `reponame.py` and `model.py` only.
 the file list in that test, every offender the test reports is fixed, and
 `uv run pytest tests/test_library_api.py tests/test_discover.py -q` passes.
 
-## 7. `holt profile` writes broken TOML if a value contains a quote
+## 7. `prscout profile` writes broken TOML if a value contains a quote
 
 **Labels:** good first issue, area:engine
-**Files:** `src/holt/profile.py` (`save`), `tests/test_profile.py`
+**Files:** `src/prscout/profile.py` (`save`), `tests/test_profile.py`
 
 `save()` builds TOML with f-strings: `f'"{v}"'`. A topic or language containing
 `"` or `\` produces a file that `tomllib` cannot read back, so the next command
@@ -151,28 +151,28 @@ set to dark, and add it under the light one.
 **Done when:** `extension/screenshots/desktop-dark.png` exists, is under 300 KB,
 and is referenced from the README with alt text.
 
-## 10. docs/COMMANDS.md: document `holt start`
+## 10. docs/COMMANDS.md: document `prscout start`
 
 **Labels:** good first issue, area:docs
 **Files:** `docs/COMMANDS.md`
 
-`holt start` shipped in 0.2.0 and is in the README and USAGE, but the command
+`prscout start` shipped in 0.2.0 and is in the README and USAGE, but the command
 reference has no row for it and no section. Add a row to the table ("starter
 issues in repositories that merge newcomers' work", model calls: 0) and a
 short section with one example per mode (`--lang`, `--hacktoberfest`, one
 repository) and what a result line means. Copy the real output of a run rather
 than inventing it.
 
-**Done when:** `holt start` appears in the table and has a section; every
+**Done when:** `prscout start` appears in the table and has a section; every
 command in it runs as written.
 
 ## 11. TUI: hide `ctrl+t mode` when there is nothing to switch to
 
 **Labels:** good first issue, area:tui
-**Files:** `src/holt/tui/screens/home.py`, `tests/test_tui_screens.py`
+**Files:** `src/prscout/tui/screens/home.py`, `tests/test_tui_screens.py`
 
 In an install from PyPI there are no recordings, so home's `ctrl+t` can only say
-"Holt reads GitHub live in this install; there is no other mode." It is still
+"PRScout reads GitHub live in this install; there is no other mode." It is still
 advertised in the footer. Textual's `check_action` can hide a binding: return
 `False` for `toggle_mode` when `session.recordings_available()` is false.
 
@@ -193,7 +193,7 @@ maintainer clearing out spam), and drafts and PRs labelled as spam or invalid
 are not counted at all. Reports say so in a line each, but docs/USAGE.md never
 explains them, so a reader has to guess what that means for the answer. Add a
 few plain sentences under "Reading the answer". The rules are in
-`src/holt/agent/rates.py`.
+`src/prscout/agent/rates.py`.
 
 **Done when:** docs/USAGE.md explains the 14-day window, silent closes and
 what is left out, in plain English with no internal names, and says the window

@@ -5,15 +5,15 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Holt. Remove API keys, tokens, and private
+        Thanks for helping improve PRScout. Remove API keys, tokens, and private
         repository data from everything you post. Security vulnerabilities use
         the private process in SECURITY.md.
 
   - type: input
     id: version
     attributes:
-      label: Holt version
-      description: Run `holt --version`, or provide the commit hash.
+      label: PRScout version
+      description: Run `PRScout --version`, or provide the commit hash.
       placeholder: 0.1.0 or commit SHA
     validations:
       required: true

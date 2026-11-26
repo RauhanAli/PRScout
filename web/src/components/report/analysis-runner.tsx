@@ -17,11 +17,27 @@ import { StarterIssues, type IssuesState } from "./starter-issues";
 
 /**
  * Runs a check and shows its progress, then the report. `fallback` is a report
- * made by an older version of Holt's rules: shown, with a note, only if the
+ * made by an older version of PRScout's rules: shown, with a note, only if the
  * fresh check fails. `ticket`: a signed-out check (lib/anon-check.ts), which
  * ends on the teaser.
  */
-export function AnalysisRunner({ repo, mode, days, signedIn, mergePlans, fallback, ticket }: { repo: string; mode: Mode; days: number; signedIn: boolean; mergePlans: boolean; fallback?: Report; ticket?: string }) {
+export function AnalysisRunner({
+  repo,
+  mode,
+  days,
+  signedIn,
+  mergePlans,
+  fallback,
+  ticket,
+}: {
+  repo: string;
+  mode: Mode;
+  days: number;
+  signedIn: boolean;
+  mergePlans: boolean;
+  fallback?: Report;
+  ticket?: string;
+}) {
   // Signed in, the check carries on if they leave; the app says when it's ready.
   const stays = signedIn && !ticket;
   const { state, retry } = useAnalysis(repo, mode, days, true, ticket, stays);
@@ -52,27 +68,55 @@ export function AnalysisRunner({ repo, mode, days, signedIn, mergePlans, fallbac
   if (ticket && state.phase === "done")
     return (
       <ViewTransition enter="sk-in" default="none">
-        <PartialReport report={state.report} back={reportHref(state.report.repo, days)} land={state.fresh} />
+        <PartialReport
+          report={state.report}
+          back={reportHref(state.report.repo, days)}
+          land={state.fresh}
+        />
       </ViewTransition>
     );
-  if (ticket && state.phase === "error" && checkNeedsSignIn(state.error.code)) return <ReportTeaser repo={repo} report={null} back={reportHref(repo, days)} />;
+  if (ticket && state.phase === "error" && checkNeedsSignIn(state.error.code))
+    return (
+      <ReportTeaser repo={repo} report={null} back={reportHref(repo, days)} />
+    );
   if (showFallback)
     return (
       <div>
-        <p role="status" className="mb-6 border border-line-strong bg-panel-2 px-4 py-3 text-[0.89rem] text-muted">
-          Holt&rsquo;s rules changed and the re-check didn&rsquo;t finish, so this is the earlier result.{" "}
-          <button type="button" onClick={retry} className="underline hover:text-ink">
+        <p
+          role="status"
+          className="mb-6 border border-line-strong bg-panel-2 px-4 py-3 text-[0.89rem] text-muted"
+        >
+          PRScout&rsquo;s rules changed and the re-check didn&rsquo;t finish, so
+          this is the earlier result.{" "}
+          <button
+            type="button"
+            onClick={retry}
+            className="underline hover:text-ink"
+          >
             Try again
           </button>
         </p>
-        <ReportView report={fallback} issues={<StarterIssues issues={issues} repo={fallback.repo} />} signedIn={signedIn} mergePlans={mergePlans} />
+        <ReportView
+          report={fallback}
+          issues={<StarterIssues issues={issues} repo={fallback.repo} />}
+          signedIn={signedIn}
+          mergePlans={mergePlans}
+        />
       </div>
     );
-  if (state.phase === "error") return <ErrorPanel error={state.error} repo={repo} onRetry={retry} />;
+  if (state.phase === "error")
+    return <ErrorPanel error={state.error} repo={repo} onRetry={retry} />;
   if (state.phase === "done")
     return (
       <ViewTransition enter="sk-in" default="none">
-        <ReportView report={state.report} issues={<StarterIssues issues={issues} repo={state.report.repo} />} signedIn={signedIn} mergePlans={mergePlans} reveal land={state.fresh} />
+        <ReportView
+          report={state.report}
+          issues={<StarterIssues issues={issues} repo={state.report.repo} />}
+          signedIn={signedIn}
+          mergePlans={mergePlans}
+          reveal
+          land={state.fresh}
+        />
       </ViewTransition>
     );
   return (
@@ -85,7 +129,17 @@ export function AnalysisRunner({ repo, mode, days, signedIn, mergePlans, fallbac
           progress={state.phase === "running" ? state.progress : 0.02}
           ahead={state.phase === "running" ? state.ahead : undefined}
           estimate
-          note={stays ? <>You can leave. It&rsquo;ll be in <Link href="/me/repos" className="text-link">Your repos</Link>.</> : undefined}
+          note={
+            stays ? (
+              <>
+                You can leave. It&rsquo;ll be in{" "}
+                <Link href="/me/repos" className="text-link">
+                  Your repos
+                </Link>
+                .
+              </>
+            ) : undefined
+          }
         />
         {/* The report's shape, dimmed and still, so the page doesn't jump when it lands. */}
         <div aria-hidden="true" className="sk-still mt-10">

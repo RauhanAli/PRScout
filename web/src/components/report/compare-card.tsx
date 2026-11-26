@@ -43,7 +43,7 @@ export function CompareCard({ repo }: { repo: string }) {
           placeholder="name or owner/name"
           className="min-h-11 min-w-0 flex-1 border border-line-strong bg-bg px-3 font-mono text-[0.85rem] text-ink placeholder:text-faint focus:border-blue focus:outline-none"
         />
-        <button type="submit" className="min-h-11 shrink-0 border border-ink bg-ink px-3.5 text-[0.85rem] text-bg transition-opacity hover:opacity-85">
+        <button type="submit" className="min-h-11 shrink-0 rounded-lg border border-blue bg-blue px-3.5 text-[0.85rem] font-semibold text-on-accent transition-opacity hover:opacity-85">
           Compare
         </button>
       </form>

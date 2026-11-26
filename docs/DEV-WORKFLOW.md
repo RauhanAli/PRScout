@@ -1,6 +1,6 @@
-# Working on Holt every day
+# Working on PRScout every day
 
-For the two owners of `holt-oss/holt`, on their own laptops (Linux, macOS or
+For the two owners of `RauhanAli/prscout`, on their own laptops (Linux, macOS or
 Windows). It is the short path: what to run, and what bites. Each command below
 was run before it was written down; the details live in the READMEs it links.
 
@@ -13,7 +13,7 @@ Desktop is enough for the database.
 ## 1. Changing the layout (fastest path)
 
 ```sh
-git clone https://github.com/holt-oss/holt.git && cd holt/web
+git clone https://github.com/RauhanAli/prscout.git && cd prscout/web
 npm ci
 MOCK_API=1 npm run dev          # http://localhost:3000
 ```
@@ -31,17 +31,17 @@ following [`API.md`](../API.md)). The named repos below carry the verdict and
 counts the real engine gave them on 28 Sep 2026, so the mock never contradicts
 the live site; the rest of each page is illustrative. Which URL shows which state:
 
-| Open | You see |
-|---|---|
-| `/home-assistant/core`, `/NixOS/nixpkgs`, `/psf/requests`, `/pytorch/pytorch` | A finished report, **Worth your time**. Instant. |
-| `/pallets/flask`, `/aden-hive/hive` | A finished report, **Not worth your time**. Instant. |
-| `/vercel/next.js` | A finished report, **Not enough evidence**. Instant. |
-| `/anything/else` | The loading screen with live stages for about 6 seconds, then a report. The verdict is picked from the repo name, so it is stable. `MOCK_JOB_MS=20000` makes the wait longer. |
-| `/example/new-thing`, `/tiny/thing` | The same, ending in **Not enough evidence** (any name containing `tiny`, `empty` or `new-` does). |
-| `/mock/outdated` | The "we couldn't refresh this" fallback (an old report whose fresh check fails). |
-| `/doesnotexist/x`, `/private/x` | The repository-not-found page. |
-| `/discover`, `/find`, `/hacktoberfest`, `/compare?repos=home-assistant/core,pallets/flask` | The list pages, filled from the mock repos. `/compare` needs the dev sign-in. |
-| `/signin`, `/settings`, `/me/repos`, `/for-you` | Signed-out versions until you sign in (below). |
+| Open                                                                                       | You see                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/home-assistant/core`, `/NixOS/nixpkgs`, `/psf/requests`, `/pytorch/pytorch`              | A finished report, **Worth your time**. Instant.                                                                                                                              |
+| `/pallets/flask`, `/aden-hive/hive`                                                        | A finished report, **Not worth your time**. Instant.                                                                                                                          |
+| `/vercel/next.js`                                                                          | A finished report, **Not enough evidence**. Instant.                                                                                                                          |
+| `/anything/else`                                                                           | The loading screen with live stages for about 6 seconds, then a report. The verdict is picked from the repo name, so it is stable. `MOCK_JOB_MS=20000` makes the wait longer. |
+| `/example/new-thing`, `/tiny/thing`                                                        | The same, ending in **Not enough evidence** (any name containing `tiny`, `empty` or `new-` does).                                                                             |
+| `/mock/outdated`                                                                           | The "we couldn't refresh this" fallback (an old report whose fresh check fails).                                                                                              |
+| `/doesnotexist/x`, `/private/x`                                                            | The repository-not-found page.                                                                                                                                                |
+| `/discover`, `/find`, `/hacktoberfest`, `/compare?repos=home-assistant/core,pallets/flask` | The list pages, filled from the mock repos. `/compare` needs the dev sign-in.                                                                                                 |
+| `/signin`, `/settings`, `/me/repos`, `/for-you`                                            | Signed-out versions until you sign in (below).                                                                                                                                |
 
 Other switches: `MOCK_PRO=0` (hide
 the playbook), `MOCK_PRO_OFF=1` (pre-flight "coming soon"), `MOCK_REPORT_MS=600`
@@ -74,7 +74,7 @@ the app refuses to sign anyone in without a real one.
 Things that did not work as written:
 
 - **Port 5432 already taken** (a Postgres you already run)? Set
-  `HOLT_DB_PORT=5433` in `.env.local` and in `.env` (`cp .env.local .env`; the
+  `PRSCOUT_DB_PORT=5433` in `.env.local` and in `.env` (`cp .env.local .env`; the
   compose file reads `.env`), and change the port in `DATABASE_URL` to match.
 - Without a database, `/api/dev-signin` answers 500 (and the web log says
   "password authentication failed"). Every other page still works.
@@ -83,29 +83,29 @@ Things that did not work as written:
 
 Same web app, but talking to the real API server and the real engine, with your
 own GitHub token (read-only; no permissions needed). One Postgres serves both:
-the web app uses database `holt`, the API uses a second one. From the repo
+the web app uses database `PRScout`, the API uses a second one. From the repo
 root, with the database from section 1 running:
 
 ```sh
 uv sync
-docker compose -f web/compose.yml exec db createdb -U holt holt_api
+docker compose -f web/compose.yml exec db createdb -U prscout prscout_api
 cp server/.env.example server/.env
 ```
 
 Edit `server/.env` (it is gitignored) so these four lines read:
 
 ```sh
-DATABASE_URL=postgresql+asyncpg://holt:holt@127.0.0.1:5432/holt_api
-HOLT_INTERNAL_KEY=change-me                 # must equal HOLT_INTERNAL_KEY in web/.env.local
-HOLT_SECRET_KEY=<python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())">
+DATABASE_URL=postgresql+asyncpg://prscout:prscout@127.0.0.1:5432/prscout_api
+PRSCOUT_INTERNAL_KEY=change-me                 # must equal PRSCOUT_INTERNAL_KEY in web/.env.local
+PRSCOUT_SECRET_KEY=<python -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())">
 GITHUB_TOKENS=<your token: gh auth token, or a fine-grained one with no extra access>
 ```
 
 Then two terminals:
 
 ```sh
-# 1. the API   (http://127.0.0.1:8000, /health; add HOLT_ENV=dev for the /docs page)
-cd server && uv run holt-server
+# 1. the API   (http://127.0.0.1:8000, /health; add PRSCOUT_ENV=dev for the /docs page)
+cd server && uv run prscout-server
 
 # 2. the web app, with the mock switched off (edit .env.local: MOCK_API=0)
 cd web && npm run dev
@@ -113,7 +113,7 @@ cd web && npm run dev
 
 (Prefer a separate Postgres for the API? `docker compose -f server/compose.yml
 up -d` starts one on port 20131, and `server/.env.example` already points
-there. Its service, volume and port variable (`api-db`, `HOLT_API_DB_PORT`) are
+there. Its service, volume and port variable (`api-db`, `PRSCOUT_API_DB_PORT`) are
 named apart from the web app's, so the two never share a data directory, even
 under one `COMPOSE_PROJECT_NAME`.)
 
@@ -123,11 +123,11 @@ and a report takes about 10 to 30 seconds. One report costs about 10 GitHub
 points of the 5,000 an hour a token has. Sign-in works as in section 1.
 
 - Web files hot-reload. The server does not: stop it and start it again after
-  a change under `server/` or `src/holt/`. It runs the engine from your
+  a change under `server/` or `src/prscout/`. It runs the engine from your
   checkout, so engine edits show up on the next start.
 - AI reports need `OPENROUTER_API_KEY` in `server/.env`; without it they say
   "not available" and cost nothing.
-- Reports are cached for 24 hours (`HOLT_CACHE_HOURS`), so a repo you already
+- Reports are cached for 24 hours (`PRSCOUT_CACHE_HOURS`), so a repo you already
   opened comes back instantly with the old numbers. To see an engine change on
   it, ask for a fresh run (`POST /api/analyses` with `"refresh": true` queues one):
   ```sh
@@ -142,9 +142,9 @@ points of the 5,000 an hour a token has. Sign-in works as in section 1.
 ```sh
 uv sync
 uv run pytest tests/test_<area>.py -q        # only what you touched; the full suite is ~3 minutes
-uv run holt analyze NixOS/nixpkgs --replay               # offline, from a clone, no key
+uv run prscout analyze NixOS/nixpkgs --replay               # offline, from a clone, no key
 export GITHUB_TOKEN=$(gh auth token)                     # Windows: $env:GITHUB_TOKEN = (gh auth token)
-uv run holt analyze pallets/flask --live --no-model      # real data, about 25 seconds
+uv run prscout analyze pallets/flask --live --no-model      # real data, about 25 seconds
 ```
 
 **The golden set** is 62 recorded repositories and the verdict the engine
@@ -159,7 +159,7 @@ uv run python -m golden check                 # exit 1 on any unapproved change;
 
 On a clean checkout `diff` says "No differences" (about 10 seconds).
 
-**When to bump `ENGINE_VERSION`** (`src/holt/engine_version.py`, add one): when
+**When to bump `ENGINE_VERSION`** (`src/prscout/engine_version.py`, add one): when
 the same evidence would now produce a different report, meaning the verdict
 rules, the signals and thresholds they read, or the report's fields and
 wording. Not for refactors, tests or docs. Bumping makes the server stop
@@ -173,7 +173,7 @@ Adding a repo to the golden set, or changing verdict rules, has more steps:
 ## 4. From branch to production
 
 1. **Branch, never `main`.** Both of you can push branches straight to
-   `holt-oss/holt`; no fork is needed.
+   `RauhanAli/prscout`; no fork is needed.
    ```sh
    git switch main && git pull && git switch -c short-name-of-change
    ```
@@ -196,15 +196,18 @@ Adding a repo to the golden set, or changing verdict rules, has more steps:
      the extension's typecheck, tests and build; the generated
      `web/src/lib/api-schema.ts` is up to date (fix with
      `server/scripts/api_types.sh`); and ruff on Python (`uvx ruff@0.16.9
-     check .`).
+check .`).
 
    `main` is not protected, so GitHub lets you merge a red PR. Don't.
+
 4. **Preview it on staging** (optional, for anything you want to see or show
    on a real URL): add the `staging` label.
+
    ```sh
    gh pr edit <number> --add-label staging
    ```
-   Staging is https://staging.githolt.com: the real server and engine, real
+
+   Staging is https://staging.gitprscout.com: the real server and engine, real
    data, a separate database, never indexed. It is `main` plus every open PR
    with the label, rebuilt by a timer that looks every 3 minutes, so your
    change is live about 3 to 6 minutes after you label or push. Open it in a
@@ -218,23 +221,24 @@ Adding a repo to the golden set, or changing verdict rules, has more steps:
    page rather than assume.
 
    Check that your commit is the one running:
-   https://staging.githolt.com/__build. It lists the `main` commit, each PR
+   https://staging.gitprscout.com/__build. It lists the `main` commit, each PR
    included with its commit, any PR left out with the reason (a conflict with
    another labelled PR, for example), when it was built, the smoke-test result
    for that build (`smoke`, which finishes about 4 minutes after the site is
    live), and `last_attempt` (`building`, `waiting`, or `failed` with why).
    Take the label off when you are done so it stops joining other people's
    previews.
+
 5. **Merge to `main`.** Mark the PR ready, wait for green, squash-merge (that is
    what the history shows): `gh pr merge <number> --squash`. Staging follows
    `main` on its own.
-6. **Production** (https://githolt.com) never updates by itself. Only the
+6. **Production** (https://gitprscout.com) never updates by itself. Only the
    repo owner runs `deploy/prod/deploy.sh`, from `main`, when they decide to
    ([`deploy/prod/README.md`](../deploy/prod/README.md)): it builds, migrates
    the database first, swaps the containers, checks the site, and rolls back
    if that fails. Nobody else deploys, and nothing that isn't on `main` does.
    Ask. After a deploy that bumped `ENGINE_VERSION`, run
-   `deploy/prod/warm.sh --stale-only`. `https://githolt.com/__build` shows the
+   `deploy/prod/warm.sh --stale-only`. `https://gitprscout.com/__build` shows the
    commit that is live.
 
 ## 5. Rules that bite
@@ -244,7 +248,7 @@ Adding a repo to the golden set, or changing verdict rules, has more steps:
   change to the server's response models, run `server/scripts/api_types.sh`
   and commit `web/src/lib/api-schema.ts`; CI fails when it is stale.
 - **One migration head.** Schema changes are Alembic migrations in
-  `server/holt_server/migrations/versions/` ([how](../server/README.md#changing-the-schema)).
+  `server/prscout_server/migrations/versions/` ([how](../server/README.md#changing-the-schema)).
   Before you push, `git fetch && git merge origin/main` (merge, don't rebase),
   and make sure this prints exactly one line, with your migration as the head:
   ```sh
@@ -260,7 +264,7 @@ Adding a repo to the golden set, or changing verdict rules, has more steps:
 - **Secrets stay out of the repo.** `.env`, `.env.local` and `server/.env` are
   gitignored; keep tokens there and nowhere else, and never paste one into a
   PR, an issue or a log.
-- **Holt only reads from GitHub.** It never posts, opens PRs or contacts anyone.
+- **PRScout only reads from GitHub.** It never posts, opens PRs or contacts anyone.
 - **User-facing words are plain English.** No `not_viable`, no "MCC".
 - **The verdict comes from rules, never from a model.** The model explains it.
 - **Tests never use the network.** `web/` also runs `npm test`; `extension/` has

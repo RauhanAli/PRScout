@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from holt_server import entitlements, payments, pricing
-from holt_server.db import CreditLot, Order, PlanEvent, now
+from prscout_server import entitlements, payments, pricing
+from prscout_server.db import CreditLot, Order, PlanEvent, now
 from sqlalchemy import select
 
 KEY_ID = "rzp_test_fake"
@@ -103,7 +103,7 @@ def pricing_file(tmp_path):
 @pytest.fixture
 def make_hp(make_harness, pricing_file):
     def build(enabled: bool = True, keys: bool = True, **overrides):
-        h = make_harness(HOLT_PRICING_FILE=pricing_file, HOLT_PAYMENTS_ENABLED=enabled,
+        h = make_harness(PRSCOUT_PRICING_FILE=pricing_file, PRSCOUT_PAYMENTS_ENABLED=enabled,
                          **overrides)
         h.rz = FakeRazorpay() if keys else None
         h.svc.razorpay = h.rz
@@ -183,7 +183,7 @@ def test_passes_on_sale_come_from_the_pricing_file(hp):
 
 
 def test_the_packaged_pricing_file_sells_nothing(make_harness):
-    h = make_harness(HOLT_PAYMENTS_ENABLED=True)
+    h = make_harness(PRSCOUT_PAYMENTS_ENABLED=True)
     h.svc.razorpay = rz = FakeRazorpay()
     assert h.get("/v1/passes").json() == OFF
     for pid in ("pro_1m", "pro_3m", "pro_12m"):
@@ -210,7 +210,7 @@ def test_payments_are_off_by_default(tmp_path):
     assert payments.build(s) is None
 
 
-# --- HOLT_PASSES_ON_SALE: every pass on sale, outside production -----------------------
+# --- PRSCOUT_PASSES_ON_SALE: every pass on sale, outside production -----------------------
 
 
 PACKAGED = [
@@ -224,8 +224,8 @@ PACKAGED = [
 def make_staging(make_harness):
     """The packaged pricing file (no pass on sale in it) on staging's settings."""
     def build(env: str = "staging", **overrides):
-        values = {"HOLT_ENV": env, "HOLT_PAYMENTS_ENABLED": True, "HOLT_PASSES_ON_SALE": True,
-                  "HOLT_PR_WATCH": True, **overrides}
+        values = {"PRSCOUT_ENV": env, "PRSCOUT_PAYMENTS_ENABLED": True, "PRSCOUT_PASSES_ON_SALE": True,
+                  "PRSCOUT_PR_WATCH": True, **overrides}
         h = make_harness(**values)
         h.rz = h.svc.razorpay = FakeRazorpay()
         return h
@@ -272,8 +272,8 @@ def test_a_pass_bought_on_the_switch_gives_pro(make_staging, how):
 
 
 @pytest.mark.parametrize("overrides", [
-    {"HOLT_PAYMENTS_ENABLED": False},
-    {"HOLT_PASSES_ON_SALE": False},
+    {"PRSCOUT_PAYMENTS_ENABLED": False},
+    {"PRSCOUT_PASSES_ON_SALE": False},
 ])
 def test_the_switch_needs_payments_on_too_and_payments_need_the_switch(make_staging, overrides):
     h = make_staging(**overrides)
@@ -305,16 +305,16 @@ def test_production_ignores_the_switch(make_staging):
 
 
 def test_the_switch_is_off_and_the_environment_is_production_by_default(monkeypatch):
-    from holt_server.settings import Settings
+    from prscout_server.settings import Settings
 
-    for name in ("HOLT_ENV", "HOLT_PASSES_ON_SALE", "HOLT_PAYMENTS_ENABLED"):
+    for name in ("PRSCOUT_ENV", "PRSCOUT_PASSES_ON_SALE", "PRSCOUT_PAYMENTS_ENABLED"):
         monkeypatch.delenv(name, raising=False)
     s = Settings(_env_file=None)
     assert (s.env, s.passes_on_sale, s.payments_enabled, s.sell_every_pass) == (
         "production", False, False, False)
-    # Production's own settings (deploy/prod/compose.yml sets HOLT_ENV and none
+    # Production's own settings (deploy/prod/compose.yml sets PRSCOUT_ENV and none
     # of the payment switches): a pass is on sale only if the pricing file says so.
-    prod = Settings(_env_file=None, HOLT_ENV="production")
+    prod = Settings(_env_file=None, PRSCOUT_ENV="production")
     cat = pricing.cached(prod.pricing_file, prod.sell_every_pass)
     assert [pid for pid, p in cat.passes.items() if p.on_sale] == []
 
@@ -326,7 +326,7 @@ def test_productions_compose_never_sets_the_payment_switches():
     for path in sorted(prod.iterdir()):
         if path.is_file():
             text = path.read_text(encoding="utf-8")
-            for name in ("HOLT_PASSES_ON_SALE", "HOLT_PAYMENTS_ENABLED", "RAZORPAY"):
+            for name in ("PRSCOUT_PASSES_ON_SALE", "PRSCOUT_PAYMENTS_ENABLED", "RAZORPAY"):
                 assert name not in text, f"{path.name} mentions {name}"
 
 
@@ -343,7 +343,7 @@ def test_an_order_takes_its_price_from_the_server(hp):
     assert out["amount"] == PRICE and out["currency"] == "INR"
     assert (out["item"], out["days"], out["description"]) == ("pro_1m", 30, "Pro, 1 month")
     rz_order = hp.rz.orders[out["provider_order_id"]]
-    assert rz_order["amount"] == PRICE and rz_order["notes"]["holt_order"] == out["order_id"]
+    assert rz_order["amount"] == PRICE and rz_order["notes"]["prscout_order"] == out["order_id"]
     (order,) = rows(hp, Order)
     assert (order.user_id, order.status, order.amount, order.credits, order.pack_id,
             order.expires_days) == ("buyer", "created", PRICE, 0, "pro_1m", 30)

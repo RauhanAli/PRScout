@@ -23,9 +23,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from holt.evidence.github_graphql import GitHubGraphQL, search_query
-from holt.evidence.redact import redact_payload
-from holt.types import Window
+from prscout.evidence.github_graphql import GitHubGraphQL, search_query
+from prscout.evidence.redact import redact_payload
+from prscout.types import Window
 
 HERE = Path(__file__).parent
 MAX_BODY = 300

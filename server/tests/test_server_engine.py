@@ -6,16 +6,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from holt_server import engine, repos
-from holt_server import report as report_mod
-from holt_server.errors import ApiError
+from prscout_server import engine, repos
+from prscout_server import report as report_mod
+from prscout_server.errors import ApiError
 
-from holt.agent import pipeline
-from holt.evidence.errors import AuthError, RateLimited, RepoNotFound, UpstreamError
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import ReplayModel
-from holt.report import Assessment, Claim, Verdict
-from holt.types import T_CUTOFF, Window
+from prscout.agent import pipeline
+from prscout.evidence.errors import AuthError, RateLimited, RepoNotFound, UpstreamError
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import ReplayModel
+from prscout.report import Assessment, Claim, Verdict
+from prscout.types import T_CUTOFF, Window
 
 ROOT = Path(__file__).resolve().parents[2]
 REPO = "NixOS/nixpkgs"
@@ -39,7 +39,7 @@ def check_report_shape(report: dict, mode: str) -> None:
             "decided_by", "unknowns", "landing", "never_landed", "evidence",
             "evidence_until", "generated_at", "cost", "rule_codes", "tone",
             "verdict_line", "odds", "sample", "asks", "numbers_line", "first_timer_line",
-            "next_step", "stat_line", "counted", "holt_users", "budget_independent",
+            "next_step", "stat_line", "counted", "prscout_users", "budget_independent",
             "outdated", "about", "how_long"}
     assert set(report) == keys
     # The committed fixtures are a frozen capture read with the benchmark's
@@ -151,7 +151,7 @@ def test_evidence_cards_read_plainly():
 
 
 def test_ai_all_claims_dropped_is_stated():
-    from holt.agent.signals import compute
+    from prscout.agent.signals import compute
 
     a = Assessment(repo="o/r", verdict=Verdict.VIABLE, summary="s", claims=[],
                    dropped_claims=3, limits="Could not tell X.\nCould not tell Y.",
@@ -164,7 +164,7 @@ def test_ai_all_claims_dropped_is_stated():
 
 
 def test_bottom_line_only_in_ai_mode():
-    from holt.agent.signals import compute
+    from prscout.agent.signals import compute
 
     a = Assessment(repo="o/r", verdict=Verdict.VIABLE, summary="s",
                    bottom_line="You'd likely get a reply. Start small.")
@@ -179,7 +179,7 @@ def test_bottom_line_only_in_ai_mode():
 
 
 def test_reports_cached_before_new_fields_still_validate():
-    from holt_server import schema
+    from prscout_server import schema
 
     old = {"repo": "o/r", "mode": "ai", "days": 7, "verdict": "viable", "summary": "s",
            "stats": {"outsider_attempts": 1, "outsider_merged": 1, "distinct_outsiders": 1,
@@ -195,13 +195,13 @@ def test_reports_cached_before_new_fields_still_validate():
 def test_ai_cost_records_dollars_seconds_and_logs_one_line(caplog):
     from types import SimpleNamespace
 
-    from holt.model import Usage
+    from prscout.model import Usage
 
     m = SimpleNamespace(usage=Usage())
     m.usage.add("openai/gpt-5-mini", 12000, 3000)
     m.usage.cost_usd = 0.0123456
     timings = {"classify": 1.31, "narrate": 3.5, "total": 9.87}
-    with caplog.at_level("INFO", logger="holt_server.engine"):
+    with caplog.at_level("INFO", logger="prscout_server.engine"):
         cost = engine.ai_cost("o/r", m, timings)
     assert cost == {"model": "openai/gpt-5-mini", "input_tokens": 12000,
                     "output_tokens": 3000, "usd": 0.01235, "seconds": 9.9}
@@ -218,7 +218,7 @@ def test_claim_without_url_is_left_out():
     assert item is None
     a = Assessment(repo="o/r", verdict=Verdict.VIABLE, summary="",
                    claims=[Claim("a: b", "weird-id")])
-    from holt.agent.signals import compute
+    from prscout.agent.signals import compute
 
     out = report_mod.build(repo="o/r", mode="rules", assessment=a, signals=compute({}),
                            records=[])
@@ -296,7 +296,7 @@ def test_repo_rejects(raw):
 
 
 def test_rate_limiter_window():
-    from holt_server.ratelimit import RateLimiter
+    from prscout_server.ratelimit import RateLimiter
 
     t = [0.0]
     rl = RateLimiter(clock=lambda: t[0])
@@ -310,7 +310,7 @@ def test_rate_limiter_window():
 
 
 def test_rate_limiter_forgets_idle_keys():
-    from holt_server.ratelimit import RateLimiter
+    from prscout_server.ratelimit import RateLimiter
 
     t = [0.0]
     rl = RateLimiter(clock=lambda: t[0])
@@ -322,6 +322,6 @@ def test_rate_limiter_forgets_idle_keys():
 
 
 def test_model_spec_hides_the_key():
-    from holt_server.llm import ModelSpec
+    from prscout_server.llm import ModelSpec
 
     assert "sk-secret" not in repr(ModelSpec("openrouter", "m", "sk-secret"))

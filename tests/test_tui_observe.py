@@ -5,8 +5,8 @@ Three things are held here:
 * Watching a run does not change it. The assessment produced with the observers
   in place is identical to the one produced without them, because a second way
   of running a stage is exactly what this feature must not become.
-* The keys `holt.tui.observe` reads off each stage's response still exist. That
-  file mirrors `holt.agent.stages` so the live view can show a claim before
+* The keys `prscout.tui.observe` reads off each stage's response still exist. That
+  file mirrors `prscout.agent.stages` so the live view can show a claim before
   Stage D judges it; the mirror is pinned here so a schema change breaks a test
   instead of silently emptying a panel.
 * The Stage D drop reaches the event stream, from a repository where a drop
@@ -23,13 +23,13 @@ from pathlib import Path
 
 import pytest
 
-from holt import model
-from holt.agent import pipeline
-from holt.evidence.fixtures import FixtureProvider
-from holt.tui import events
-from holt.tui.observe import EXPECTED_KEYS, ObservingModel, ObservingProvider
-from holt.tui.session import RunOptions, Session
-from holt.types import Window
+from prscout import model
+from prscout.agent import pipeline
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.tui import events
+from prscout.tui.observe import EXPECTED_KEYS, ObservingModel, ObservingProvider
+from prscout.tui.session import RunOptions, Session
+from prscout.types import Window
 
 # A repository whose recorded run drops a finding: the model cited
 # `no_contributing_file`, an id it invented, which does not resolve.
@@ -89,7 +89,7 @@ def test_stage_responses_still_carry_the_keys_the_live_view_reads(repo):
         for key in keys:
             assert key in responses[stage], (
                 f"stage {stage!r} no longer returns {key!r}; "
-                "holt.tui.observe reads it to build the live view"
+                "prscout.tui.observe reads it to build the live view"
             )
 
 
@@ -187,7 +187,7 @@ def test_describe_survives_an_event_it_has_never_seen():
 
 
 def test_verdict_colour_tolerates_a_member_the_tui_has_never_seen():
-    from holt.tui import theme
+    from prscout.tui import theme
 
     assert theme.verdict_colour("viable") == theme.VIABLE
     assert theme.verdict_colour("a_verdict_added_later") == theme.VERDICT_FALLBACK
@@ -203,7 +203,7 @@ def test_a_live_run_records_outside_the_committed_fixtures():
     live run lands under the user data directory and nowhere near the fixtures
     — or the current directory, which is somebody's project.
     """
-    from holt import model, paths
+    from prscout import model, paths
 
     opts = RunOptions(repo=CLEAN, replay=False, live=True)
     for kind in ("verdict", "pathfinder"):
@@ -221,7 +221,7 @@ def test_a_live_run_records_outside_the_committed_fixtures():
 
 def test_replay_still_reads_the_committed_trajectories():
     """The other half of the same guarantee: replay is unchanged."""
-    from holt.tui.session import _client
+    from prscout.tui.session import _client
 
     opts = RunOptions(repo=CLEAN, replay=True)
     assert _client(CLEAN, opts, "verdict").replayed is True
@@ -229,8 +229,8 @@ def test_replay_still_reads_the_committed_trajectories():
 
 def test_missing_credentials_asks_only_for_a_github_token(monkeypatch):
     """A model is never required: without one a run is rules-only."""
-    from holt import credentials
-    from holt.tui.session import missing_credentials
+    from prscout import credentials
+    from prscout.tui.session import missing_credentials
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
@@ -247,8 +247,8 @@ def test_missing_credentials_asks_only_for_a_github_token(monkeypatch):
 
 
 def test_with_no_model_set_up_a_run_is_rules_only(monkeypatch):
-    from holt import model
-    from holt.tui.session import Session, _client
+    from prscout import model
+    from prscout.tui.session import Session, _client
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     model.enable_user_models_config(model.ModelsConfig())
@@ -265,8 +265,8 @@ def test_with_no_model_set_up_a_run_is_rules_only(monkeypatch):
 
 
 def test_the_interface_honours_the_chosen_provider(monkeypatch, tmp_path):
-    from holt import model
-    from holt.tui.session import _client
+    from prscout import model
+    from prscout.tui.session import _client
 
     monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
     model.enable_user_models_config(model.ModelsConfig(provider="anthropic"))
@@ -280,7 +280,7 @@ def test_the_interface_honours_the_chosen_provider(monkeypatch, tmp_path):
 
 def test_env_file_fills_gaps_without_overriding(tmp_path, monkeypatch):
     """`.env` is a convenience, not an authority: an explicit export wins."""
-    from holt.tui import env
+    from prscout.tui import env
 
     path = tmp_path / ".env"
     path.write_text(
@@ -346,7 +346,7 @@ def test_the_evidence_event_carries_the_cutoff_the_run_actually_used():
     """
     from datetime import UTC, datetime
 
-    from holt.types import T_CUTOFF
+    from prscout.types import T_CUTOFF
 
     today = datetime(2026, 8, 31, tzinfo=UTC)
     seen: list = []
@@ -362,7 +362,7 @@ def test_the_evidence_event_carries_the_cutoff_the_run_actually_used():
 
 def test_a_replayed_run_reports_the_holdout_boundary():
     """The other side of it: a fixture run really is cut at T."""
-    from holt.types import T_CUTOFF
+    from prscout.types import T_CUTOFF
 
     _, _, seen = _run(CLEAN)
     loaded = [e for e in seen if isinstance(e, events.EvidenceLoaded)]
@@ -423,7 +423,7 @@ def test_the_wrappers_raise_on_a_stop_without_reporting_a_failure():
     which would have the interface report a stop the reader asked for as a
     defect in the run.
     """
-    from holt.tui.observe import RunCancelled
+    from prscout.tui.observe import RunCancelled
 
     seen: list = []
 

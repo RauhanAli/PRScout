@@ -69,11 +69,11 @@ export default async function ThanksPage({ searchParams }: PageProps<"/pricing/t
           <section className="border border-line-strong bg-panel p-5 shadow-soft sm:p-8">{body}</section>
           <div className="mt-6 flex flex-wrap gap-3">
             {order?.status === "failed" ? (
-              <Link href="/pricing#passes" className="btn-primary">try again →</Link>
+              <Link href="/pricing#passes" className="btn-primary">Try again →</Link>
             ) : (
-              <Link href="/" className="btn-primary">check a repo →</Link>
+              <Link href="/" className="btn-primary">Check a repo →</Link>
             )}
-            <Link href={`${PLAN_SETTINGS}#purchases`} className="btn-ghost">your purchases</Link>
+            <Link href={`${PLAN_SETTINGS}#purchases`} className="btn-ghost">Your purchases</Link>
           </div>
         </div>
       </>

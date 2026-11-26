@@ -4,8 +4,8 @@ batched details query, kept in repo_meta, and served in `about.readme`."""
 from __future__ import annotations
 
 from conftest import canned_report
-from holt_server import discover
-from holt_server.db import Report, now
+from prscout_server import discover
+from prscout_server.db import Report, now
 from test_server_about import NODE, REPO, _served
 from test_server_discover import add, lookup_with
 
@@ -52,7 +52,7 @@ def test_a_repo_read_before_the_readme_existed_serves_null(h):
 
 
 def test_a_row_read_before_the_readme_was_kept_is_read_again_at_once(h):
-    from holt_server.db import RepoMeta
+    from prscout_server.db import RepoMeta
 
     # Fresh (read just now), but from before `links` and `readme` were stored.
     add(h, RepoMeta(repo_key=REPO, repo=REPO, description="d", language="Python", stars=3,

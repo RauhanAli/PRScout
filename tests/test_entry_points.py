@@ -11,10 +11,10 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from holt.agent import entry
-from holt.issues import issue_key, open_at_cutoff
-from holt.report import Assessment, Claim, EntryPoint, Verdict
-from holt.types import T_CUTOFF, EvidenceRecord
+from prscout.agent import entry
+from prscout.issues import issue_key, open_at_cutoff
+from prscout.report import Assessment, Claim, EntryPoint, Verdict
+from prscout.types import T_CUTOFF, EvidenceRecord
 
 BEFORE = T_CUTOFF - timedelta(days=1)
 
@@ -44,7 +44,7 @@ def test_a_rendered_ranking_always_carries_its_measured_precision():
 def test_the_headline_numbers_appear_verbatim_in_the_disclaimer():
     """If the measurement is updated, the printed claim has to move with it."""
     p = entry.MEASURED["precision_at_3"]
-    assert f"{p['holt']:.3f}" in entry.DISCLAIMER
+    assert f"{p['PRScout']:.3f}" in entry.DISCLAIMER
     assert f"{p['good_first_issue']:.3f}" in entry.DISCLAIMER
     assert f"{p['random']:.3f}" in entry.DISCLAIMER
     assert str(entry.MEASURED["repos_with_no_labelled_issue"]) in entry.DISCLAIMER

@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from eval.labels.naive import INSUFFICIENT_EVIDENCE, established_authors, score
-from holt.types import T_CUTOFF, EvidenceRecord
+from prscout.types import T_CUTOFF, EvidenceRecord
 
 BEFORE = T_CUTOFF - timedelta(days=10)
 AFTER = T_CUTOFF + timedelta(days=10)

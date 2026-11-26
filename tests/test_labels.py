@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from holt.agent import labels
+from prscout.agent import labels
 
 FORMAT_TS = Path(__file__).resolve().parents[1] / "web" / "src" / "lib" / "format.ts"
 

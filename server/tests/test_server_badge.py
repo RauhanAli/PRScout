@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from holt_server import badge
+from prscout_server import badge
 
 
 def stats(merged=8, hours=3.0):
@@ -37,9 +37,9 @@ def test_unchecked():
 
 
 def test_render_escapes_and_sizes():
-    svg = badge.render("viable", stats(), 'https://githolt.com/o/r"><x')
-    assert 'aria-label="Holt: merges outsiders · replies in ~3h"' in svg
+    svg = badge.render("viable", stats(), 'https://gitprscout.com/o/r"><x')
+    assert 'aria-label="PRScout: merges outsiders · replies in ~3h"' in svg
     assert "&quot;&gt;&lt;x" in svg and '"><x' not in svg
-    short = badge.render(None, None, "https://githolt.com/o/r")
+    short = badge.render(None, None, "https://gitprscout.com/o/r")
     width = lambda s: int(s.split('width="', 1)[1].split('"', 1)[0])  # noqa: E731
     assert width(svg) > width(short)

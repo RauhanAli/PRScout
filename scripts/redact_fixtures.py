@@ -1,7 +1,7 @@
 """Re-scrub every committed fixture and report exactly what changed.
 
 Run after `scripts/capture_fixtures.py` or `scripts/capture_issues.py`, and once
-over the whole tree whenever the patterns in `holt.evidence.redact` change. It
+over the whole tree whenever the patterns in `prscout.evidence.redact` change. It
 rewrites in place and recomputes the content hash, so a fixture that changes here
 is a fixture whose hash moves — which is the point: the committed hash must
 describe the committed bytes.
@@ -16,7 +16,7 @@ import json
 import sys
 from pathlib import Path
 
-from holt.evidence.fixtures import content_hash, record_from_dict, record_to_dict, redact_records
+from prscout.evidence.fixtures import content_hash, record_from_dict, record_to_dict, redact_records
 
 
 def main() -> None:

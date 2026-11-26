@@ -8,11 +8,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from holt.agent import pipeline
-from holt.evidence import github_graphql as gql
-from holt.evidence.provider import EvidenceProvider
-from holt.report import Verdict
-from holt.types import EvidenceRecord, Window
+from prscout.agent import pipeline
+from prscout.evidence import github_graphql as gql
+from prscout.evidence.provider import EvidenceProvider
+from prscout.report import Verdict
+from prscout.types import EvidenceRecord, Window
 
 NOW = datetime(2026, 9, 29, tzinfo=UTC)
 

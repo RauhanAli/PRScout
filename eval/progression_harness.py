@@ -23,14 +23,14 @@ from math import comb
 from pathlib import Path
 
 from eval.labels import progression as truth
-from holt.agent import progression as rank_lib
-from holt.agent.entry import RANKER_SIGNALS
-from holt.agent.signals import build_threads, compute
-from holt.agent.stages import find_paths
-from holt.evidence.fixtures import FixtureProvider
-from holt.issues import issue_key
-from holt.model import OpenAIModel, ReplayModel, TRAJECTORY_DIR
-from holt.types import Window
+from prscout.agent import progression as rank_lib
+from prscout.agent.entry import RANKER_SIGNALS
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.stages import find_paths
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.issues import issue_key
+from prscout.model import OpenAIModel, ReplayModel, TRAJECTORY_DIR
+from prscout.types import Window
 
 ISSUE_ROOT = Path("fixtures/issues")
 K_HIT = 10
@@ -103,7 +103,7 @@ def main() -> None:
             if path.exists():
                 model = ReplayModel(path) if args.replay else OpenAIModel(path)
                 signals = compute(build_threads(pre_p)).as_dict()
-                from holt.issues import open_at_cutoff
+                from prscout.issues import open_at_cutoff
                 blind_order = [
                     issue_key(r["evidence_id"])
                     for r in find_paths(slug, list(open_at_cutoff(pre_i).values()),

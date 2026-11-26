@@ -1,7 +1,7 @@
-# Contributing to Holt
+# Contributing to PRScout
 
-Thank you for helping Holt make open-source contribution choices less like
-guesswork. Holt has one maintainer, so small, focused pull requests are the
+Thank you for helping PRScout make open-source contribution choices less like
+guesswork. PRScout has one maintainer, so small, focused pull requests are the
 fastest to get reviewed and merged.
 
 Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
@@ -11,29 +11,29 @@ the private process in [SECURITY.md](SECURITY.md), not a public issue.
 ## Your first PR in 15 minutes
 
 **1. Pick something small.** Issues labelled
-[good first issue](https://github.com/holt-oss/holt/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+[good first issue](https://github.com/RauhanAli/prscout/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 say which files they touch and how to check your change. Comment on the issue
 so nobody else starts the same one.
 
 **2. Find your way around.** The repository in eight lines
 ([docs/README.md](docs/README.md) indexes everything else):
 
-| Path | What it is | Language |
-|---|---|---|
-| `src/holt/` | The engine, the CLI and the terminal interface (`holt-cli` on PyPI) | Python |
-| `server/` | The HTTP API the web app calls ([API.md](API.md) is the contract) | Python, FastAPI |
-| `web/` | The web app | TypeScript, Next.js |
-| `extension/` | The browser extension that puts a chip on GitHub pages | TypeScript |
-| `e2e/`, `deploy/` | Smoke tests against a deployed Holt; container images and staging | TypeScript, shell |
-| `eval/`, `fixtures/` | The benchmark and its recorded evidence (large; only for evaluation work) | Python, JSON |
-| `docs/`, `*.md` | Documentation; `website/` is the legacy landing page, don't extend it | Markdown |
+| Path                 | What it is                                                                | Language            |
+| -------------------- | ------------------------------------------------------------------------- | ------------------- |
+| `src/prscout/`       | The engine, the CLI and the terminal interface (`prscout-cli` on PyPI)    | Python              |
+| `server/`            | The HTTP API the web app calls ([API.md](API.md) is the contract)         | Python, FastAPI     |
+| `web/`               | The web app                                                               | TypeScript, Next.js |
+| `extension/`         | The browser extension that puts a chip on GitHub pages                    | TypeScript          |
+| `e2e/`, `deploy/`    | Smoke tests against a deployed PRScout; container images and staging      | TypeScript, shell   |
+| `eval/`, `fixtures/` | The benchmark and its recorded evidence (large; only for evaluation work) | Python, JSON        |
+| `docs/`, `*.md`      | Documentation; `website/` is the legacy landing page, don't extend it     | Markdown            |
 
 **3. Get the code.** A docs or extension change does not need the ~315 MB of
 benchmark evidence, so you can skip it:
 
 ```sh
-git clone --filter=blob:none --sparse https://github.com/holt-oss/holt.git
-cd holt
+git clone --filter=blob:none --sparse https://github.com/RauhanAli/prscout.git
+cd PRScout
 git sparse-checkout set --no-cone '/*' '!/fixtures/'
 ```
 
@@ -43,13 +43,13 @@ details.
 
 **4. Run only the part you touch.**
 
-| You changed | Run |
-|---|---|
-| Docs only | Nothing to run. Preview the Markdown on GitHub. |
-| Engine, CLI, TUI | `uv sync`, then `uv run pytest tests/test_<area>.py -q` |
-| Server | `uv sync`, then `uv run pytest server/tests -q` |
-| Web app | `cd web && npm ci && npm run dev` |
-| Extension | `cd extension && npm ci && npm test && npm run typecheck` |
+| You changed      | Run                                                       |
+| ---------------- | --------------------------------------------------------- |
+| Docs only        | Nothing to run. Preview the Markdown on GitHub.           |
+| Engine, CLI, TUI | `uv sync`, then `uv run pytest tests/test_<area>.py -q`   |
+| Server           | `uv sync`, then `uv run pytest server/tests -q`           |
+| Web app          | `cd web && npm ci && npm run dev`                         |
+| Extension        | `cd extension && npm ci && npm test && npm run typecheck` |
 
 [`uv`](https://docs.astral.sh/uv/) installs the right Python for you. The full
 Python suite (`uv run pytest -rs`) takes a few minutes and CI runs it on every
@@ -66,12 +66,12 @@ maintainer reviews and decides.
 - **The command line and the terminal interface are feature-frozen.** They
   stay free and keep getting engine updates, bug fixes and documentation, but
   new features go to the web app (`web/` and `server/`). A pull request that
-  adds a new `holt` command or flag will be pointed there.
+  adds a new `PRScout` command or flag will be pointed there.
 - Search existing issues and pull requests before opening a duplicate.
 - For a substantial feature or a change to the verdict rules, open a feature
   request first. The evidence model and evaluation design are part of the
   product contract, so an implementation may be sound and still not belong in
-  Holt.
+  PRScout.
 - Small bug fixes, tests, and documentation corrections can go straight to a
   pull request.
 - Never include API keys, GitHub tokens, private repository data, or unredacted
@@ -83,12 +83,12 @@ Day-to-day work on the web app or the pipeline (mock data, the full local
 stack, the staging preview, CI, deploys) is in
 [docs/DEV-WORKFLOW.md](docs/DEV-WORKFLOW.md). What follows is the engine setup.
 
-Holt requires Python 3.11 or newer. The repository pins its working Python
+PRScout requires Python 3.11 or newer. The repository pins its working Python
 version and dependencies through [`uv`](https://docs.astral.sh/uv/).
 
 ```sh
-git clone https://github.com/holt-oss/holt.git
-cd holt
+git clone https://github.com/RauhanAli/prscout.git
+cd PRScout
 uv sync
 uv run pytest -rs
 ```
@@ -99,7 +99,7 @@ the complete test suite without skips.
 To exercise the two no-key commands shown to users:
 
 ```sh
-PYTHONPATH=. uv run holt analyze NixOS/nixpkgs --replay
+PYTHONPATH=. uv run prscout analyze NixOS/nixpkgs --replay
 PYTHONPATH=. uv run python eval/harness.py --replay --run-tag run1
 ```
 
@@ -122,16 +122,16 @@ Maintainer releases follow [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Changing the verdict rules
 
-Most contributions never touch this. If yours changes what verdict Holt gives,
+Most contributions never touch this. If yours changes what verdict PRScout gives,
 open a feature request first: the evidence model and the evaluation design are
 part of the product contract, so an implementation can be sound and still not
-belong in Holt. Read [docs/DESIGN.md](docs/DESIGN.md) before changing the
+belong in PRScout. Read [docs/DESIGN.md](docs/DESIGN.md) before changing the
 engine and [docs/research/EVALUATION.md](docs/research/EVALUATION.md) before changing the
 benchmark, labels, sampling, or headline metrics.
 
 These invariants are load-bearing rather than stylistic:
 
-- Holt is read-only. It does not write to GitHub, open pull requests, or contact
+- PRScout is read-only. It does not write to GitHub, open pull requests, or contact
   maintainers.
 - Every fact a model stage sees passes through `EvidenceProvider`.
 - Every user-visible factual claim carries a source line or an evidence id that
@@ -145,7 +145,7 @@ These invariants are load-bearing rather than stylistic:
 - A skipped test is not a passing test. Use `pytest -rs` and report skips.
 - A change to what a report says for the same evidence (the verdict rules, the
   signals and thresholds they read, or the report's fields and wording) bumps
-  `ENGINE_VERSION` in `src/holt/engine_version.py` by one. The web app keeps
+  `ENGINE_VERSION` in `src/prscout/engine_version.py` by one. The web app keeps
   every report it has made and serves it for a day; the version is how it knows
   a stored report came from older rules and must be checked again. Refactors
   that leave every report the same don't bump it.
@@ -173,15 +173,15 @@ commit messages or pull-request descriptions.
 
 ## Licensing
 
-Holt splits its license by directory:
+PRScout splits its license by directory:
 
-- `src/holt/` (the engine, CLI and TUI) and `extension/` are
+- `src/prscout/` (the engine, CLI and TUI) and `extension/` are
   [Apache License 2.0](LICENSE).
 - `web/` and `server/` are [GNU AGPL-3.0](web/LICENSE), because they run as a
   network service and the AGPL keeps modified versions of that service open.
 
 Unless you explicitly state otherwise, a contribution intentionally
-submitted for inclusion in Holt is provided under the license that already
+submitted for inclusion in PRScout is provided under the license that already
 covers the directory it lands in — Apache-2.0 for the engine, CLI, TUI and
 extension (as described in section 5 of that license), AGPL-3.0 for `web/`
 and `server/`. You must have the right to submit the work and must preserve

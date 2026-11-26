@@ -1,8 +1,8 @@
-# Reproducing Holt
+# Reproducing PRScout
 
 Written for someone starting from a clean machine with nothing installed, who
 wants to check the result rather than use the tool. **If you just want to use
-Holt on a repository, [docs/USAGE.md](../USAGE.md) is the shorter page.**
+PRScout on a repository, [docs/USAGE.md](../USAGE.md) is the shorter page.**
 
 **The headline result needs no API key, no GitHub token, and no money.**
 
@@ -14,12 +14,12 @@ verify the published measurements without making live API calls.
 
 ## What you need
 
-| | |
-|---|---|
-| Python | 3.12 (pinned in `.python-version`; `uv` installs it for you) |
+|                 |                                                                                         |
+| --------------- | --------------------------------------------------------------------------------------- |
+| Python          | 3.12 (pinned in `.python-version`; `uv` installs it for you)                            |
 | Package manager | [`uv`](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Disk | ~400 MB for a full clone; `fixtures/` is about 315 MB of it |
-| Network | to clone and to install dependencies; **not** to reproduce the result |
+| Disk            | ~400 MB for a full clone; `fixtures/` is about 315 MB of it                             |
+| Network         | to clone and to install dependencies; **not** to reproduce the result                   |
 
 Nothing else. No API key for the headline number.
 
@@ -28,8 +28,8 @@ Nothing else. No API key for the headline number.
 ## 1. Clone and install
 
 ```sh
-git clone https://github.com/holt-oss/holt.git
-cd holt
+git clone https://github.com/RauhanAli/prscout.git
+cd PRScout
 uv sync
 ```
 
@@ -42,8 +42,8 @@ docs, the web app, the server or the extension, a partial clone without
 `fixtures/` is about 11 MB instead of 400:
 
 ```sh
-git clone --filter=blob:none --sparse https://github.com/holt-oss/holt.git
-cd holt
+git clone --filter=blob:none --sparse https://github.com/RauhanAli/prscout.git
+cd PRScout
 git sparse-checkout set --no-cone '/*' '!/fixtures/'
 ```
 
@@ -97,12 +97,12 @@ name_only         0.11    0.55   0.48   0.36   0.75   0.60
 popularity           -       -      -      -      -   0.70
 baseline          0.02    0.51   0.64   0.64   0.38   0.50
 baseline_matched   0.49    0.71   0.84   0.93   0.50   0.70
-holt              0.61    0.80   0.86   0.86   0.75   0.80
+PRScout              0.61    0.80   0.86   0.86   0.75   0.80
 
 spend: $0.477   graded 22/30 pool repos   positives: 14   ungraded (no post-cutoff attempts): 5
 ```
 
-For `p2r1`, the holt row reads `0.63  0.82  0.85  0.81  0.83  0.90` — and it is
+For `p2r1`, the PRScout row reads `0.63  0.82  0.85  0.81  0.83  0.90` — and it is
 identical on `p2r2` and `p2r3`, because the verdict is deterministic. The
 README's headline figures are means over the three runs per pool:
 
@@ -113,7 +113,7 @@ PYTHONPATH=. uv run python eval/stats.py        # uncertainty over repositories
 PYTHONPATH=. uv run python eval/evidence_integrity.py   # citations and yield
 ```
 
-`evidence_integrity.py` scores the *report* rather than the verdict: whether
+`evidence_integrity.py` scores the _report_ rather than the verdict: whether
 cited ids resolve, whether quoted words are in the record, and how many
 checkable statements a report makes. It reads the same six frozen runs. This is
 the axis on which the verdict layer scores zero, and it is reported because MCC
@@ -130,16 +130,16 @@ See the changelog.
 
 ## 4. Run both solutions on one repository — still no key
 
-The benchmark compares Holt with a one-prompt baseline. Both are
+The benchmark compares PRScout with a one-prompt baseline. Both are
 runnable, on the same repository, from the same evidence. The baseline is
-benchmark material, so it lives in `eval/` rather than in the `holt` command:
+benchmark material, so it lives in `eval/` rather than in the `PRScout` command:
 
 ```sh
 # baseline: one prompt over README and metadata
 PYTHONPATH=. uv run python -m eval.baseline NixOS/nixpkgs
 
 # the full pipeline
-PYTHONPATH=. uv run holt analyze NixOS/nixpkgs --replay
+PYTHONPATH=. uv run prscout analyze NixOS/nixpkgs --replay
 ```
 
 Each prints a Markdown assessment. Both declare, in the output itself, that they
@@ -150,13 +150,13 @@ hundreds of merged outsider pull requests and no software contributions:
 
 ```sh
 PYTHONPATH=. uv run python -m eval.baseline is-a-dev/register         # viable
-PYTHONPATH=. uv run holt analyze is-a-dev/register --replay             # not_viable
+PYTHONPATH=. uv run prscout analyze is-a-dev/register --replay             # not_viable
 ```
 
 To watch verification remove unsupported findings:
 
 ```sh
-PYTHONPATH=. uv run holt analyze NixOS/nixpkgs --replay --show-verification
+PYTHONPATH=. uv run prscout analyze NixOS/nixpkgs --replay --show-verification
 ```
 
 Findings whose evidence ids do not resolve are printed as `DROPPED` on stderr and
@@ -166,13 +166,13 @@ The other commands run from the same committed evidence, still with no key:
 
 ```sh
 # a shortlist, side by side; rows in the order you asked for
-PYTHONPATH=. uv run holt compare runelite/plugin-hub NixOS/nixpkgs --replay
+PYTHONPATH=. uv run prscout compare runelite/plugin-hub NixOS/nixpkgs --replay
 
 # open issues ranked for someone who has merged work there; no model call at all
-PYTHONPATH=. uv run holt next NixOS/nixpkgs --as mweinelt
+PYTHONPATH=. uv run prscout next NixOS/nixpkgs --as mweinelt
 
 # a recorded discovery session: sourcing, free screening, survivor analyses
-PYTHONPATH=. uv run holt discover
+PYTHONPATH=. uv run prscout discover
 ```
 
 `discover` states in its own output that it is replaying a recorded session and
@@ -214,7 +214,7 @@ PYTHONPATH=. uv run python eval/harness.py            # full sweep, ~$0.36, ~25 
 PYTHONPATH=. uv run python eval/harness.py --resume   # only repositories not yet recorded
 ```
 
-Models are pinned to dated ids (`gpt-5-mini-2025-08-07`) in `src/holt/model.py`,
+Models are pinned to dated ids (`gpt-5-mini-2025-08-07`) in `src/prscout/model.py`,
 not floating aliases, so a recorded run cannot drift underneath you.
 
 Replay refuses to serve a recording whose prompt has changed rather than
@@ -226,10 +226,10 @@ will fail loudly and you will need to re-record.
 ```sh
 export OPENAI_API_KEY=...
 export GITHUB_TOKEN=...      # a classic token with NO scopes is sufficient
-PYTHONPATH=. uv run holt analyze owner/name --live
+PYTHONPATH=. uv run prscout analyze owner/name --live
 ```
 
-A zero-scope token still gets 5,000 GraphQL points an hour, which is ample. Holt
+A zero-scope token still gets 5,000 GraphQL points an hour, which is ample. PRScout
 reads public data only and never writes.
 
 **Cost:** about $0.012 a repository. **Runtime:** about 40 seconds.
@@ -248,16 +248,16 @@ pool draw can be checked without this.
 
 ## Costs and runtimes at a glance
 
-| Task | Key needed | Runtime | Cost |
-|---|---|---|---|
-| Tests | no | ~2 min | $0.00 |
-| **Headline result (`--replay`)** | **no** | **30 s** | **$0.00** |
-| Both solutions on one repo | no | 5 s | $0.00 |
-| Re-run labels | no | 20 s | $0.00 |
-| Verify the pool draw | no | 10 s | $0.00 |
-| Full live sweep | yes | ~25 min | ~$0.36 |
-| One repository live | yes + GitHub | ~40 s | ~$0.012 |
-| Rebuild the frame | no | ~20 min | $0.00 |
+| Task                             | Key needed   | Runtime  | Cost      |
+| -------------------------------- | ------------ | -------- | --------- |
+| Tests                            | no           | ~2 min   | $0.00     |
+| **Headline result (`--replay`)** | **no**       | **30 s** | **$0.00** |
+| Both solutions on one repo       | no           | 5 s      | $0.00     |
+| Re-run labels                    | no           | 20 s     | $0.00     |
+| Verify the pool draw             | no           | 10 s     | $0.00     |
+| Full live sweep                  | yes          | ~25 min  | ~$0.36    |
+| One repository live              | yes + GitHub | ~40 s    | ~$0.012   |
+| Rebuild the frame                | no           | ~20 min  | $0.00     |
 
 ---
 

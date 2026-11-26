@@ -1,4 +1,4 @@
-# Holt website (legacy)
+# PRScout website (legacy)
 
 **This is the old static landing page.** It still serves the live site until
 the web app in [`web/`](../web/) launches in production, and then it goes.

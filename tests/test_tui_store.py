@@ -13,9 +13,9 @@ from datetime import timedelta
 
 import pytest
 
-from holt.report import Assessment, Claim, EntryPoint, Verdict
-from holt.tui import store
-from holt.types import T_CUTOFF, EvidenceRecord
+from prscout.report import Assessment, Claim, EntryPoint, Verdict
+from prscout.tui import store
+from prscout.types import T_CUTOFF, EvidenceRecord
 
 
 def make(repo: str = "owner/name", verdict: Verdict = Verdict.VIABLE) -> Assessment:
@@ -24,7 +24,7 @@ def make(repo: str = "owner/name", verdict: Verdict = Verdict.VIABLE) -> Assessm
         verdict=verdict,
         summary="what the evidence shows",
         claims=[Claim(text="repo_kind = real_software", evidence_id="repo:x:meta")],
-        method="holt",
+        method="PRScout",
         replayed=True,
     )
     for name, value in (
@@ -187,7 +187,7 @@ def test_age_reads_like_a_person_wrote_it(seconds, expected):
 
 
 def _trace() -> list:
-    from holt.tui import events
+    from prscout.tui import events
 
     return [
         events.RunStarted(repo="owner/name", replayed=True),
@@ -213,7 +213,7 @@ def _trace() -> list:
 def test_the_trace_survives_the_process_that_produced_it(tmp_path):
     """A stored assessment used to keep its claims and lose the run behind
     them, which is the only record of what was dropped and why."""
-    from holt.tui import events
+    from prscout.tui import events
 
     keep = store.Store(root=tmp_path)
     keep.save(entry(events=_trace()))
@@ -265,7 +265,7 @@ def test_an_event_this_build_does_not_know_is_skipped_not_fatal(tmp_path):
 def test_a_finding_that_will_not_serialise_does_not_lose_the_assessment(tmp_path):
     """A finding's value is whatever a model put in a field. History is a
     convenience; it must never be the reason a report fails to save."""
-    from holt.tui import events
+    from prscout.tui import events
 
     keep = store.Store(root=tmp_path)
     keep.save(

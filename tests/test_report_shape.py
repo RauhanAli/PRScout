@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from holt.agent.pipeline import MAX_CLAIM_CHARS, clip
-from holt.report import Assessment, Claim, Verdict
+from prscout.agent.pipeline import MAX_CLAIM_CHARS, clip
+from prscout.report import Assessment, Claim, Verdict
 
 
 def build(**kw) -> str:
@@ -81,13 +81,13 @@ def test_a_claim_keeps_its_evidence_id_next_to_it():
      ("nonsense", "")],
 )
 def test_evidence_ids_become_github_links(evidence_id, url):
-    from holt.report import evidence_url
+    from prscout.report import evidence_url
 
     assert evidence_url(evidence_id) == url
 
 
 def test_json_carries_the_headline_and_clickable_evidence():
-    from holt.report import Assessment
+    from prscout.report import Assessment
 
     data = Assessment(
         repo="a/b", verdict=Verdict.NOT_VIABLE, summary="",
@@ -143,7 +143,7 @@ def test_the_day_budget_never_reaches_the_narration_prompt():
     """
     import inspect
 
-    from holt.agent import stages
+    from prscout.agent import stages
 
     source = inspect.getsource(stages.narrate)
     assert "contributor_days" not in source
@@ -159,8 +159,8 @@ def test_a_live_run_defaults_to_today_not_the_benchmark_cutoff():
     import argparse
     from datetime import UTC, datetime
 
-    from holt.cli import as_of_from
-    from holt.types import T_CUTOFF
+    from prscout.cli import as_of_from
+    from prscout.types import T_CUTOFF
 
     live = as_of_from(argparse.Namespace(live=True, as_of=None))
     assert live > T_CUTOFF

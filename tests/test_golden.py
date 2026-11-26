@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from golden import golden
-from holt.types import EvidenceRecord
+from prscout.types import EvidenceRecord
 
 VERDICTS = set(golden.LABEL)
 

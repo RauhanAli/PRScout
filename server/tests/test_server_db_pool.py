@@ -9,11 +9,11 @@ import time
 
 import pytest
 from conftest import STATS, canned_report
-from holt_server import discover
-from holt_server.db import RepoMeta, Report, Usage, now
+from prscout_server import discover
+from prscout_server.db import RepoMeta, Report, Usage, now
 from sqlalchemy import event, text
 
-POSTGRES = (os.environ.get("HOLT_TEST_DATABASE_URL") or "").startswith("postgresql")
+POSTGRES = (os.environ.get("PRSCOUT_TEST_DATABASE_URL") or "").startswith("postgresql")
 
 
 def add(h, *items):
@@ -87,8 +87,8 @@ class Held:
 
 
 def test_the_pool_is_sized_from_the_environment(make_harness):
-    h = make_harness(run_jobs=False, HOLT_DB_POOL_SIZE=3, HOLT_DB_MAX_OVERFLOW=2,
-                     HOLT_DB_POOL_TIMEOUT=4)
+    h = make_harness(run_jobs=False, PRSCOUT_DB_POOL_SIZE=3, PRSCOUT_DB_MAX_OVERFLOW=2,
+                     PRSCOUT_DB_POOL_TIMEOUT=4)
     pool = h.svc.db.engine.pool
     assert (pool.size(), pool._max_overflow, pool.timeout()) == (3, 2, 4)
 
@@ -101,7 +101,7 @@ def test_by_default_the_pool_opens_no_extra_connections_under_load(make_harness)
 
 
 def test_health_answers_while_every_pool_connection_is_busy(make_harness):
-    h = make_harness(run_jobs=False, HOLT_DB_POOL_SIZE=2, HOLT_DB_POOL_TIMEOUT=0.2)
+    h = make_harness(run_jobs=False, PRSCOUT_DB_POOL_SIZE=2, PRSCOUT_DB_POOL_TIMEOUT=0.2)
     assert h.client.get("/health").json()["ok"] is True
     with Held(h):
         assert h.svc.db.engine.pool.checkedout() == 2
@@ -126,7 +126,7 @@ def test_health_says_so_when_the_database_is_down(make_harness, monkeypatch):
 
 
 def test_a_background_lock_takes_no_pool_connection(make_harness):
-    h = make_harness(run_jobs=False, HOLT_DB_POOL_SIZE=1, HOLT_DB_POOL_TIMEOUT=0.2)
+    h = make_harness(run_jobs=False, PRSCOUT_DB_POOL_SIZE=1, PRSCOUT_DB_POOL_TIMEOUT=0.2)
 
     async def go():
         async with h.svc.db.advisory_lock(424242) as got:
@@ -156,7 +156,7 @@ def test_a_lock_is_one_holder_at_a_time_and_let_go_after(make_harness):
 def test_jobs_waiting_on_github_hold_no_connection(make_harness):
     # Three analyses sit in a slow GitHub read with a pool of two: nothing
     # may keep a connection for the length of a job.
-    h = make_harness(HOLT_JOB_CONCURRENCY=3, HOLT_DB_POOL_SIZE=2, HOLT_DB_POOL_TIMEOUT=2)
+    h = make_harness(PRSCOUT_JOB_CONCURRENCY=3, PRSCOUT_DB_POOL_SIZE=2, PRSCOUT_DB_POOL_TIMEOUT=2)
     add(h, report("octo/four"), meta("octo/four", language="Python"))
     h.engine.gate.clear()
     try:

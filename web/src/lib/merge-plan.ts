@@ -1,9 +1,16 @@
-// The merge plan (paid, written by holt-pro's POST
+// The merge plan (paid, written by prscout-pro's POST
 // /v1/merge-plan and served by the server's GET /v1/merge-plan). Its shape is
 // API.md's `MergePlan`, generated into api-schema.ts; this file re-exports it
 // with the helpers the plan's components share, and the recorded example.
 import data from "./example-merge-plan.json" with { type: "json" };
-import type { MergePlan, PlanAi, PlanClosing, PlanFact, PlanStep, PlaybookSource } from "./api-schema.ts";
+import type {
+  MergePlan,
+  PlanAi,
+  PlanClosing,
+  PlanFact,
+  PlanStep,
+  PlaybookSource,
+} from "./api-schema.ts";
 
 export type { MergePlan, PlanAi, PlanClosing, PlanFact, PlanStep };
 export type PlanSource = PlaybookSource;
@@ -31,5 +38,10 @@ export const EXAMPLE_PLAN = data as MergePlan;
 
 /** "30 September 2026": when the example's evidence was recorded. */
 export function planRecordedOn(plan: MergePlan = EXAMPLE_PLAN): string {
-  return new Date(plan.recorded_on).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  return new Date(plan.recorded_on).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }

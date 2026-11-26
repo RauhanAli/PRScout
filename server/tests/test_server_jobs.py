@@ -14,13 +14,13 @@ import time
 import httpx
 import pytest
 from conftest import canned_report
-from holt_server.db import Job, Report
-from holt_server.errors import ApiError
-from holt_server.github import LOW_POINTS, JobStopped, TokenPool, job_stop
-from holt_server.jobs import waiting_stage
+from prscout_server.db import Job, Report
+from prscout_server.errors import ApiError
+from prscout_server.github import LOW_POINTS, JobStopped, TokenPool, job_stop
+from prscout_server.jobs import waiting_stage
 from sqlalchemy import select
 
-from holt.evidence.errors import AuthError, RateLimited
+from prscout.evidence.errors import AuthError, RateLimited
 
 
 def db_rows(h, model):
@@ -45,7 +45,7 @@ def parse_sse(text: str) -> list[tuple[str, dict]]:
 
 
 def test_a_job_past_its_time_limit_fails_plainly(make_harness):
-    h = make_harness(HOLT_JOB_TIMEOUT_RULES=0.3)
+    h = make_harness(PRSCOUT_JOB_TIMEOUT_RULES=0.3)
     h.engine.gate.clear()  # the engine hangs mid-run
     job = h.post("/v1/analyses", {"repo": "pallets/flask"}).json()["job_id"]
     body = h.wait(job, timeout=10)
@@ -66,8 +66,8 @@ def test_a_stuck_timed_out_thread_does_not_block_the_next_job(make_harness):
     """One worker, no background lane: the timed-out run's thread is still
     blocked (no GitHub call to notice its stop flag), yet the next job runs,
     on the runner's own executor, not the loop's default one."""
-    h = make_harness(HOLT_JOB_CONCURRENCY=1, HOLT_BADGE_CONCURRENCY=0,
-                     HOLT_JOB_TIMEOUT_RULES=0.3)
+    h = make_harness(PRSCOUT_JOB_CONCURRENCY=1, PRSCOUT_BADGE_CONCURRENCY=0,
+                     PRSCOUT_JOB_TIMEOUT_RULES=0.3)
     release = threading.Event()
     threads: dict[str, str] = {}
 
@@ -85,13 +85,13 @@ def test_a_stuck_timed_out_thread_does_not_block_the_next_job(make_harness):
         nxt = h.post("/v1/analyses", {"repo": "octo/two"}).json()["job_id"]
         assert h.wait(nxt, timeout=5)["status"] == "done"
         assert not release.is_set()  # the stuck thread was still stuck throughout
-        assert all(name.startswith("holt-job-thread") for name in threads.values())
+        assert all(name.startswith("prscout-job-thread") for name in threads.values())
     finally:
         release.set()
 
 
 def test_timed_out_ai_report_is_refunded(make_harness):
-    h = make_harness(OPENROUTER_API_KEY="sk-or-server", HOLT_JOB_TIMEOUT_AI=0.3)
+    h = make_harness(OPENROUTER_API_KEY="sk-or-server", PRSCOUT_JOB_TIMEOUT_AI=0.3)
     h.engine.gate.clear()
     job = h.post("/v1/analyses", {"repo": "octo/one", "mode": "ai"}, user="u1").json()["job_id"]
     assert "took too long" in h.wait(job, timeout=10)["error"]["message"]
@@ -100,8 +100,8 @@ def test_timed_out_ai_report_is_refunded(make_harness):
 
 
 def test_time_limit_depends_on_the_kind_of_job(make_harness):
-    h = make_harness(run_jobs=False, HOLT_JOB_TIMEOUT_RULES=1, HOLT_JOB_TIMEOUT_AI=2,
-                     HOLT_JOB_TIMEOUT_FIND=3)
+    h = make_harness(run_jobs=False, PRSCOUT_JOB_TIMEOUT_RULES=1, PRSCOUT_JOB_TIMEOUT_AI=2,
+                     PRSCOUT_JOB_TIMEOUT_FIND=3)
     runner = h.svc.runner
     assert runner.timeout_for(Job(kind="analysis", mode="rules")) == 1
     assert runner.timeout_for(Job(kind="analysis", mode="ai")) == 2
@@ -182,7 +182,7 @@ class CountingEngine:
 
 def test_ten_jobs_run_several_at_a_time(make_harness):
     """Smoke: ten different analyses at once, four user workers + one background."""
-    h = make_harness(HOLT_JOB_CONCURRENCY=4, HOLT_BADGE_CONCURRENCY=1)
+    h = make_harness(PRSCOUT_JOB_CONCURRENCY=4, PRSCOUT_BADGE_CONCURRENCY=1)
     engine = CountingEngine()
     h.svc.analysis_fn = engine
 
@@ -206,7 +206,7 @@ def test_ten_jobs_run_several_at_a_time(make_harness):
 
 
 def test_background_lane_yields_to_waiting_people(make_harness):
-    h = make_harness(run_jobs=False, HOLT_BADGE_CONCURRENCY=1)
+    h = make_harness(run_jobs=False, PRSCOUT_BADGE_CONCURRENCY=1)
     h.client.get("/badge/octo/one.svg")
     people = [h.post("/v1/analyses", {"repo": r}).json()["job_id"]
               for r in ("octo/two", "octo/three")]
@@ -238,7 +238,7 @@ def test_queue_positions_follow_priority_then_age(make_harness):
 
 
 def test_events_carry_the_queue_position(make_harness):
-    h = make_harness(HOLT_JOB_CONCURRENCY=1, HOLT_BADGE_CONCURRENCY=0)
+    h = make_harness(PRSCOUT_JOB_CONCURRENCY=1, PRSCOUT_BADGE_CONCURRENCY=0)
     h.engine.gate.clear()
     ids = [h.post("/v1/analyses", {"repo": r}).json()["job_id"]
            for r in ("octo/one", "octo/two", "octo/three")]
@@ -275,7 +275,7 @@ def test_pool_round_robins_healthy_tokens():
 def test_pool_skips_a_refused_token_then_retries_it_later(caplog):
     clock = Clock()
     pool = TokenPool(["secret-a", "secret-b"], clock=clock)
-    with caplog.at_level(logging.WARNING, logger="holt_server.github"):
+    with caplog.at_level(logging.WARNING, logger="prscout_server.github"):
         pool.note_refused(0, "401 Unauthorized")
     assert [pool.next() for _ in range(3)] == ["secret-b"] * 3
     clock.t += 601
@@ -323,7 +323,7 @@ def test_transport_reports_token_health_to_the_pool(caplog):
 
     http = httpx.Client(transport=httpx.MockTransport(handler))
     pool = TokenPool(["bad", "low", "limited", "good"])
-    with caplog.at_level(logging.WARNING, logger="holt_server.github"):
+    with caplog.at_level(logging.WARNING, logger="prscout_server.github"):
         with pytest.raises(AuthError):
             pool.transport(http, index=0).query("query { x }")
         pool.transport(http, index=1).query("query { rateLimit { remaining resetAt } }")
@@ -336,7 +336,7 @@ def test_transport_reports_token_health_to_the_pool(caplog):
 
 
 def test_points_check_leaves_out_refused_tokens():
-    from holt_server.github import GitHubLookup
+    from prscout_server.github import GitHubLookup
 
     def handler(request):
         if request.headers["Authorization"].endswith("bad"):

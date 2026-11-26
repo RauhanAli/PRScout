@@ -11,9 +11,9 @@ from datetime import timedelta
 
 import pytest
 
-from holt.evidence.fixtures import FixtureProvider, content_hash, write_fixture
-from holt.evidence.provider import ContaminationError
-from holt.types import T_CUTOFF, EvidenceRecord, Window
+from prscout.evidence.fixtures import FixtureProvider, content_hash, write_fixture
+from prscout.evidence.provider import ContaminationError
+from prscout.types import T_CUTOFF, EvidenceRecord, Window
 
 BEFORE = T_CUTOFF - timedelta(days=1)
 AFTER = T_CUTOFF + timedelta(days=1)

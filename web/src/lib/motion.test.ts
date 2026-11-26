@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { cssTimeMs, motionAttr, motionCookie, motionFromCookies, parseMotion, prefersReducedMotion, resolveReduced, toggledMotion } from "./motion.ts";
+import {
+  cssTimeMs,
+  motionAttr,
+  motionCookie,
+  motionFromCookies,
+  parseMotion,
+  prefersReducedMotion,
+  resolveReduced,
+  toggledMotion,
+} from "./motion.ts";
 
 test("the setting wins over the device: full > reduce > device", () => {
   assert.equal(resolveReduced("full", true), false);
@@ -11,7 +20,10 @@ test("the setting wins over the device: full > reduce > device", () => {
 });
 
 test("the server reads the setting from the cookie; anything else follows the device", () => {
-  const jar = (value?: string) => ({ get: (name: string) => (name === "holt-motion" && value !== undefined ? { value } : undefined) });
+  const jar = (value?: string) => ({
+    get: (name: string) =>
+      name === "prscout-motion" && value !== undefined ? { value } : undefined,
+  });
   assert.equal(motionFromCookies(jar("reduce")), "reduce");
   assert.equal(motionFromCookies(jar("full")), "full");
   assert.equal(motionFromCookies(jar()), "device");
@@ -22,8 +34,11 @@ test("the server reads the setting from the cookie; anything else follows the de
 });
 
 test("the cookie lasts a year, and following the device clears it", () => {
-  assert.match(motionCookie("reduce"), /^holt-motion=reduce; Path=\/; Max-Age=31536000; SameSite=Lax$/);
-  assert.match(motionCookie("device"), /^holt-motion=; Path=\/; Max-Age=0/);
+  assert.match(
+    motionCookie("reduce"),
+    /^prscout-motion=reduce; Path=\/; Max-Age=31536000; SameSite=Lax$/,
+  );
+  assert.match(motionCookie("device"), /^prscout-motion=; Path=\/; Max-Age=0/);
 });
 
 test("the footer switch turns motion back on the way the device allows", () => {
@@ -52,7 +67,11 @@ test("prefersReducedMotion reads <html data-motion> before the device", (t) => {
     if (attr) dataset.motion = attr;
     else delete dataset.motion;
     os = device;
-    assert.equal(prefersReducedMotion(), want, `data-motion=${attr} device=${device}`);
+    assert.equal(
+      prefersReducedMotion(),
+      want,
+      `data-motion=${attr} device=${device}`,
+    );
   }
 });
 
@@ -63,18 +82,29 @@ test("prefersReducedMotion is false on the server", () => {
 // Each script-driven motion asks the shared helper (or its hook), never the
 // media query itself, so the setting reaches it.
 const COMPONENTS: [string, RegExp][] = [
-  ["components/motion/smooth-scroll.tsx", /useReducedMotion\(\)[\s\S]*if \(reduced \|\|[\s\S]*\}, \[reduced\]\)/],
-  ["components/motion/cat-companion.tsx", /useReducedMotion\(\)[\s\S]*if \(reduced\b[\s\S]*\}, \[reduced\]\)/],
-  ["components/motion/scroll-marquee.tsx", /useReducedMotion\(\)[\s\S]*if \(!el \|\| reduced\)[\s\S]*\}, \[reduced\]\)/],
+  [
+    "components/motion/smooth-scroll.tsx",
+    /useReducedMotion\(\)[\s\S]*if \(reduced \|\|[\s\S]*\}, \[reduced\]\)/,
+  ],
+  [
+    "components/motion/cat-companion.tsx",
+    /useReducedMotion\(\)[\s\S]*if \(reduced\b[\s\S]*\}, \[reduced\]\)/,
+  ],
+  [
+    "components/motion/scroll-marquee.tsx",
+    /useReducedMotion\(\)[\s\S]*if \(!el \|\| reduced\)[\s\S]*\}, \[reduced\]\)/,
+  ],
   ["components/motion/count-up.tsx", /prefersReducedMotion\(\) \? "done"/],
   ["components/motion/swap-host.tsx", /useReducedMotion\(\)/],
   ["components/landing/check-replay.tsx", /useReducedMotion\(\)/],
   ["components/landing/people.tsx", /useReducedMotion\(\)/],
   ["components/landing/answers.tsx", /useReducedMotion\(\)/],
   ["components/report/verdict-cat.tsx", /prefersReducedMotion\(\) \? 0/],
-  ["components/footer.tsx", /prefersReducedMotion\(\)\) return/],
   ["components/shell/check-focus.tsx", /prefersReducedMotion\(\) \? "auto"/],
-  ["components/motion/use-seen.ts", /useSyncExternalStore\(onMotionChange, prefersReducedMotion/],
+  [
+    "components/motion/use-seen.ts",
+    /useSyncExternalStore\(onMotionChange, prefersReducedMotion/,
+  ],
 ];
 
 for (const [file, uses] of COMPONENTS) {
@@ -89,5 +119,6 @@ test("a CSS time reads back in milliseconds, minified or not", () => {
   assert.equal(cssTimeMs("240ms", 0), 240);
   assert.equal(cssTimeMs(" .24s", 0), 240);
   assert.equal(cssTimeMs("1s", 0), 1000);
-  for (const v of ["", "fast", "var(--x)", "12px"]) assert.equal(cssTimeMs(v, 180), 180, v);
+  for (const v of ["", "fast", "var(--x)", "12px"])
+    assert.equal(cssTimeMs(v, 180), 180, v);
 });

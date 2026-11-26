@@ -1,15 +1,18 @@
 /* Uses GitHub's own Primer colour variables, so the chip follows whichever
    light or dark theme the user picked on GitHub. Fallbacks are Primer light. */
-a.holt-chip {
+a.prscout-chip {
   /* Motion tokens, the same values as web/src/app/globals.css (the chip sits
-     inside GitHub's page, so it cannot read Holt's own variables). */
-  --holt-dur-fast: 120ms;
-  --holt-dur-base: 180ms; /* skeleton → verdict crossfade */
-  --holt-sk-delay: 300ms; /* the skeleton stays invisible this long */
-  --holt-sk-sweep: 1.8s; /* a 1.2s sweep, then a 0.6s rest */
-  --holt-ease-out: cubic-bezier(0.2, 0, 0, 1);
-  --holt-ease-move: cubic-bezier(0.4, 0, 0.2, 1);
-  --holt-sk-bg: var(--bgColor-neutral-muted, var(--color-neutral-muted, rgba(175, 184, 193, 0.2)));
+     inside GitHub's page, so it cannot read PRScout's own variables). */
+  --prscout-dur-fast: 120ms;
+  --prscout-dur-base: 180ms; /* skeleton → verdict crossfade */
+  --prscout-sk-delay: 300ms; /* the skeleton stays invisible this long */
+  --prscout-sk-sweep: 1.8s; /* a 1.2s sweep, then a 0.6s rest */
+  --prscout-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --prscout-ease-move: cubic-bezier(0.4, 0, 0.2, 1);
+  --prscout-sk-bg: var(
+    --bgColor-neutral-muted,
+    var(--color-neutral-muted, rgba(175, 184, 193, 0.2))
+  );
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -17,7 +20,8 @@ a.holt-chip {
   margin-left: 8px;
   padding: 0 10px;
   min-height: 22px;
-  border: 1px solid var(--borderColor-default, var(--color-border-default, #d1d9e0));
+  border: 1px solid
+    var(--borderColor-default, var(--color-border-default, #d1d9e0));
   border-radius: 2em;
   background: var(--bgColor-default, var(--color-canvas-default, #ffffff));
   color: var(--fgColor-default, var(--color-fg-default, #1f2328));
@@ -29,81 +33,82 @@ a.holt-chip {
   white-space: nowrap;
   overflow: hidden;
 }
-a.holt-chip:hover,
-a.holt-chip:focus-visible {
+a.prscout-chip:hover,
+a.prscout-chip:focus-visible {
   background: var(--bgColor-muted, var(--color-canvas-subtle, #f6f8fa));
   text-decoration: none;
 }
-a.holt-chip:focus-visible {
+a.prscout-chip:focus-visible {
   outline: 2px solid var(--focus-outlineColor, var(--color-accent-fg, #0969da));
   outline-offset: 1px;
 }
-.holt-chip__dot {
+.prscout-chip__dot {
   flex: none;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--fgColor-muted, var(--color-fg-muted, #59636e));
 }
-a.holt-chip[data-holt-tone="good"] .holt-chip__dot {
+a.prscout-chip[data-prscout-tone="good"] .prscout-chip__dot {
   background: var(--fgColor-success, var(--color-success-fg, #1a7f37));
 }
-a.holt-chip[data-holt-tone="bad"] .holt-chip__dot {
+a.prscout-chip[data-prscout-tone="bad"] .prscout-chip__dot {
   background: var(--fgColor-danger, var(--color-danger-fg, #d1242f));
 }
-a.holt-chip[data-holt-tone="warn"] .holt-chip__dot {
+a.prscout-chip[data-prscout-tone="warn"] .prscout-chip__dot {
   background: var(--fgColor-attention, var(--color-attention-fg, #9a6700));
 }
-a.holt-chip[data-holt-tone="neutral"] .holt-chip__dot,
-a.holt-chip[data-holt-tone="unknown"] .holt-chip__dot {
+a.prscout-chip[data-prscout-tone="neutral"] .prscout-chip__dot,
+a.prscout-chip[data-prscout-tone="unknown"] .prscout-chip__dot {
   background: var(--fgColor-accent, var(--color-accent-fg, #0969da));
 }
-a.holt-chip[data-holt-state="loading"] .holt-chip__dot {
+a.prscout-chip[data-prscout-state="loading"] .prscout-chip__dot {
   background: var(--fgColor-muted, var(--color-fg-muted, #59636e));
 }
-.holt-chip__label {
+.prscout-chip__label {
   flex: none;
 }
-.holt-chip__stat {
+.prscout-chip__stat {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--fgColor-muted, var(--color-fg-muted, #59636e));
   font-weight: 400;
 }
-.holt-chip__stat::before {
+.prscout-chip__stat::before {
   content: "·";
   margin-right: 6px;
 }
 
 /* Loading: a skeleton chip (the motion plan §4). The label and stat keep
-   their real text ("Holt · checking…") but show as flat blocks, so the pill has
+   their real text ("PRScout · checking…") but show as flat blocks, so the pill has
    the width and height of a real chip, and the swap to the verdict never moves
    the title row. Text stays readable to assistive tech. */
-.holt-chip__label,
-.holt-chip__stat {
+.prscout-chip__label,
+.prscout-chip__stat {
   border-radius: 2px;
   transition:
-    color var(--holt-dur-base) var(--holt-ease-out),
-    background-color var(--holt-dur-base) var(--holt-ease-out);
+    color var(--prscout-dur-base) var(--prscout-ease-out),
+    background-color var(--prscout-dur-base) var(--prscout-ease-out);
 }
-a.holt-chip[data-holt-state="loading"] .holt-chip__label,
-a.holt-chip[data-holt-state="loading"] .holt-chip__stat {
+a.prscout-chip[data-prscout-state="loading"] .prscout-chip__label,
+a.prscout-chip[data-prscout-state="loading"] .prscout-chip__stat {
   color: transparent;
-  background: var(--holt-sk-bg);
+  background: var(--prscout-sk-bg);
 }
-a.holt-chip[data-holt-state="loading"] .holt-chip__stat::before {
+a.prscout-chip[data-prscout-state="loading"] .prscout-chip__stat::before {
   color: transparent;
 }
-/* Rendered at once, visible only after --holt-sk-delay, so a lookup answered
+/* Rendered at once, visible only after --prscout-sk-delay, so a lookup answered
    from the cache never flashes a skeleton. The space is taken from the start.
    When the verdict lands, this rule stops matching: the animation is dropped
    and the chip is fully visible while the blocks above crossfade into text. */
-a.holt-chip[data-holt-state="loading"] {
+a.prscout-chip[data-prscout-state="loading"] {
   position: relative;
-  animation: holt-chip-appear var(--holt-dur-fast) var(--holt-ease-out) var(--holt-sk-delay) both;
+  animation: prscout-chip-appear var(--prscout-dur-fast) var(--prscout-ease-out)
+    var(--prscout-sk-delay) both;
 }
-@keyframes holt-chip-appear {
+@keyframes prscout-chip-appear {
   from {
     opacity: 0;
   }
@@ -113,18 +118,19 @@ a.holt-chip[data-holt-state="loading"] {
    GitHub's page; it takes the chip's text colour, so it follows the theme.
    Only `transform` animates, so no layout or paint per frame. */
 @media (prefers-reduced-motion: no-preference) {
-  a.holt-chip[data-holt-state="loading"]::after {
+  a.prscout-chip[data-prscout-state="loading"]::after {
     content: "";
     position: absolute;
     inset: 0;
     background: linear-gradient(90deg, transparent, currentColor, transparent);
     opacity: 0.04;
     transform: translateX(-100%);
-    animation: holt-sk-sweep var(--holt-sk-sweep) var(--holt-ease-move) infinite;
+    animation: prscout-sk-sweep var(--prscout-sk-sweep) var(--prscout-ease-move)
+      infinite;
     pointer-events: none;
   }
 }
-@keyframes holt-sk-sweep {
+@keyframes prscout-sk-sweep {
   66%,
   100% {
     transform: translateX(100%);
@@ -132,19 +138,20 @@ a.holt-chip[data-holt-state="loading"] {
 }
 /* Reduced motion: a flat, static block that swaps to the verdict at once. */
 @media (prefers-reduced-motion: reduce) {
-  a.holt-chip,
-  .holt-chip__label,
-  .holt-chip__stat {
+  a.prscout-chip,
+  .prscout-chip__label,
+  .prscout-chip__stat {
     animation-duration: 0s;
     transition: none;
   }
 }
 
-.holt-starter {
+.prscout-starter {
   display: inline-block;
   margin-left: 6px;
   padding: 0 7px;
-  border: 1px solid var(--borderColor-success-emphasis, var(--color-success-emphasis, #1f883d));
+  border: 1px solid
+    var(--borderColor-success-emphasis, var(--color-success-emphasis, #1f883d));
   border-radius: 2em;
   color: var(--fgColor-success, var(--color-success-fg, #1a7f37));
   font-size: 12px;

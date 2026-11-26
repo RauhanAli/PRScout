@@ -1,5 +1,5 @@
 """My Contributions: the fetched pull requests, their verdicts, "found via
-Holt", the refresh cooldown, disconnect, and the metric. GitHub is faked."""
+PRScout", the refresh cooldown, disconnect, and the metric. GitHub is faked."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
-from holt.evidence.github_graphql import GitHubGraphQL
-from holt_server import contributions
-from holt_server.db import Contribution, ContributionChoice, ContributionSync, RepoView, Report, now
+from prscout.evidence.github_graphql import GitHubGraphQL
+from prscout_server import contributions
+from prscout_server.db import Contribution, ContributionChoice, ContributionSync, RepoView, Report, now
 from sqlalchemy import select, update
 
 from conftest import canned_report
@@ -179,7 +179,7 @@ def test_connect_fetches_public_prs_with_a_pool_token(gh):
     assert body["login"] == "octocat" and body["window_days"] == 365
     assert body["truncated"] is False
     assert body["summary"] == {"opened": 3, "merged": 1, "waiting": 1, "closed": 1,
-                               "landed_share": 0.5, "found_via_holt": 0, "not_counted": 0}
+                               "landed_share": 0.5, "found_via_PRScout": 0, "not_counted": 0}
     assert [p["number"] for p in body["pull_requests"]] == [3, 1, 2]  # newest first
     first = body["pull_requests"][1]
     assert first["url"] == "https://github.com/pallets/flask/pull/1"
@@ -190,8 +190,8 @@ def test_connect_fetches_public_prs_with_a_pool_token(gh):
 def test_projects_you_help_run_are_left_out(association):
     d = now() - timedelta(days=5)
     nodes = [
-        pr("holt-oss/holt", 1, association=association),
-        pr("holt-oss/holt", 2, "MERGED", merged=d, closed=d),  # the same repo goes too
+        pr("RauhanAli/prscout", 1, association=association),
+        pr("RauhanAli/prscout", 2, "MERGED", merged=d, closed=d),  # the same repo goes too
         pr("pallets/flask", 3),
     ]
     assert [r["repo"] for r in contributions.parse(nodes, "octocat")] == ["pallets/flask"]
@@ -201,12 +201,12 @@ def test_merging_your_own_pr_marks_the_repo_as_yours():
     # A private org member reads as CONTRIBUTOR; merging their own PR gives them away.
     d = now() - timedelta(days=5)
     nodes = [
-        pr("holt-oss/holt", 1, "MERGED", merged=d, closed=d, merged_by="OctoCat"),
-        pr("holt-oss/holt", 2),
+        pr("RauhanAli/prscout", 1, "MERGED", merged=d, closed=d, merged_by="OctoCat"),
+        pr("RauhanAli/prscout", 2),
         pr("pallets/flask", 3, "MERGED", merged=d, closed=d, merged_by="davidism"),
         None,
     ]
-    assert contributions.own_projects(nodes, "octocat") == {"holt-oss/holt"}
+    assert contributions.own_projects(nodes, "octocat") == {"rauhanali/prscout"}
     assert [(r["repo"], r["number"]) for r in contributions.parse(nodes, "octocat")] == [
         ("pallets/flask", 3)]
 
@@ -292,7 +292,7 @@ def test_a_repo_left_out_of_the_numbers_stays_in_the_list(gh):
     assert r.status_code == 200, r.text
     d = r.json()
     assert d["summary"] == {"opened": 2, "merged": 0, "waiting": 1, "closed": 1,
-                            "landed_share": 0.0, "found_via_holt": 0, "not_counted": 2}
+                            "landed_share": 0.0, "found_via_PRScout": 0, "not_counted": 2}
     hack = [p for p in d["pull_requests"] if p["repo"] == "friend/hack"]
     assert [(p["counted"], p["not_counted_because"]) for p in hack] == [(False, "you")] * 2
     # A refresh replaces the pull requests but keeps the choice.
@@ -329,7 +329,7 @@ def test_own_and_team_projects_are_left_out_until_you_count_them(gh, monkeypatch
     assert all(p["counted"] for p in d["pull_requests"])
 
 
-def test_found_via_holt_within_30_days_after_a_view(gh):
+def test_found_via_prscout_within_30_days_after_a_view(gh):
     t = now() - timedelta(days=100)
     gh.fake.prs["octocat"] = [
         pr("octo/one", 1, created=t + timedelta(days=5)),     # 5 days after first view
@@ -345,19 +345,19 @@ def test_found_via_holt_within_30_days_after_a_view(gh):
         viewed(gh, repo, t)
     viewed(gh, "octo/four", t, last=t + timedelta(days=60))
     body = mine(gh).json()
-    flags = {p["number"]: p["found_via_holt"] for p in body["pull_requests"]}
+    flags = {p["number"]: p["found_via_PRScout"] for p in body["pull_requests"]}
     assert flags == {1: True, 2: False, 3: False, 4: True, 5: True, 6: False}
-    assert body["summary"]["found_via_holt"] == 3
+    assert body["summary"]["found_via_PRScout"] == 3
 
 
-def test_after_holt_window_edges():
+def test_after_prscout_window_edges():
     t = datetime(2026, 9, 1, tzinfo=UTC)
-    assert contributions.after_holt(t, t, None)
-    assert contributions.after_holt(t + timedelta(days=30), t, t)
-    assert not contributions.after_holt(t + timedelta(days=30, seconds=1), t, t)
-    assert not contributions.after_holt(t - timedelta(seconds=1), t, t)
+    assert contributions.after_PRScout(t, t, None)
+    assert contributions.after_PRScout(t + timedelta(days=30), t, t)
+    assert not contributions.after_PRScout(t + timedelta(days=30, seconds=1), t, t)
+    assert not contributions.after_PRScout(t - timedelta(seconds=1), t, t)
     # SQLite hands timestamps back naive.
-    assert contributions.after_holt(t.replace(tzinfo=None), t.replace(tzinfo=None), None)
+    assert contributions.after_PRScout(t.replace(tzinfo=None), t.replace(tzinfo=None), None)
 
 
 def test_refresh_is_cached_for_15_minutes(gh):
@@ -464,18 +464,18 @@ def test_metric_counts_without_people(gh):
     r = gh.get("/v1/metrics/contributions")
     assert r.status_code == 200
     assert r.json() == {"since": "", "window_days": 30, "connected_users": 2,
-                        "users_with_pull_requests": 2, "users_with_pr_after_holt": 2,
-                        "prs_after_holt": 3, "prs_after_holt_merged": 1}
+                        "users_with_pull_requests": 2, "users_with_pr_after_PRScout": 2,
+                        "prs_after_PRScout": 3, "prs_after_prscout_merged": 1}
 
     # "Don't include me in statistics" leaves u2 out.
     gh.client.patch("/v1/me/github", json={"stats_opt_out": True}, headers=gh.headers("u2"))
     got = gh.get("/v1/metrics/contributions").json()
-    assert (got["connected_users"], got["users_with_pr_after_holt"],
-            got["prs_after_holt"]) == (1, 1, 2)
+    assert (got["connected_users"], got["users_with_pr_after_PRScout"],
+            got["prs_after_PRScout"]) == (1, 1, 2)
 
     since = (now() + timedelta(days=1)).date().isoformat()
     got = gh.get(f"/v1/metrics/contributions?since={since}").json()
-    assert got["since"] == since and got["prs_after_holt"] == 0
+    assert got["since"] == since and got["prs_after_PRScout"] == 0
     assert gh.get("/v1/metrics/contributions?since=soon").status_code == 400
 
 

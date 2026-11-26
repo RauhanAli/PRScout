@@ -29,9 +29,9 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from golden.golden import HERE, PAGES, load_repos, timing_records, without_timing
-from holt.agent import rates, timing
-from holt.agent.pipeline import analyze_without_model
-from holt.agent.signals import (
+from prscout.agent import rates, timing
+from prscout.agent.pipeline import analyze_without_model
+from prscout.agent.signals import (
     MIN_AGE_HOURS,
     Signals,
     Thread,
@@ -39,10 +39,10 @@ from holt.agent.signals import (
     compute,
     outsider_threads,
 )
-from holt.agent.verdict import DEFAULT_CONTRIBUTOR_DAYS
-from holt.evidence.fixtures import content_hash, record_from_dict, record_to_dict, redact_records
-from holt.evidence.provider import EvidenceProvider
-from holt.types import EvidenceRecord, Window
+from prscout.agent.verdict import DEFAULT_CONTRIBUTOR_DAYS
+from prscout.evidence.fixtures import content_hash, record_from_dict, record_to_dict, redact_records
+from prscout.evidence.provider import EvidenceProvider
+from prscout.types import EvidenceRecord, Window
 
 # One folder per as-of date: golden/backtests/2026-06-15/<owner>__<name>.json.gz
 BACKTESTS = HERE / "backtests"
@@ -52,7 +52,7 @@ WINDOW_DAYS = 45
 # Read from the as-of date forward, oldest first: a busy repository's window
 # then starts where the "before" read stopped, not weeks later.
 AFTER_PAGES = 8
-# The server's warm pass keeps this many points in hand (HOLT_WARM_MIN_POINTS);
+# The server's warm pass keeps this many points in hand (PRSCOUT_WARM_MIN_POINTS);
 # a recording run never takes the token below it.
 MIN_POINTS = 1500
 
@@ -165,7 +165,7 @@ def after_query(home: str, as_of: datetime, window_end: datetime) -> str:
 def record(repos: list[str], as_of: datetime = AS_OF, window_days: int = WINDOW_DAYS,
            root: Path | None = None, force: bool = False, transport=None) -> int:
     """Capture each repository's before and after. Returns the number that failed."""
-    from holt.evidence.github_graphql import GitHubGraphQL, LiveGitHubProvider, project
+    from prscout.evidence.github_graphql import GitHubGraphQL, LiveGitHubProvider, project
 
     root = root or date_root(as_of)
 
@@ -451,7 +451,7 @@ def pooled(runs: dict[str, list[Score]]) -> list[Score]:
 def record_timing(repos: list[str], root: Path, transport=None) -> int:
     """Add (or redo) engine 7's timing cohort in each recording's before part,
     as of its as-of date. Returns the number that failed."""
-    from holt.evidence.github_graphql import GitHubGraphQL
+    from prscout.evidence.github_graphql import GitHubGraphQL
 
     transport = transport or GitHubGraphQL()
     failed = 0

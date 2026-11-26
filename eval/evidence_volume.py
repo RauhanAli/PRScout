@@ -19,8 +19,8 @@ import json
 import statistics
 from pathlib import Path
 
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import Window
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import Window
 
 # github.com shows one pull request per page, and the repository landing page
 # carries the README. A person checking Holt's evidence by hand opens that many

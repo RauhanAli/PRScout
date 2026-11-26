@@ -13,14 +13,14 @@ from functools import cache
 import pytest
 
 from golden import golden
-from holt.agent import landing_detection as ld
-from holt.agent.findings import Findings
-from holt.agent.pipeline import analyze_without_model
-from holt.agent.signals import build_threads, compute
-from holt.agent.verdict import classify as decide
-from holt.agent.verdict import rule_codes
-from holt.report import Verdict
-from holt.types import EvidenceRecord
+from prscout.agent import landing_detection as ld
+from prscout.agent.findings import Findings
+from prscout.agent.pipeline import analyze_without_model
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.verdict import classify as decide
+from prscout.agent.verdict import rule_codes
+from prscout.report import Verdict
+from prscout.types import EvidenceRecord
 
 
 @cache
@@ -310,8 +310,8 @@ def test_only_the_team_can_say_a_pull_request_landed():
 
 def test_the_landed_line_never_takes_the_last_place_from_a_turn_down(monkeypatch):
     """The web reads the reason for "Not worth" from the last line."""
-    from holt.agent import pipeline
-    from holt.agent.verdict import Rule
+    from prscout.agent import pipeline
+    from prscout.agent.verdict import Rule
 
     monkeypatch.setattr(pipeline.landing_detection, "landed_sentence", lambda threads: "Landed.")
     rules = [Rule("5 merged.", code="merges"), Rule("Only 5 of 171.", code="long_odds")]

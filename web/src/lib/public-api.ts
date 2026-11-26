@@ -3,7 +3,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { clientIpFrom } from "./client-ip";
-import { rateLimit } from "./rate-limit";
+import { take } from "./limits";
 import type { Result } from "./types";
 
 const PER_MINUTE = 60;
@@ -24,7 +24,7 @@ export function preflight() {
 
 export async function publicGet<T>(req: Request, bucket: string, load: (ip: string | null) => Promise<Result<T>>) {
   const ip = clientIpFrom(req.headers);
-  const limited = rateLimit(`${bucket}:${ip ?? "unknown"}`, PER_MINUTE);
+  const limited = await take(`public:${bucket}:${ip ?? "unknown"}`, PER_MINUTE, 60_000);
   let res: NextResponse;
   if (!limited.ok) {
     res = NextResponse.json(

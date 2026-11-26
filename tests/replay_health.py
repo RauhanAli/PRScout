@@ -27,10 +27,10 @@ def reason() -> str | None:
     if not Path("fixtures/trajectories").is_dir():
         return "recorded trajectories are not present in this checkout"
     try:
-        from holt import model
-        from holt.agent import pipeline
-        from holt.evidence.fixtures import FixtureProvider
-        from holt.types import Window
+        from prscout import model
+        from prscout.agent import pipeline
+        from prscout.evidence.fixtures import FixtureProvider
+        from prscout.types import Window
 
         pipeline.analyze(
             CANARY, FixtureProvider(Window.PRE_T), model.build(CANARY, replay=True)

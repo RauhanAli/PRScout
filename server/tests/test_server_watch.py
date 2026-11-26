@@ -7,9 +7,9 @@ from datetime import timedelta
 
 import httpx
 import pytest
-from holt.evidence.github_graphql import GitHubGraphQL
-from holt_server import alerts, contributions, warm, watch
-from holt_server.db import (
+from prscout.evidence.github_graphql import GitHubGraphQL
+from prscout_server import alerts, contributions, warm, watch
+from prscout_server.db import (
     Alert,
     AlertEmail,
     AlertSettings,
@@ -44,7 +44,7 @@ def with_github(h, monkeypatch):
 
 @pytest.fixture
 def w(make_harness, monkeypatch):
-    return with_github(make_harness(HOLT_PR_WATCH=True), monkeypatch)
+    return with_github(make_harness(PRSCOUT_PR_WATCH=True), monkeypatch)
 
 
 def turn_on(h, user="u1", **body):
@@ -82,7 +82,7 @@ def set_user(h, user="u1", **values):
 
 
 def watching_one(h, opened=None, **state_kw):
-    """u1, connected, with one open pull request Holt has read, alerts on."""
+    """u1, connected, with one open pull request PRScout has read, alerts on."""
     opened = opened or now() - timedelta(days=2)
     h.fake.prs["octocat"] = [pr("octo/one", 1, created=opened, title="Fix the parser")]
     h.fake.states = {ONE: state("octo/one", 1, pushed=opened, **state_kw)}
@@ -167,7 +167,7 @@ def test_a_pass_gives_alerts_without_using_the_taste(w):
 
 
 def test_switched_off_nothing_runs_and_alerts_cant_be_turned_on(make_harness, monkeypatch):
-    h = with_github(make_harness(), monkeypatch)  # HOLT_PR_WATCH not set
+    h = with_github(make_harness(), monkeypatch)  # PRSCOUT_PR_WATCH not set
     connect(h)
     assert bell(h)["access"]["state"] == "unavailable"
     r = h.put("/v1/me/alerts/settings", {"enabled": True}, user="u1")
@@ -363,7 +363,7 @@ def test_low_github_points_stop_the_reads_but_not_the_waits(w):
     opened = watching_one(w, opened=now() - timedelta(days=5, hours=3))
     add_timing(w, "octo/one", first_reply_slow_hours=70.0)
     w.fake.states[ONE] = state("octo/one", 1, pushed=opened, replied=now())
-    w.points = 100  # under HOLT_WARM_MIN_POINTS
+    w.points = 100  # under PRSCOUT_WARM_MIN_POINTS
     reads = len(w.fake.state_reads)
     got = check(w)
     assert got.stopped == "low_points" and got.read == 0

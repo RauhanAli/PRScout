@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# deploy.sh -- put origin/main on https://githolt.com (compose project holt-prod).
+# deploy.sh -- put origin/main on https://gitprscout.com (compose project prscout-prod).
 #
 #   deploy/prod/deploy.sh             deploy origin/main (no-op when it is live)
 #   deploy/prod/deploy.sh <sha>       deploy an older main commit (a rollback);
@@ -13,24 +13,24 @@
 # web with no gap (the new containers start beside the old ones and take
 # over once every one of them is healthy; ../swap.sh), health-check on
 # 127.0.0.1 and in each web container, and swap back to the previous tag if
-# that fails. web runs HOLT_WEB_REPLICAS containers (.env; default 2, at
+# that fails. web runs PRSCOUT_WEB_REPLICAS containers (.env; default 2, at
 # most 3). Then, when the commit's edge.conf differs
 # from the edge's, check it with nginx -t in the running edge and reload it
 # (never a restart); a rejected config is put back and the run fails. Then
 # prune only this stack's images.
 #
-# follow.sh (the holt-prod-follow timer, install-follow.sh) runs it for each
+# follow.sh (the prscout-prod-follow timer, install-follow.sh) runs it for each
 # new main commit once CI and staging are green on it; by hand it works as
 # before (README.md, "Deploying").
 #
 # Exit status: 0 live (or already live), 75 didn't start (another deploy
 # holds the lock, or the box stayed busy; try again later), 1 failed.
 #
-# State: ~/.local/share/holt-prod/  .env (make-env.sh), src/ (clone at the
+# State: ~/.local/share/prscout-prod/  .env (make-env.sh), src/ (clone at the
 # deployed commit), current + previous (image tags), build/build.json
 # (served at /__build), edge/default.conf (the edge's live nginx config, a
 # copy of src/deploy/prod/edge.conf), logs/. Secrets that must not sit in
-# .env come from ~/.config/holt/secrets.env when it exists (see README.md).
+# .env come from ~/.config/prscout/secrets.env when it exists (see README.md).
 set -euo pipefail
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
@@ -45,13 +45,13 @@ busy() { log "ERROR: $*"; exit 75; }   # not a failure of the commit: nothing wa
 # shellcheck source=../swap.sh
 . "$here/../swap.sh"   # swap_service
 SRC="$STATE/src"
-REPO="${HOLT_REPO:-holt-oss/holt}"
-LABEL="holt.stack=$PROJECT"
+REPO="${PRSCOUT_REPO:-RauhanAli/prscout}"
+LABEL="prscout.stack=$PROJECT"
 BUILDER="$PROJECT"
-MAX_LOAD="${HOLT_PROD_MAX_LOAD:-6}"
-MIN_AVAIL_MB="${HOLT_PROD_MIN_AVAIL_MB:-3072}"
-MAX_WAIT="${HOLT_PROD_MAX_WAIT:-1800}"
-HEALTH_WAIT="${HOLT_PROD_HEALTH_WAIT:-300}"
+MAX_LOAD="${PRSCOUT_PROD_MAX_LOAD:-6}"
+MIN_AVAIL_MB="${PRSCOUT_PROD_MIN_AVAIL_MB:-3072}"
+MAX_WAIT="${PRSCOUT_PROD_MAX_WAIT:-1800}"
+HEALTH_WAIT="${PRSCOUT_PROD_HEALTH_WAIT:-300}"
 FORCE="${FORCE:-0}"
 REBUILD="${REBUILD:-0}"
 WANT="${1:-origin/main}"
@@ -63,7 +63,7 @@ flock -n 9 || busy "another deploy is in progress"
 
 # --- env and secrets ---------------------------------------------------------
 [[ -f "$STATE/.env" ]] || "$here/make-env.sh"
-port="$(sed -n 's/^HOLT_PROD_PORT=//p' "$STATE/.env")"; port="${port:-8310}"
+port="$(sed -n 's/^PRSCOUT_PROD_PORT=//p' "$STATE/.env")"; port="${port:-8310}"
 env_value() {   # KEY DEFAULT: the environment, else .env, else the default
     local v="${!1:-}"
     [[ -n "$v" ]] || v="$(sed -n "s/^$1=//p" "$STATE/.env" | tail -1 | tr -d "\"'")"
@@ -71,17 +71,17 @@ env_value() {   # KEY DEFAULT: the environment, else .env, else the default
 }
 # How many web containers (compose.yml, `deploy.replicas`). Three at most:
 # the db's max_connections is sized for that many.
-replicas="$(env_value HOLT_WEB_REPLICAS 2)"
+replicas="$(env_value PRSCOUT_WEB_REPLICAS 2)"
 [[ "$replicas" =~ ^[1-3]$ ]] \
-    || die "HOLT_WEB_REPLICAS must be 1, 2 or 3, not '$replicas' (the db's max_connections in compose.yml is sized for three)"
-export HOLT_WEB_REPLICAS="$replicas"
+    || die "PRSCOUT_WEB_REPLICAS must be 1, 2 or 3, not '$replicas' (the db's max_connections in compose.yml is sized for three)"
+export PRSCOUT_WEB_REPLICAS="$replicas"
 # CPU shares for db, server, web and edge (prioritise, below). A container's
 # default is 1024; 8192 is about five times its weight when the box is busy.
 # A rehearsal under another project name gets no priority.
-default_shares=8192; [[ "$PROJECT" == holt-prod ]] || default_shares=1024
-CPU_SHARES="$(env_value HOLT_PROD_CPU_SHARES "$default_shares")"
+default_shares=8192; [[ "$PROJECT" == prscout-prod ]] || default_shares=1024
+CPU_SHARES="$(env_value PRSCOUT_PROD_CPU_SHARES "$default_shares")"
 [[ "$CPU_SHARES" =~ ^[0-9]+$ ]] && (( CPU_SHARES >= 2 && CPU_SHARES <= 262144 )) \
-    || die "HOLT_PROD_CPU_SHARES must be a number from 2 to 262144, not '$CPU_SHARES'"
+    || die "PRSCOUT_PROD_CPU_SHARES must be a number from 2 to 262144, not '$CPU_SHARES'"
 
 # Secrets and the GitHub token (env.sh). The contact details are checked
 # here because only the web build needs them: the policy pages must never
@@ -91,12 +91,12 @@ load_prod_env
 [[ -n "$AUTH_GOOGLE_ID" ]] && log "Google sign-in: on" || log "Google sign-in: off (no GOOGLE_OAUTH_ID)"
 [[ -n "$OPENROUTER_API_KEY" ]] && log "server AI key: on" || log "server AI key: off (AI reports need BYOK)"
 # AI spend needs a budget, and in production the owner's explicit say-so too.
-if [[ "${HOLT_PROD_AI_BUDGET_USD:-0}" =~ ^0*(\.0*)?$ ]]; then
+if [[ "${PRSCOUT_PROD_AI_BUDGET_USD:-0}" =~ ^0*(\.0*)?$ ]]; then
     log "AI budget: 0 (AI off)"
-elif [[ "${HOLT_PROD_AI_BUDGET_OWNER_OK:-}" != 1 ]]; then
-    die "HOLT_PROD_AI_BUDGET_USD is set without HOLT_PROD_AI_BUDGET_OWNER_OK=1; production AI needs the owner's explicit setting"
+elif [[ "${PRSCOUT_PROD_AI_BUDGET_OWNER_OK:-}" != 1 ]]; then
+    die "PRSCOUT_PROD_AI_BUDGET_USD is set without PRSCOUT_PROD_AI_BUDGET_OWNER_OK=1; production AI needs the owner's explicit setting"
 else
-    log "AI budget: \$$HOLT_PROD_AI_BUDGET_USD (owner-approved)"
+    log "AI budget: \$$PRSCOUT_PROD_AI_BUDGET_USD (owner-approved)"
 fi
 for k in CONTACT_EMAIL CONTACT_CITY; do
     v="NEXT_PUBLIC_$k"
@@ -125,8 +125,8 @@ fi
 [[ "$sha" == "$main_sha" ]] || log "note: deploying ${short}, which is behind origin/main (${main_sha:0:7})"
 
 # --- compose --------------------------------------------------------------------
-export HOLT_SRC="$SRC" HOLT_TAG="$sha" HOLT_PROD_HOME="$STATE"
-export COMPOSE_PROJECT_NAME="$PROJECT" HOLT_PROD_PROJECT="$PROJECT" BUILDX_BUILDER="$BUILDER"
+export PRSCOUT_SRC="$SRC" PRSCOUT_TAG="$sha" PRSCOUT_PROD_HOME="$STATE"
+export COMPOSE_PROJECT_NAME="$PROJECT" PRSCOUT_PROD_PROJECT="$PROJECT" BUILDX_BUILDER="$BUILDER"
 # The compose file: this checkout's for the deploy; the rollback uses the
 # file the previous release was started with (releases/<sha>/compose.yml,
 # kept below), so a commit that breaks compose.yml can still be rolled back.
@@ -171,7 +171,7 @@ try:
         live = json.load(f)
 except FileNotFoundError:
     live = None
-doc = {"site": "https://githolt.com", "live": live, "last_attempt": attempt}
+doc = {"site": "https://gitprscout.com", "live": live, "last_attempt": attempt}
 try:   # follow.sh's status (the auto-deploy) stays on /__build
     with open(env["OUT"], encoding="utf-8") as f:
         auto = json.load(f).get("autodeploy")
@@ -320,7 +320,7 @@ else
         else log "rolling back to ${current:0:7} with this commit's compose file (none kept for ${current:0:7})"; fi
         # swap_all (and swap.sh inside it) go through compose(), which reads
         # COMPOSE_YML: every step of the rollback uses the previous release's file.
-        COMPOSE_YML="${prev_yml:-$COMPOSE_YML}" HOLT_TAG="$current" swap_all || true
+        COMPOSE_YML="${prev_yml:-$COMPOSE_YML}" PRSCOUT_TAG="$current" swap_all || true
         if healthy; then
             write_build_json failed "$short failed its health check; rolled back to ${current:0:7}"
             die "$short failed its health check; rolled back to ${current:0:7} (see $dlog)"
@@ -351,7 +351,7 @@ fi
 
 # --- clean up after ourselves only --------------------------------------------------
 # Keep the live and the previous tag (the rollback target); untag older ones
-# of this stack, then prune only images labelled holt.stack=prod and only this
+# of this stack, then prune only images labelled prscout.stack=prod and only this
 # builder's cache. Nothing else on the box is touched.
 keep=" $sha $(cat "$STATE/previous" 2>/dev/null || true) "
 for d in "$RELEASES"/*/; do

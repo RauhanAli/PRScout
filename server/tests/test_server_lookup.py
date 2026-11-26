@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from holt_server.errors import ApiError
-from holt_server.github import GitHubLookup, TokenPool
+from prscout_server.errors import ApiError
+from prscout_server.github import GitHubLookup, TokenPool
 
 
 class GitHub:

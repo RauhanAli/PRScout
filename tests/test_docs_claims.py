@@ -26,7 +26,7 @@ from pathlib import Path
 
 import pytest
 
-from holt.cli import main
+from prscout.cli import main
 
 EVALUATION = Path("docs/research/EVALUATION.md")
 REPRODUCTION = Path("docs/research/REPRODUCTION.md")
@@ -59,11 +59,11 @@ def stability(paths: list[Path], method: str) -> tuple[int, int]:
 
 def test_evaluation_states_the_measured_verdict_stability():
     """The claim that broke: 21/22 and 13/22 outlived the runs behind them."""
-    holt_same, total = stability(POOL1, "holt")
+    prscout_same, total = stability(POOL1, "holt")
     base_same, _ = stability(POOL1, "baseline")
     text = EVALUATION.read_text()
-    assert f"**{holt_same} of {total}**" in text, (
-        f"EVALUATION should say Holt is stable on {holt_same} of {total} pool-1 repositories"
+    assert f"**{prscout_same} of {total}**" in text, (
+        f"EVALUATION should say PRScout is stable on {prscout_same} of {total} pool-1 repositories"
     )
     assert f"**{base_same} of {total}**" in text, (
         f"EVALUATION should say the baseline is stable on {base_same} of {total}"
@@ -112,8 +112,8 @@ def test_usage_states_the_measured_balanced_accuracy():
 # --- the commands ----------------------------------------------------------
 
 
-def documented_holt_commands() -> list[list[str]]:
-    """Every `holt ...` invocation the docs print, minus the paid ones.
+def documented_prscout_commands() -> list[list[str]]:
+    """Every `prscout ...` invocation the docs print, minus the paid ones.
 
     Both guides are covered. `docs/USAGE.md` is the page a user actually follows, so
     a command that only appears there is exactly the kind that breaks unnoticed
@@ -125,7 +125,7 @@ def documented_holt_commands() -> list[list[str]]:
         for line in doc.read_text().splitlines():
             line = line.strip()
             m = re.match(
-                r"^(?:(?:PYTHONPATH=\. )?uv run )?holt "
+                r"^(?:(?:PYTHONPATH=\. )?uv run )?prscout "
                 r"((?:analyze|compare|next|profile|discover|models|tui)(?: .*)?)$",
                 line,
             )
@@ -145,13 +145,13 @@ def documented_holt_commands() -> list[list[str]]:
 
 def test_the_guides_actually_print_commands():
     """Guards the parser above: a silent zero would make the next test vacuous."""
-    assert len(documented_holt_commands()) >= 5
-    assert any(a[:1] == ["profile"] for a in documented_holt_commands()), (
+    assert len(documented_prscout_commands()) >= 5
+    assert any(a[:1] == ["profile"] for a in documented_prscout_commands()), (
         "docs/USAGE.md should still show how to state a profile"
     )
 
 
-@pytest.mark.parametrize("argv", documented_holt_commands(), ids=lambda a: " ".join(a))
+@pytest.mark.parametrize("argv", documented_prscout_commands(), ids=lambda a: " ".join(a))
 def test_every_documented_command_runs(argv, monkeypatch, tmp_path):
     """`--baseline --replay` was documented twice and failed on every repository.
 
@@ -161,14 +161,14 @@ def test_every_documented_command_runs(argv, monkeypatch, tmp_path):
     is precisely why this test runs the *documented* path rather than the
     measured one.
     """
-    # A model chosen with `holt models` must not reach a replay, so point the
+    # A model chosen with `prscout models` must not reach a replay, so point the
     # config at an empty directory and prove the command still works.
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         code = main(argv)
     assert code == 0
-    assert out.getvalue().strip(), f"holt {' '.join(argv)} printed nothing"
+    assert out.getvalue().strip(), f"prscout {' '.join(argv)} printed nothing"
 
 
 def test_a_chosen_model_does_not_break_a_replay(monkeypatch, tmp_path):
@@ -179,7 +179,7 @@ def test_a_chosen_model_does_not_break_a_replay(monkeypatch, tmp_path):
     "the prompt or the stage's model has changed", which named the prompt first
     and sent a reader looking in the wrong place.
     """
-    config = tmp_path / "holt"
+    config = tmp_path / "prscout"
     config.mkdir()
     (config / "models.toml").write_text(
         'provider = "ollama"\nmodel = "llama3.2:latest"\n'

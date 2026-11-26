@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
-from holt_server.db import GitHubConnection, RepoView
+from prscout_server.db import GitHubConnection, RepoView
 from sqlalchemy import select
 
 
@@ -104,7 +104,7 @@ def test_unknown_github_account(gh):
     assert gh.get("/v1/me/github", user="u1").json()["connected"] is False
 
 
-def test_one_github_account_one_holt_user(gh):
+def test_one_github_account_one_prscout_user(gh):
     assert connect(gh, user="u1").status_code == 200
     r = connect(gh, user="u2")
     assert r.status_code == 409

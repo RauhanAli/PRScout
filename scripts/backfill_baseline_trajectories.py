@@ -1,6 +1,6 @@
 """Give the per-repository trajectories the baseline calls they never had.
 
-`holt analyze <repo> --baseline --replay` is a documented command and the
+`prscout analyze <repo> --baseline --replay` is a documented command and the
 documented benchmark baseline command, but it failed from a clean clone on every
 repository: `model.build` reads `fixtures/trajectories/<repo>.jsonl`, and the
 baseline call was only ever recorded under the run-tagged directories the

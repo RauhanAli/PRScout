@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import copy
 
-from holt_server import playbook, preflight
-from holt_server.jobs import done_payload
+from prscout_server import playbook, preflight
+from prscout_server.jobs import done_payload
 
 from test_server_ai_budget import ai, budgeted, gift, runs
 from test_server_playbook import PRO_PLAYBOOK

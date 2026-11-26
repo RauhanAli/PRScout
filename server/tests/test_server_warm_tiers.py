@@ -6,8 +6,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from holt_server import warm
-from holt_server.db import RepoMeta, Report, RepoView, SavedRepo
+from prscout_server import warm
+from prscout_server.db import RepoMeta, Report, RepoView, SavedRepo
 
 from conftest import canned_report
 
@@ -109,7 +109,7 @@ def test_a_tier_pass_uses_its_tiers_age_never_the_twenty_hour_default(th):
     assert asked_for(th) == ["pallets/flask"]         # over a month old
     assert (monthly.reports_run, monthly.reports_fresh) == (1, 1)
     assert lines[0] == ("monthly tier: 2 repos; reports older than 720 hours (30 days) "
-                        "are read again (HOLT_REFRESH_MONTHLY_HOURS)")
+                        "are read again (PRSCOUT_REFRESH_MONTHLY_HOURS)")
 
     th.engine.calls.clear()
     lines.clear()
@@ -124,7 +124,7 @@ def test_a_pass_without_a_tier_says_the_age_it_uses(th):
     th.client.portal.call(lambda: warm.warm_once(
         th.svc, seeds=["octo/one"], starter=False, meta=False, finds=False,
         say=lines.append))
-    assert lines[0] == "reports older than 20 hours are read again (HOLT_WARM_MAX_AGE_HOURS)"
+    assert lines[0] == "reports older than 20 hours are read again (PRSCOUT_WARM_MAX_AGE_HOURS)"
 
 
 @pytest.mark.parametrize("tier", [None, "monthly"])

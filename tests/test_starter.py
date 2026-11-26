@@ -1,4 +1,4 @@
-"""`holt start`: starter-issue scoring, the find pipeline, rate limits, and the
+"""`prscout start`: starter-issue scoring, the find pipeline, rate limits, and the
 discover sourcing fixes. No network: live calls are replayed from recordings in
 `tests/recordings/starter/` (see `record.py` there) or faked inline."""
 
@@ -12,10 +12,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from holt import cli, discover, model, starter
-from holt.agent.landing import Area
-from holt.profile import Profile
-from holt.report import Verdict
+from prscout import cli, discover, model, starter
+from prscout.agent.landing import Area
+from prscout.profile import Profile
+from prscout.report import Verdict
 
 DATA = Path(__file__).parent / "recordings" / "starter"
 AS_OF = datetime(2026, 9, 25, tzinfo=UTC)
@@ -148,7 +148,7 @@ PR_SETTINGS = "    hasPullRequestsEnabled pullRequestCreationPolicy\n"
 
 
 def as_recorded(document: str) -> str:
-    from holt.evidence import github_graphql as gql
+    from prscout.evidence import github_graphql as gql
 
     v1 = {gql.REPO_META: V1_REPO_META, gql.PR_SEARCH: V1_PR_SEARCH,
           gql.PR_SEARCH_SCREEN: V1_PR_SEARCH, starter.REPO_ISSUES: V1_REPO_ISSUES}
@@ -420,17 +420,17 @@ def test_farm_detection_leaves_ordinary_issues_alone(nodes):
     assert starter.farmed_issues(nodes) == set()
 
 
-# holt-oss/holt: distinct starter issues one maintainer filed two seconds apart
+# RauhanAli/prscout: distinct starter issues one maintainer filed two seconds apart
 # for Hacktoberfest, all dropped as a farm before.
-HOLT_TITLES = ["Document `holt start`", "Hide `ctrl+t mode` when there is nothing to switch to",
-               "`holt profile` writes broken TOML if a value contains a quote",
-               "Recognise good first task labels", "Show examples in `holt start --help`"]
+PRSCOUT_TITLES = ["Document `prscout start`", "Hide `ctrl+t mode` when there is nothing to switch to",
+               "`prscout profile` writes broken TOML if a value contains a quote",
+               "Recognise good first task labels", "Show examples in `prscout start --help`"]
 
 
 def _batch(**kw):
-    return [issue(16 + i, title=t, author="aahil-khan", created=4 + i * 2 / 86400,
+    return [issue(16 + i, title=t, author="rauhan-ali", created=4 + i * 2 / 86400,
                   labels=("good first issue", "hacktoberfest"), **kw)
-            for i, t in enumerate(HOLT_TITLES)]
+            for i, t in enumerate(PRSCOUT_TITLES)]
 
 
 @pytest.mark.parametrize("association", ["OWNER", "MEMBER", "COLLABORATOR"])
@@ -445,7 +445,7 @@ def test_a_team_member_the_pull_requests_show_is_exempt_too():
     # A private org member reads CONTRIBUTOR on their own issues.
     batch = _batch(association="CONTRIBUTOR")
     assert starter.farmed_issues(batch) == {16, 17, 18, 19, 20}
-    assert starter.farmed_issues(batch, team={"Aahil-Khan"}) == set()
+    assert starter.farmed_issues(batch, team={"Rauhan-Ali"}) == set()
 
 
 def test_a_scripted_burst_from_someone_else_is_still_dropped():
@@ -488,16 +488,16 @@ def test_starter_issues_keeps_a_maintainers_batch_end_to_end():
 
 
 def test_starter_issues_counts_whoever_merges_pull_requests_as_team():
-    # Staging's token reads holt's private org owner as CONTRIBUTOR; they merge
+    # Staging's token reads PRScout's private org owner as CONTRIBUTOR; they merge
     # every pull request, which needs write access.
-    merged_by = [{"login": "aahil-khan", "__typename": "User"}, None]
+    merged_by = [{"login": "rauhan-ali", "__typename": "User"}, None]
     transport = _one_repo(_batch(association="CONTRIBUTOR"), merged_by)
     issues = starter.starter_issues("o/r", None, as_of=AS_OF, transport=transport)
     assert sorted(i.number for i in issues) == [16, 17, 18, 19, 20]
 
 
 def test_a_bot_merging_pull_requests_is_not_team():
-    merged_by = [{"login": "aahil-khan", "__typename": "Bot"}]
+    merged_by = [{"login": "rauhan-ali", "__typename": "Bot"}]
     transport = _one_repo(_batch(association="CONTRIBUTOR"), merged_by)
     assert starter.starter_issues("o/r", None, as_of=AS_OF, transport=transport) == []
 
@@ -663,7 +663,7 @@ def test_brand_new_tiny_repos_are_not_sourced(created, stars, skipped):
 
 
 def test_starter_uses_the_engine_error_types():
-    from holt.evidence import errors
+    from prscout.evidence import errors
 
     assert starter.RateLimited is errors.RateLimited
     assert starter.RepoNotFound is errors.RepoNotFound
@@ -736,7 +736,7 @@ def test_cli_start_needs_a_token(monkeypatch, capsys):
     assert cli.main(["start", "--lang", "python"]) == 2
     err = capsys.readouterr().err
     # The same message every command gives, with the link and the fix.
-    from holt import credentials
+    from prscout import credentials
 
     assert err.strip() == credentials.missing_token_message().strip()
 
@@ -805,7 +805,7 @@ def test_cli_start_single_repo(monkeypatch, capsys):
 @pytest.mark.parametrize("record", [None, "session"])
 def test_discover_live_asks_for_recording_only_under_record(monkeypatch, tmp_path, record):
     """Trajectory recording is opt-in, so `--record` has to ask for it."""
-    from holt.evidence import github_graphql
+    from prscout.evidence import github_graphql
 
     cand = discover.Candidate(slug="o/r")
     survivor = discover.Screened(cand, Verdict.VIABLE, [], None, None)

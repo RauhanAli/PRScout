@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from holt_server import pr_state
+from prscout_server import pr_state
 
 OPENED = datetime(2026, 9, 1, tzinfo=UTC)
 

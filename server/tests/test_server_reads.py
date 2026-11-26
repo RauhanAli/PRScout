@@ -14,14 +14,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import pytest
-from holt.starter import RULES_VERSION
-from holt_server.db import StarterCache, now
+from prscout.starter import RULES_VERSION
+from prscout_server.db import StarterCache, now
 from sqlalchemy import update
 
 
 @pytest.fixture
 def starter_calls(monkeypatch):
-    mod = types.ModuleType("holt.starter")
+    mod = types.ModuleType("prscout.starter")
     calls = []
     lock = threading.Lock()
 
@@ -34,12 +34,12 @@ def starter_calls(monkeypatch):
 
     mod.starter_issues = starter_issues
     mod.RULES_VERSION = RULES_VERSION
-    monkeypatch.setitem(sys.modules, "holt.starter", mod)
+    monkeypatch.setitem(sys.modules, "prscout.starter", mod)
     return calls
 
 
 def test_fifty_page_views_leave_the_analysis_quota_intact(make_harness, starter_calls):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=2, HOLT_ANON_READ_RATE_PER_HOUR=5)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=2, PRSCOUT_ANON_READ_RATE_PER_HOUR=5)
     job = h.post("/v1/analyses", {"repo": "octo/one"}, ip="7.7.7.7").json()["job_id"]
     h.wait(job)
     for _ in range(50):
@@ -52,14 +52,14 @@ def test_fifty_page_views_leave_the_analysis_quota_intact(make_harness, starter_
 
 
 def test_cache_hits_skip_the_rate_limit_entirely(make_harness, starter_calls):
-    h = make_harness(HOLT_ANON_READ_RATE_PER_HOUR=1)
+    h = make_harness(PRSCOUT_ANON_READ_RATE_PER_HOUR=1)
     assert h.get("/v1/repos/octo/one/starter-issues").status_code == 200
     for _ in range(10):
         assert h.get("/v1/repos/octo/one/starter-issues").status_code == 200
 
 
 def test_read_misses_use_their_own_bucket(make_harness, starter_calls):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=1, HOLT_ANON_READ_RATE_PER_HOUR=2)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=1, PRSCOUT_ANON_READ_RATE_PER_HOUR=2)
     assert h.get("/v1/repos/octo/one/starter-issues").status_code == 200
     assert h.get("/v1/repos/octo/two/starter-issues").status_code == 200
     r = h.get("/v1/repos/octo/three/starter-issues")
@@ -109,7 +109,7 @@ def test_a_row_cached_before_issues_said_who_is_on_them_is_fetched_again(h, star
 
 @pytest.mark.parametrize("rules", [None, RULES_VERSION - 1])
 def test_a_list_older_starter_rules_picked_is_fetched_again(h, starter_calls, rules):
-    # holt-oss/holt: an empty list cached by the rules that dropped a
+    # RauhanAli/prscout: an empty list cached by the rules that dropped a
     # maintainer's batch outlived the fix by a whole TTL.
     async def old_row():
         async with h.svc.db.session() as s:

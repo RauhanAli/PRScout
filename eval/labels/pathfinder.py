@@ -9,7 +9,7 @@ from pre-cutoff evidence so it cannot leak. The design, its base rate, its
 comparators and the conditions for abandoning it are in
 `eval/PATHFINDER-DESIGN.md`, written before any of this existed.
 
-This module must not import from holt.agent. A test enforces that.
+This module must not import from prscout.agent. A test enforces that.
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from eval.labels.qualifying import established_authors
-from holt.issues import issue_key as _issue_key
-from holt.issues import open_at_cutoff as _open_at_cutoff
-from holt.types import T_CUTOFF, EvidenceRecord
+from prscout.issues import issue_key as _issue_key
+from prscout.issues import open_at_cutoff as _open_at_cutoff
+from prscout.types import T_CUTOFF, EvidenceRecord
 
 CUTOFF_ISO = T_CUTOFF.isoformat()
 
@@ -28,7 +28,7 @@ CUTOFF_ISO = T_CUTOFF.isoformat()
 MIN_CANDIDATE_ISSUES = 10
 
 
-# One definition, shared with the ranker in `holt.issues`. If the set Path Finder
+# One definition, shared with the ranker in `prscout.issues`. If the set Path Finder
 # ranks and the set this module scores could drift apart, every precision number
 # would be meaningless, so neither side owns it.
 issue_key = _issue_key

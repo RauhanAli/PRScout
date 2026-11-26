@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # preview.sh -- keep the staging site on the latest preview.
-# The site is https://$STAGING_HOST (default staging.githolt.com).
+# The site is https://$STAGING_HOST (default staging.gitprscout.com).
 #
 # One run: fetch origin; if main, any open PR labelled `staging`, or any
 # branch in deploy/staging/extra-branches moved, build a preview commit
 # (origin/main merged with each of them, skipping ones that conflict),
 # rebuild the images whose inputs changed and restart only the
-# stage-holt-new stack, plus the paid-features service beside it when
-# ~/projects/holt-pro exists (compose.pro.yml, project stage-holt-pro).
+# stage-prscout-new stack, plus the paid-features service beside it when
+# ~/projects/prscout-pro exists (compose.pro.yml, project stage-prscout-pro).
 # Once the site is live, start the e2e smoke suite (result on /__build) and
 # prune this stack's dangling images and its own build cache.
 #
@@ -29,13 +29,13 @@
 #   preview.sh --smoke      run the smoke tests against what is live now
 #
 # The smoke run comes strictly after the site is live and never delays it.
-# Under the timer it is its own unit (holt-stage-smoke.service, named by
-# HOLT_STAGE_SMOKE_UNIT, which install.sh sets), so it doesn't hold this
+# Under the timer it is its own unit (prscout-stage-smoke.service, named by
+# PRSCOUT_STAGE_SMOKE_UNIT, which install.sh sets), so it doesn't hold this
 # run's lock: the next change is picked up while it runs, and that run
 # stops it first, since it would be testing a site that is about to change.
-# Without HOLT_STAGE_SMOKE_UNIT (a run by hand) it runs inline, as before.
-# It uses HOLT_STAGE_SMOKE_WORKERS browsers at once (default 3). To skip it
-# for one build: --no-smoke, HOLT_STAGE_SMOKE=0, or "[skip smoke]" in the
+# Without PRSCOUT_STAGE_SMOKE_UNIT (a run by hand) it runs inline, as before.
+# It uses PRSCOUT_STAGE_SMOKE_WORKERS browsers at once (default 3). To skip it
+# for one build: --no-smoke, PRSCOUT_STAGE_SMOKE=0, or "[skip smoke]" in the
 # message of a commit that is new in that build. While $STATE/no-smoke
 # exists, every build skips it.
 #
@@ -45,12 +45,12 @@
 # running) or failed. "live" and "smoke" mean the latest build is up:
 # refresh.
 #
-# STAGING_HOST is the one host setting: the web app's site host, HOLT_WEB_URL
+# STAGING_HOST is the one host setting: the web app's site host, PRSCOUT_WEB_URL
 # and AUTH_URL (compose.yml), "site" on /__build and the smoke tests' BASE_URL
 # all come from it. It lives in deploy/staging/.env (make-env.sh writes it);
 # an exported STAGING_HOST wins for that run.
 #
-# The edge reads its nginx config from ~/.local/share/holt-staging/edge/, a
+# The edge reads its nginx config from ~/.local/share/prscout-staging/edge/, a
 # copy of the preview's edge.conf: when that changes, it is checked with
 # nginx -t in the running edge and reloaded (deploy/edge.sh), never restarted.
 #
@@ -72,29 +72,29 @@ for arg in "$@"; do
     esac
 done
 
-STATE="${HOLT_STAGE_HOME:-$HOME/.local/share/holt-staging}"
+STATE="${PRSCOUT_STAGE_HOME:-$HOME/.local/share/prscout-staging}"
 SRC="$STATE/src"                                   # dedicated clone, detached at the preview
-REPO="${HOLT_REPO:-holt-oss/holt}"
-LOCAL_REPO="${HOLT_LOCAL_REPO:-$HOME/projects/holt}"  # for extra branches not pushed yet
-PROJECT=stage-holt-new
-LABEL="holt.stage=holt-new"
-BUILDER=holt-stage
-MAX_LOAD="${HOLT_STAGE_MAX_LOAD:-6}"               # when the server image rebuilds
-MAX_LOAD_LIGHT="${HOLT_STAGE_MAX_LOAD_LIGHT:-10}"  # when only web / paid features do
-MIN_AVAIL_MB="${HOLT_STAGE_MIN_AVAIL_MB:-3072}"
-MAX_WAIT="${HOLT_STAGE_MAX_WAIT:-1800}"            # seconds to wait for room, then retry next tick
-SMOKE_UNIT="${HOLT_STAGE_SMOKE_UNIT:-}"            # set by install.sh; empty: smoke runs inline
-SMOKE_WORKERS="${HOLT_STAGE_SMOKE_WORKERS:-3}"
+REPO="${PRSCOUT_REPO:-RauhanAli/prscout}"
+LOCAL_REPO="${PRSCOUT_LOCAL_REPO:-$HOME/projects/prscout}"  # for extra branches not pushed yet
+PROJECT=stage-prscout-new
+LABEL="prscout.stage=prscout-new"
+BUILDER=prscout-stage
+MAX_LOAD="${PRSCOUT_STAGE_MAX_LOAD:-6}"               # when the server image rebuilds
+MAX_LOAD_LIGHT="${PRSCOUT_STAGE_MAX_LOAD_LIGHT:-10}"  # when only web / paid features do
+MIN_AVAIL_MB="${PRSCOUT_STAGE_MIN_AVAIL_MB:-3072}"
+MAX_WAIT="${PRSCOUT_STAGE_MAX_WAIT:-1800}"            # seconds to wait for room, then retry next tick
+SMOKE_UNIT="${PRSCOUT_STAGE_SMOKE_UNIT:-}"            # set by install.sh; empty: smoke runs inline
+SMOKE_WORKERS="${PRSCOUT_STAGE_SMOKE_WORKERS:-3}"
 DEPLOY="$SRC/deploy/staging"
 BUILD_DIR="$DEPLOY/build"
-DEFAULT_HOST=staging.githolt.com
+DEFAULT_HOST=staging.gitprscout.com
 FORCE="${FORCE:-0}"
 # The paid-features service (compose.pro.yml), built from origin/main of the
 # private repository checked out here. Without that checkout, staging runs
 # with paid features off.
-PRO_REPO="${HOLT_PRO_REPO:-$HOME/projects/holt-pro}"
+PRO_REPO="${PRSCOUT_PRO_REPO:-$HOME/projects/prscout-pro}"
 PRO_SRC="$STATE/pro-src"                           # dedicated clone, detached at origin/main
-PRO_PROJECT=stage-holt-pro
+PRO_PROJECT=stage-prscout-pro
 
 mkdir -p "$STATE/logs"
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
@@ -104,15 +104,15 @@ if [[ -f "$here/edge.sh" ]]; then . "$here/edge.sh"; else . "$here/../edge.sh"; 
 # swap_service (a new container beside the old one, no gap), found the same way.
 if [[ -f "$here/swap.sh" ]]; then . "$here/swap.sh"; else . "$here/../swap.sh"; fi
 EDGE_DIR="$STATE/edge"
-export HOLT_STAGE_EDGE_DIR="$EDGE_DIR"
+export PRSCOUT_STAGE_EDGE_DIR="$EDGE_DIR"
 # Staging's own evidence snapshots (compose.yml), never production's. Made
 # here so Docker doesn't create it as root; the server's user (uid 10001)
 # writes through its group.
 EVIDENCE_DIR="$STATE/evidence"
 mkdir -p "$EVIDENCE_DIR"
 chmod 2775 "$EVIDENCE_DIR" 2>/dev/null || log "WARNING: can't make $EVIDENCE_DIR group-writable; staging won't keep evidence"
-HOLT_STAGE_EVIDENCE_GID="$(stat -c %g "$EVIDENCE_DIR")"
-export HOLT_STAGE_EVIDENCE_DIR="$EVIDENCE_DIR" HOLT_STAGE_EVIDENCE_GID HOLT_STAGE_EVIDENCE_MODE=rw
+PRSCOUT_STAGE_EVIDENCE_GID="$(stat -c %g "$EVIDENCE_DIR")"
+export PRSCOUT_STAGE_EVIDENCE_DIR="$EVIDENCE_DIR" PRSCOUT_STAGE_EVIDENCE_GID PRSCOUT_STAGE_EVIDENCE_MODE=rw
 
 RUN="$(mktemp -d "$STATE/run.XXXXXX")"
 trap 'rm -rf "$RUN"' EXIT
@@ -125,9 +125,9 @@ main_sha="" preview_sha="" fingerprint=""
 
 # The policy pages' contact details, the staging sign-in keys, the paid
 # features key, the Razorpay test keys, Resend's key and the smoke run's
-# Cloudflare Access token come from ~/.config/holt/secrets.env, the file
+# Cloudflare Access token come from ~/.config/prscout/secrets.env, the file
 # production reads; only the keys named in this script are taken from it.
-SECRETS="${HOLT_SECRETS_FILE:-$HOME/.config/holt/secrets.env}"
+SECRETS="${PRSCOUT_SECRETS_FILE:-$HOME/.config/prscout/secrets.env}"
 secret() {   # secret KEY: the value of KEY=value in $SECRETS, else empty
     [[ -f "$SECRETS" ]] || return 0
     sed -n "s/^[[:space:]]*\(export[[:space:]]\+\)\?$1[[:space:]]*=[[:space:]]*//p" "$SECRETS" \
@@ -139,8 +139,8 @@ if [[ ! -d "$SRC/.git" ]]; then
     [[ "$MODE" == smoke ]] && { log "smoke: nothing has been built yet"; exit 0; }
     log "cloning $REPO into $SRC"
     git clone -q "https://github.com/$REPO.git" "$SRC"
-    git -C "$SRC" config user.name "holt-staging"
-    git -C "$SRC" config user.email "holt-staging@localhost"
+    git -C "$SRC" config user.name "prscout-staging"
+    git -C "$SRC" config user.email "prscout-staging@localhost"
 fi
 cd "$SRC"
 
@@ -152,7 +152,7 @@ STAGING_HOST="${STAGING_HOST:-$DEFAULT_HOST}"
 if [[ ! "$STAGING_HOST" =~ ^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$ ]]; then
     log "STAGING_HOST must be a bare host name like $DEFAULT_HOST, not '$STAGING_HOST'"; exit 1
 fi
-if [[ "$STAGING_HOST" == githolt.com || "$STAGING_HOST" == www.githolt.com ]]; then
+if [[ "$STAGING_HOST" == gitprscout.com || "$STAGING_HOST" == www.gitprscout.com ]]; then
     log "STAGING_HOST is production's host ($STAGING_HOST); staging needs its own"; exit 1
 fi
 export STAGING_HOST
@@ -281,7 +281,7 @@ live_sha() {   # the preview commit that is live now, else empty
 }
 
 # --- smoke tests (e2e/) against the public URL --------------------------------------
-# One run per live build, HOLT_STAGE_SMOKE_WORKERS browsers at once. A
+# One run per live build, PRSCOUT_STAGE_SMOKE_WORKERS browsers at once. A
 # failure doesn't roll back; it shows on /__build as "smoke": {"status":
 # "failed", "failures": [...]}. The suite comes from the live commit (git
 # archive), not the working tree, which the next build may be checking out.
@@ -475,7 +475,7 @@ github_fail() {
 GITHUB_APP_ID="$(secret STAGING_GITHUB_APP_ID)"
 GITHUB_APP_INSTALLATION_ID="$(secret STAGING_GITHUB_APP_INSTALLATION_ID)"
 GITHUB_APP_PRIVATE_KEY_FILE="$(secret STAGING_GITHUB_APP_PRIVATE_KEY_FILE)"
-HOLT_GITHUB_APP_KEY_GID=""
+PRSCOUT_GITHUB_APP_KEY_GID=""
 if [[ -n "$GITHUB_APP_ID$GITHUB_APP_INSTALLATION_ID$GITHUB_APP_PRIVATE_KEY_FILE" ]]; then
     [[ -n "$GITHUB_APP_ID" && -n "$GITHUB_APP_INSTALLATION_ID" && -n "$GITHUB_APP_PRIVATE_KEY_FILE" ]] \
         || github_fail "staging's GitHub App is only partly set up in $SECRETS: set STAGING_GITHUB_APP_ID, STAGING_GITHUB_APP_INSTALLATION_ID and STAGING_GITHUB_APP_PRIVATE_KEY_FILE, or none of them"
@@ -485,7 +485,7 @@ if [[ -n "$GITHUB_APP_ID$GITHUB_APP_INSTALLATION_ID$GITHUB_APP_PRIVATE_KEY_FILE"
     [[ -f "$GITHUB_APP_PRIVATE_KEY_FILE" ]] \
         || github_fail "STAGING_GITHUB_APP_PRIVATE_KEY_FILE in $SECRETS: no file at $GITHUB_APP_PRIVATE_KEY_FILE"
     # The server's user reads the key through its group (compose.yml, group_add).
-    HOLT_GITHUB_APP_KEY_GID="$(stat -c %g "$GITHUB_APP_PRIVATE_KEY_FILE")"
+    PRSCOUT_GITHUB_APP_KEY_GID="$(stat -c %g "$GITHUB_APP_PRIVATE_KEY_FILE")"
     GITHUB_TOKENS=""   # wins over the token make-env.sh wrote into .env
     log "GitHub: reading as staging's GitHub App (app $GITHUB_APP_ID)"
 else
@@ -512,43 +512,43 @@ else
         fi
     done
 fi
-export GITHUB_TOKENS GITHUB_APP_ID GITHUB_APP_INSTALLATION_ID GITHUB_APP_PRIVATE_KEY_FILE HOLT_GITHUB_APP_KEY_GID
+export GITHUB_TOKENS GITHUB_APP_ID GITHUB_APP_INSTALLATION_ID GITHUB_APP_PRIVATE_KEY_FILE PRSCOUT_GITHUB_APP_KEY_GID
 # Compose refuses a group twice (compose.yml, group_add); the key's group
 # already covers the evidence directory then (65534, nogroup, stands in).
-[[ "$HOLT_STAGE_EVIDENCE_GID" == "${HOLT_GITHUB_APP_KEY_GID:-10001}" ]] && HOLT_STAGE_EVIDENCE_GID=""
-export HOLT_STAGE_EVIDENCE_GID
+[[ "$PRSCOUT_STAGE_EVIDENCE_GID" == "${PRSCOUT_GITHUB_APP_KEY_GID:-10001}" ]] && PRSCOUT_STAGE_EVIDENCE_GID=""
+export PRSCOUT_STAGE_EVIDENCE_GID
 
-# The paid-features service needs its own key, STAGING_HOLT_PRO_KEY (never
-# production's HOLT_PRO_KEY; the same value is refused), and a holt_pro
+# The paid-features service needs its own key, STAGING_PRSCOUT_PRO_KEY (never
+# production's PRSCOUT_PRO_KEY; the same value is refused), and a prscout_pro
 # database in staging's Postgres. Missing either, it stays off: the server
-# gets an empty HOLT_PRO_URL and paid features say "not available yet".
-# HOLT_PRO_* are always exported, so nothing in .env can turn it on instead.
-pro_settings() {   # sets pro_on and HOLT_PRO_KEY from pro_sha; run after resolve
-    HOLT_PRO_URL="" HOLT_PRO_KEY=""
+# gets an empty PRSCOUT_PRO_URL and paid features say "not available yet".
+# PRSCOUT_PRO_* are always exported, so nothing in .env can turn it on instead.
+pro_settings() {   # sets pro_on and PRSCOUT_PRO_KEY from pro_sha; run after resolve
+    PRSCOUT_PRO_URL="" PRSCOUT_PRO_KEY=""
     pro_on=0
     if [[ ! -d "$PRO_REPO/.git" ]]; then
         log "paid features: off (no $PRO_REPO)"
     elif [[ -z "$pro_sha" ]]; then
         log "paid features: off (no origin/main in $PRO_SRC)"
     else
-        HOLT_PRO_KEY="$(secret STAGING_HOLT_PRO_KEY)"
-        if [[ -z "$HOLT_PRO_KEY" ]]; then
-            log "paid features: off (no STAGING_HOLT_PRO_KEY in $SECRETS)"
-        elif [[ "$HOLT_PRO_KEY" == "$(secret HOLT_PRO_KEY)" ]]; then
-            log "paid features: off (STAGING_HOLT_PRO_KEY is production's key; make a separate one)"
-            HOLT_PRO_KEY=""
+        PRSCOUT_PRO_KEY="$(secret STAGING_PRSCOUT_PRO_KEY)"
+        if [[ -z "$PRSCOUT_PRO_KEY" ]]; then
+            log "paid features: off (no STAGING_PRSCOUT_PRO_KEY in $SECRETS)"
+        elif [[ "$PRSCOUT_PRO_KEY" == "$(secret PRSCOUT_PRO_KEY)" ]]; then
+            log "paid features: off (STAGING_PRSCOUT_PRO_KEY is production's key; make a separate one)"
+            PRSCOUT_PRO_KEY=""
         else
             pro_on=1
         fi
     fi
-    export HOLT_PRO_URL HOLT_PRO_KEY
+    export PRSCOUT_PRO_URL PRSCOUT_PRO_KEY
 }
 pro_settings
 
 # AI on staging: OpenAI directly, on OPENAI_API_KEY from $SECRETS, for the
-# server's AI reports and holt-pro's playbooks and pre-flight summaries, under
-# ONE hard budget of $1.00 for both. The server holds it (server/holt_server/
-# budget.py): holt-pro is only reached through the server's jobs, and each of
+# server's AI reports and prscout-pro's playbooks and pre-flight summaries, under
+# ONE hard budget of $1.00 for both. The server holds it (server/prscout_server/
+# budget.py): prscout-pro is only reached through the server's jobs, and each of
 # them holds its most possible cost from the budget before it is queued.
 # Production never reads OPENAI_API_KEY (deploy/prod/compose.yml). Always
 # exported, empty when off, so nothing in .env can turn AI on instead.
@@ -556,22 +556,22 @@ STAGING_AI_BUDGET_USD=1.00
 ai_settings() {
     OPENROUTER_API_KEY="$(secret OPENAI_API_KEY)"
     OPENROUTER_BASE_URL=https://api.openai.com/v1 OPENROUTER_MODEL=gpt-5-mini
-    HOLT_PRO_MODEL_KEY="$OPENROUTER_API_KEY" HOLT_PRO_MODEL_PROVIDER=openai
-    HOLT_PRO_PLAYBOOK_MODEL=gpt-5-mini
+    PRSCOUT_PRO_MODEL_KEY="$OPENROUTER_API_KEY" PRSCOUT_PRO_MODEL_PROVIDER=openai
+    PRSCOUT_PRO_PLAYBOOK_MODEL=gpt-5-mini
     if [[ -n "$OPENROUTER_API_KEY" ]]; then
-        HOLT_AI_BUDGET_USD="$STAGING_AI_BUDGET_USD"
-        log "AI: on (OpenAI gpt-5-mini), budget \$$HOLT_AI_BUDGET_USD for the server and holt-pro together"
+        PRSCOUT_AI_BUDGET_USD="$STAGING_AI_BUDGET_USD"
+        log "AI: on (OpenAI gpt-5-mini), budget \$$PRSCOUT_AI_BUDGET_USD for the server and prscout-pro together"
     else
-        HOLT_AI_BUDGET_USD=0
+        PRSCOUT_AI_BUDGET_USD=0
         log "AI: off (no OPENAI_API_KEY in $SECRETS)"
     fi
-    export OPENROUTER_API_KEY OPENROUTER_BASE_URL OPENROUTER_MODEL HOLT_AI_BUDGET_USD \
-        HOLT_PRO_MODEL_KEY HOLT_PRO_MODEL_PROVIDER HOLT_PRO_PLAYBOOK_MODEL
+    export OPENROUTER_API_KEY OPENROUTER_BASE_URL OPENROUTER_MODEL PRSCOUT_AI_BUDGET_USD \
+        PRSCOUT_PRO_MODEL_KEY PRSCOUT_PRO_MODEL_PROVIDER PRSCOUT_PRO_PLAYBOOK_MODEL
 }
 ai_settings
 
 # Pass checkout on staging: Razorpay TEST mode, every pass on sale
-# (HOLT_PASSES_ON_SALE; production ignores that switch and its compose never
+# (PRSCOUT_PASSES_ON_SALE; production ignores that switch and its compose never
 # sets it). On only when RAZORPAY_KEY_ID in $SECRETS is a test key
 # (rzp_test_...) and RAZORPAY_KEY_SECRET is set: a live key is refused, so
 # staging can never take real money. STAGING_RAZORPAY_WEBHOOK_SECRET is
@@ -581,26 +581,26 @@ payment_settings() {
     RAZORPAY_KEY_ID="$(secret RAZORPAY_KEY_ID)"
     RAZORPAY_KEY_SECRET="$(secret RAZORPAY_KEY_SECRET)"
     RAZORPAY_WEBHOOK_SECRET="$(secret STAGING_RAZORPAY_WEBHOOK_SECRET)"
-    HOLT_PAYMENTS_ENABLED=0 HOLT_PASSES_ON_SALE=0
+    PRSCOUT_PAYMENTS_ENABLED=0 PRSCOUT_PASSES_ON_SALE=0
     if [[ -z "$RAZORPAY_KEY_ID" || -z "$RAZORPAY_KEY_SECRET" ]]; then
         log "passes: off (no RAZORPAY_KEY_ID/SECRET in $SECRETS)"
     elif [[ "$RAZORPAY_KEY_ID" != rzp_test_* ]]; then
         log "passes: off (RAZORPAY_KEY_ID is not a test key; staging only takes rzp_test_ keys)"
     else
-        HOLT_PAYMENTS_ENABLED=1 HOLT_PASSES_ON_SALE=1
+        PRSCOUT_PAYMENTS_ENABLED=1 PRSCOUT_PASSES_ON_SALE=1
         log "passes: on sale (Razorpay test mode)"
     fi
-    if (( ! HOLT_PAYMENTS_ENABLED )); then
+    if (( ! PRSCOUT_PAYMENTS_ENABLED )); then
         RAZORPAY_KEY_ID="" RAZORPAY_KEY_SECRET="" RAZORPAY_WEBHOOK_SECRET=""
     fi
-    export HOLT_PAYMENTS_ENABLED HOLT_PASSES_ON_SALE \
+    export PRSCOUT_PAYMENTS_ENABLED PRSCOUT_PASSES_ON_SALE \
         RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET
 }
 payment_settings
 
 # PR watch's alert emails (server/README.md, "PR watch"): Resend's key from
 # $SECRETS, the one production reads (one verified sending domain, one key).
-# It only matters while staging's .env says HOLT_PR_WATCH=1. Always exported,
+# It only matters while staging's .env says PRSCOUT_PR_WATCH=1. Always exported,
 # empty when unset, so nothing in .env can turn email on instead. Never logged.
 RESEND_API_KEY="$(secret RESEND_API_KEY)"
 if [[ -n "$RESEND_API_KEY" ]]; then
@@ -613,7 +613,7 @@ export RESEND_API_KEY
 export BUILDX_BUILDER="$BUILDER" COMPOSE_PROJECT_NAME="$PROJECT"
 compose() { docker compose -p "$PROJECT" -f "$DEPLOY/compose.yml" --env-file "$DEPLOY/.env" "$@"; }
 pro_compose() {
-    HOLT_PRO_SRC="$PRO_SRC" HOLT_STAGE_NETWORK="${PROJECT}_default" \
+    PRSCOUT_PRO_SRC="$PRO_SRC" PRSCOUT_STAGE_NETWORK="${PROJECT}_default" \
         docker compose -p "$PRO_PROJECT" -f "$DEPLOY/compose.pro.yml" --env-file "$DEPLOY/.env" "$@"
 }
 
@@ -657,7 +657,7 @@ image_inputs() {   # service: one line per input
                   sed -n 's/^!//p' "$SRC/deploy/server/Dockerfile.dockerignore" 2>/dev/null | sed 's#/\*\*$##'; } \
                   | while read -r p; do printf '%s %s\n' "$p" "$(git rev-parse -q --verify "$preview_sha:$p" || echo none)"; done ;;
         web)    for p in web deploy/web; do printf '%s %s\n' "$p" "$(git rev-parse -q --verify "$preview_sha:$p" || echo none)"; done ;;
-        pro)    echo "holt-pro $(git -C "$PRO_SRC" rev-parse "$pro_sha^{tree}")" ;;
+        pro)    echo "prscout-pro $(git -C "$PRO_SRC" rev-parse "$pro_sha^{tree}")" ;;
     esac
     if [[ "$svc" == pro ]]; then section="$(pro_compose config --format json)"; else section="$(compose config --format json)"; fi
     python3 -c 'import json,sys; s=json.load(sys.stdin)["services"][sys.argv[1]]; print("image", s["image"]); print(json.dumps(s.get("build"), sort_keys=True))' \
@@ -743,11 +743,11 @@ if (( ${#BUILD[@]} )) && ! docker buildx inspect "$BUILDER" >/dev/null 2>&1; the
     docker buildx create --name "$BUILDER" --driver docker-container \
         --driver-opt memory=3g --driver-opt "env.BUILDKIT_STEP_LOG_MAX_SIZE=10485760" >/dev/null
 fi
-port="$(sed -n 's/^HOLT_STAGE_PORT=//p' "$DEPLOY/.env")"; port="${port:-9110}"
+port="$(sed -n 's/^PRSCOUT_STAGE_PORT=//p' "$DEPLOY/.env")"; port="${port:-9110}"
 # Web containers (compose.yml, `deploy.replicas`), as production: 1 to 3,
 # because the db's max_connections is sized for three.
-replicas="$(sed -n 's/^HOLT_WEB_REPLICAS=//p' "$DEPLOY/.env" | tail -1 | tr -d "\"'")"; replicas="${replicas:-2}"
-[[ "$replicas" =~ ^[1-3]$ ]] || fail "HOLT_WEB_REPLICAS in $DEPLOY/.env must be 1, 2 or 3, not '$replicas'"
+replicas="$(sed -n 's/^PRSCOUT_WEB_REPLICAS=//p' "$DEPLOY/.env" | tail -1 | tr -d "\"'")"; replicas="${replicas:-2}"
+[[ "$replicas" =~ ^[1-3]$ ]] || fail "PRSCOUT_WEB_REPLICAS in $DEPLOY/.env must be 1, 2 or 3, not '$replicas'"
 
 blog="$STATE/logs/build-$(date -u +%Y%m%dT%H%M%SZ).log"
 log "building ${BUILD[*]:-nothing} (log: $blog)"
@@ -765,29 +765,29 @@ done
 # here leaves paid features off; it never stops the rest of staging.
 if (( pro_on )); then
     if building pro; then
-        buildinfo now building "building paid features (holt-pro ${pro_sha:0:7})"
+        buildinfo now building "building paid features (prscout-pro ${pro_sha:0:7})"
         git -C "$PRO_SRC" checkout -q -f --detach "$pro_sha"
         if pro_compose build pro >>"$blog" 2>&1; then
             built pro
         else
-            log "paid features: off (holt-pro ${pro_sha:0:7} image build failed; see $blog)"
+            log "paid features: off (prscout-pro ${pro_sha:0:7} image build failed; see $blog)"
             pro_on=0
         fi
     fi
     if (( pro_on )) && [[ -n "$(compose ps -q db 2>/dev/null)" ]] && [[ "$(compose exec -T db \
-            psql -U holt -d holt -tAc "SELECT 1 FROM pg_database WHERE datname = 'holt_pro'" 2>/dev/null)" != 1 ]]; then
+            psql -U prscout -d prscout -tAc "SELECT 1 FROM pg_database WHERE datname = 'prscout_pro'" 2>/dev/null)" != 1 ]]; then
         # A new database volume gets it from initdb/20-pro-db.sh instead.
-        log "paid features: off (no holt_pro database; create it once, see deploy/README.md)"
+        log "paid features: off (no prscout_pro database; create it once, see deploy/README.md)"
         pro_on=0
     fi
-    (( pro_on )) && HOLT_PRO_URL=http://pro:8000
+    (( pro_on )) && PRSCOUT_PRO_URL=http://pro:8000
 fi
 
 pro_up() {
     if pro_compose up -d pro >>"$blog" 2>&1; then
-        log "paid features: on (holt-pro ${pro_sha:0:7} as $PRO_PROJECT)"
+        log "paid features: on (prscout-pro ${pro_sha:0:7} as $PRO_PROJECT)"
     else
-        log "paid features: holt-pro didn't start; see $blog"
+        log "paid features: prscout-pro didn't start; see $blog"
     fi
 }
 buildinfo now starting "starting ${preview_sha:0:7} (new containers beside the old ones)"
@@ -838,7 +838,7 @@ log "live: ${preview_sha:0:7} on 127.0.0.1:$port ($SITE)"
 # --- smoke tests, strictly after live ---------------------------------------------------
 smoke_skip_reason() {   # why this build's smoke run is skipped; empty to run it
     [[ -f "$SRC/e2e/package.json" ]] || { echo "this build has no e2e/ suite"; return; }
-    [[ "${HOLT_STAGE_SMOKE:-1}" == 1 ]] || { echo "HOLT_STAGE_SMOKE=0"; return; }
+    [[ "${PRSCOUT_STAGE_SMOKE:-1}" == 1 ]] || { echo "PRSCOUT_STAGE_SMOKE=0"; return; }
     (( SMOKE_ARG )) || { echo "--no-smoke"; return; }
     [[ -f "$STATE/no-smoke" ]] && { echo "$STATE/no-smoke exists"; return; }
     # The commits new since the last live build; with none to compare to, the

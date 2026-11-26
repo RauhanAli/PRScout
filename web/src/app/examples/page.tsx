@@ -15,7 +15,8 @@ import type { Tone } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Example reports",
-  description: "Full Holt reports on real repos, some worth your time, some not, some without enough evidence, plus a merge plan.",
+  description:
+    "Full PRScout reports on real repos, some worth your time, some not, some without enough evidence, plus a merge plan.",
   alternates: { canonical: EXAMPLES_PATH },
 };
 
@@ -34,12 +35,23 @@ interface Row {
 // cache, as one calm list: a place to pick one and open it. Reading the cache
 // starts no checks.
 export default async function ExamplesPage() {
-  const [reports, user, mergePlans] = await Promise.all([Promise.all(EXAMPLES.map((e) => getReport(e.repo))), currentUser(), mergePlansAvailable()]);
+  const [reports, user, mergePlans] = await Promise.all([
+    Promise.all(EXAMPLES.map((e) => getReport(e.repo))),
+    currentUser(),
+    mergePlansAvailable(),
+  ]);
   const planRepo = EXAMPLES.find((e) => e.repo === EXAMPLE_PLAN.repo);
   const rows: Row[] = [
     ...EXAMPLES.map((e, i) => {
       const r = reports[i];
-      return { href: `/${e.repo}`, repo: e.repo, verdict: r.ok ? r.data : undefined, language: e.language, stars: e.stars, why: e.why };
+      return {
+        href: `/${e.repo}`,
+        repo: e.repo,
+        verdict: r.ok ? r.data : undefined,
+        language: e.language,
+        stars: e.stars,
+        why: e.why,
+      };
     }),
     {
       href: EXAMPLE_PATH,
@@ -57,7 +69,9 @@ export default async function ExamplesPage() {
       <>
         <PageHead compact>
           <p className="ls-kicker text-blue">examples</p>
-          <h1 className="display text-[clamp(1.8rem,4vw,2.6rem)]">See what a report tells you.</h1>
+          <h1 className="display text-[clamp(1.8rem,4vw,2.6rem)]">
+            See what a report tells you.
+          </h1>
         </PageHead>
 
         <div className="wrap py-8 sm:py-10">
@@ -69,14 +83,27 @@ export default async function ExamplesPage() {
                   className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-2 py-4 transition-colors hover:bg-section-alt sm:px-4 lg:grid-cols-[minmax(0,15rem)_12rem_10rem_minmax(0,1fr)_1rem] lg:gap-x-6"
                 >
                   <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-semibold tracking-tight text-ink" title={r.repo}>
+                    <span
+                      className="truncate font-semibold tracking-tight text-ink"
+                      title={r.repo}
+                    >
                       {r.repo}
                     </span>
-                    {r.plan && <span className="shrink-0 border border-blue/60 px-1.5 text-[0.72rem] leading-5 text-blue">merge plan</span>}
+                    {r.plan && (
+                      <span className="shrink-0 border border-blue/60 px-1.5 text-[0.72rem] leading-5 text-blue">
+                        merge plan
+                      </span>
+                    )}
                     {r.plan && !mergePlans && <ComingSoon small />}
                   </span>
                   <span className="justify-self-end lg:justify-self-start">
-                    {r.verdict && <VerdictPill headline={r.verdict.headline} tone={r.verdict.tone} className="whitespace-nowrap" />}
+                    {r.verdict && (
+                      <VerdictPill
+                        headline={r.verdict.headline}
+                        tone={r.verdict.tone}
+                        className="whitespace-nowrap"
+                      />
+                    )}
                   </span>
                   {/* Below lg: language, stars and why share the second line. */}
                   <span className="col-span-2 flex flex-wrap gap-x-4 gap-y-1 lg:contents">
@@ -89,9 +116,14 @@ export default async function ExamplesPage() {
                         </span>
                       )}
                     </span>
-                    <span className="font-sans text-[0.92rem] text-muted">{r.why}</span>
+                    <span className="font-sans text-[0.92rem] text-muted">
+                      {r.why}
+                    </span>
                   </span>
-                  <span aria-hidden="true" className="hidden text-faint transition-colors group-hover:text-ink lg:block">
+                  <span
+                    aria-hidden="true"
+                    className="hidden text-faint transition-colors group-hover:text-ink lg:block"
+                  >
                     →
                   </span>
                 </Link>
@@ -101,8 +133,12 @@ export default async function ExamplesPage() {
 
           <p className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3 font-sans text-muted">
             Got a repo in mind?
-            <Link href={user ? HOME : "/signin"} prefetch={false} className="bracket-link font-mono">
-              [ check your repo → ]
+            <Link
+              href={user ? HOME : "/signin"}
+              prefetch={false}
+              className="bracket-link font-mono"
+            >
+              Check your repo →
             </Link>
           </p>
         </div>

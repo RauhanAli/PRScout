@@ -23,11 +23,11 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from holt.agent.pipeline import analyze
-from holt.discover import full_root, trajectory_for
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import OpenAIModel, PatchModel, TRAJECTORY_DIR
-from holt.types import Window
+from prscout.agent.pipeline import analyze
+from prscout.discover import full_root, trajectory_for
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import OpenAIModel, PatchModel, TRAJECTORY_DIR
+from prscout.types import Window
 
 
 def rerecord(slug: str, provider: FixtureProvider, path: Path, patch: bool) -> float:

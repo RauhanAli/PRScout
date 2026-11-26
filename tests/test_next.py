@@ -1,4 +1,4 @@
-"""`holt next`: the simple rule that won ships as measured, with its numbers.
+"""`prscout next`: the simple rule that won ships as measured, with its numbers.
 
 The elaborate weighted scorer was cut for failing to beat `path_overlap`
 (hit@10 0.211 vs 0.234); what ships is the measured rule, byte-identical in
@@ -9,16 +9,16 @@ with every ranking so no code path can show the order without its numbers.
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from holt.agent.progression import (
+from prscout.agent.progression import (
     NEXT_MEASUREMENT,
     history_for,
     overlap_tokens,
     path_overlap_rank,
     render_next,
 )
-from holt.agent.signals import build_threads
-from holt.cli import main
-from holt.types import EvidenceRecord
+from prscout.agent.signals import build_threads
+from prscout.cli import main
+from prscout.types import EvidenceRecord
 
 T0 = datetime(2026, 5, 1, tzinfo=UTC)
 

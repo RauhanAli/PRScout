@@ -9,7 +9,9 @@ import { repoNumbers, type YourRepo } from "./your-repos.ts";
 export const HOME = "/me";
 
 /** Where sign-in sends you: back to a safe callbackUrl, else (none, "/" or unsafe) your home. */
-export function afterSignIn(callbackUrl: string | string[] | undefined | null): string {
+export function afterSignIn(
+  callbackUrl: string | string[] | undefined | null,
+): string {
   const to = safeCallback(callbackUrl, HOME);
   return to === "/" ? HOME : to;
 }
@@ -17,17 +19,29 @@ export function afterSignIn(callbackUrl: string | string[] | undefined | null): 
 /** At most one nudge, for what's missing, and never the question the page is already asking. */
 export type Nudge = "profile" | "github";
 
-export function homeNudge(s: { askingProfile: boolean; hasProfile: boolean | null; connected: boolean; dismissed: string[] }): Nudge | null {
-  if (s.hasProfile === false && !s.askingProfile && !s.dismissed.includes("profile")) return "profile";
+export function homeNudge(s: {
+  askingProfile: boolean;
+  hasProfile: boolean | null;
+  connected: boolean;
+  dismissed: string[];
+}): Nudge | null {
+  if (
+    s.hasProfile === false &&
+    !s.askingProfile &&
+    !s.dismissed.includes("profile")
+  )
+    return "profile";
   if (!s.connected && !s.dismissed.includes("github")) return "github";
   return null;
 }
 
 /** The dismissed nudges, from their cookie ("profile,github"). "alerts" is My PRs' "turn on alerts" card (lib/alerts.ts). */
-export const NUDGE_COOKIE = "holt_nudges";
+export const NUDGE_COOKIE = "prscout_nudges";
 
 export function dismissedNudges(cookie: string | undefined): string[] {
-  return (cookie ?? "").split(",").filter((n) => n === "profile" || n === "github" || n === "alerts");
+  return (cookie ?? "")
+    .split(",")
+    .filter((n) => n === "profile" || n === "github" || n === "alerts");
 }
 
 /**
@@ -35,9 +49,14 @@ export function dismissedNudges(cookie: string | undefined): string[] {
  * user's own repositories; this is the same rule, in case a login changed.
  * It can't see org membership (the data doesn't carry it).
  */
-export function outsidePulls(pulls: ContributionPR[], login: string | null | undefined): ContributionPR[] {
+export function outsidePulls(
+  pulls: ContributionPR[],
+  login: string | null | undefined,
+): ContributionPR[] {
   const me = (login ?? "").toLowerCase();
-  return me ? pulls.filter((p) => p.repo.split("/")[0].toLowerCase() !== me) : pulls;
+  return me
+    ? pulls.filter((p) => p.repo.split("/")[0].toLowerCase() !== me)
+    : pulls;
 }
 
 // --- the next move (the dashboard plan, "Home") -------------------------------------
@@ -86,36 +105,81 @@ export interface Waiting {
  * - quiet close to the repo's stale bot: late;
  * - no reply yet: against the slow first reply (8 in 10 get one by then), late past it;
  * - replied, waiting on the merge: against the half-merged mark, then the slow one, late past it.
- * Nothing when Holt couldn't read the PR, it's a draft, or the repo has no timing.
+ * Nothing when PRScout couldn't read the PR, it's a draft, or the repo has no timing.
  */
 export function waiting(pr: ContributionPR, now: number): Waiting {
   const hours = Math.max(0, (now - Date.parse(pr.created_at)) / HOUR);
   const turn = pr.turn ?? "unknown";
-  const base: Waiting = { pr, hours, turn, mark: null, line: null, late: false };
+  const base: Waiting = {
+    pr,
+    hours,
+    turn,
+    mark: null,
+    line: null,
+    late: false,
+  };
   if (turn === "yours") {
-    const what = pr.review_decision === "changes_requested" ? "a reviewer asked for changes" : "a reviewer replied";
-    return { ...base, line: `Your turn: ${what}${pr.turn_at ? ` ${timeAgo(pr.turn_at, now)}` : ""}.` };
+    const what =
+      pr.review_decision === "changes_requested"
+        ? "a reviewer asked for changes"
+        : "a reviewer replied";
+    return {
+      ...base,
+      line: `Your turn: ${what}${pr.turn_at ? ` ${timeAgo(pr.turn_at, now)}` : ""}.`,
+    };
   }
   const t = pr.verdict?.timing;
   if (turn === "unknown" || pr.draft || !t) return base;
   const day = `Day ${Math.floor(hours / DAY) + 1}`;
   const close = t.stale_close_days;
-  const quiet = pr.last_activity_at ? Math.max(0, (now - Date.parse(pr.last_activity_at)) / HOUR / DAY) : null;
-  if (close && quiet != null && quiet >= Math.max(close - STALE_WARN_DAYS, close / 2)) {
+  const quiet = pr.last_activity_at
+    ? Math.max(0, (now - Date.parse(pr.last_activity_at)) / HOUR / DAY)
+    : null;
+  if (
+    close &&
+    quiet != null &&
+    quiet >= Math.max(close - STALE_WARN_DAYS, close / 2)
+  ) {
     const n = Math.floor(quiet);
-    return { ...base, late: true, line: `Quiet for ${n} day${n === 1 ? "" : "s"}. The bot here closes at ${close}.` };
+    return {
+      ...base,
+      late: true,
+      line: `Quiet for ${n} day${n === 1 ? "" : "s"}. The bot here closes at ${close}.`,
+    };
   }
   if (!pr.first_reply_at) {
     const slow = t.first_reply_slow_hours;
-    if (slow != null) return { ...base, mark: slow, late: hours > slow, line: `${day}, no reply yet. Most get one within ${waitPhrase(slow)} here.` };
+    if (slow != null)
+      return {
+        ...base,
+        mark: slow,
+        late: hours > slow,
+        line: `${day}, no reply yet. Most get one within ${waitPhrase(slow)} here.`,
+      };
     const half = t.first_reply_half_hours;
-    if (half != null) return { ...base, mark: half, line: `${day}, no reply yet. About half get one within ${waitPhrase(half)} here.` };
+    if (half != null)
+      return {
+        ...base,
+        mark: half,
+        line: `${day}, no reply yet. About half get one within ${waitPhrase(half)} here.`,
+      };
     return base;
   }
   const half = t.merge_half_days != null ? t.merge_half_days * DAY : null;
   const slow = t.merge_slow_days != null ? t.merge_slow_days * DAY : null;
-  if (half != null && (slow == null || hours <= half)) return { ...base, mark: half, line: `${day}. About half are merged within ${waitPhrase(half)} here.` };
-  if (slow != null) return { ...base, mark: slow, late: hours > slow, line: `${day}. Most merged ones land within ${waitPhrase(slow)} here.` };
+  if (half != null && (slow == null || hours <= half))
+    return {
+      ...base,
+      mark: half,
+      line: `${day}. About half are merged within ${waitPhrase(half)} here.`,
+    };
+  if (slow != null)
+    return {
+      ...base,
+      mark: slow,
+      late: hours > slow,
+      line: `${day}. Most merged ones land within ${waitPhrase(slow)} here.`,
+    };
   return base;
 }
 
@@ -137,12 +201,17 @@ export type NextMove =
  * then an open PR (the most overdue first), then a repo worth your time you
  * saved or checked, then finding one.
  */
-export function nextMove(s: { pulls: ContributionPR[]; repos: YourRepo[]; now: number }): NextMove {
+export function nextMove(s: {
+  pulls: ContributionPR[];
+  repos: YourRepo[];
+  now: number;
+}): NextMove {
   const merged = s.pulls.filter((p) => p.state === "merged" && p.merged_at);
   const fresh = merged
     .filter((p) => s.now - Date.parse(p.merged_at!) < FRESH_MERGE_HOURS * HOUR)
     .sort((a, b) => b.merged_at!.localeCompare(a.merged_at!))[0];
-  if (fresh) return { kind: "merged", step: 4, pr: fresh, merged: merged.length };
+  if (fresh)
+    return { kind: "merged", step: 4, pr: fresh, merged: merged.length };
   const open = inFlight(s.pulls, s.now);
   if (open.length) return { kind: "waiting", step: 3, wait: open[0] };
   const worth = s.repos.filter((r) => r.tone === "good");
@@ -158,14 +227,18 @@ export function inFlight(pulls: ContributionPR[], now: number): Waiting[] {
   return pulls
     .filter((p) => p.state === "open")
     .map((p) => waiting(p, now))
-    .sort((a, b) => rank(b) - rank(a) || ratio(b) - ratio(a) || b.hours - a.hours);
+    .sort(
+      (a, b) => rank(b) - rank(a) || ratio(b) - ratio(a) || b.hours - a.hours,
+    );
 }
 
 /** The headline, with the words that get the marker in *stars*. */
 export function moveTitle(m: NextMove): string {
   switch (m.kind) {
     case "first":
-      return m.again ? "Let's find your *next repo.*" : "Let's find your *first repo.*";
+      return m.again
+        ? "Let's find your *next repo.*"
+        : "Let's find your *first repo.*";
     case "issue":
       return `Next: pick an issue in *${m.repo.split("/")[1]}.*`;
     case "merged":
@@ -173,7 +246,8 @@ export function moveTitle(m: NextMove): string {
     case "waiting": {
       const w = m.wait;
       if (w.turn === "yours") return `It's *your turn* on ${w.pr.repo}.`;
-      if (w.late) return `Your PR to ${w.pr.repo} has *waited ${humanHours(w.hours)}.*`;
+      if (w.late)
+        return `Your PR to ${w.pr.repo} has *waited ${humanHours(w.hours)}.*`;
       return `Your PR to ${w.pr.repo} is *waiting.*`;
     }
   }
@@ -191,23 +265,33 @@ export function moveLead(m: NextMove, repos: YourRepo[] = []): string | null {
     case "waiting":
       return m.wait.line;
     case "issue": {
-      const r = repos.find((x) => x.repo.toLowerCase() === m.repo.toLowerCase());
+      const r = repos.find(
+        (x) => x.repo.toLowerCase() === m.repo.toLowerCase(),
+      );
       const n = r?.stats ? repoNumbers(r.stats) : null;
-      const why = n && r!.stats!.outsider_attempts ? `: ${n.merged}${n.reply ? `, ${n.reply}` : ""}` : "";
-      return `Holt says it's worth your time${why}. Start small with one of its good first issues.`;
+      const why =
+        n && r!.stats!.outsider_attempts
+          ? `: ${n.merged}${n.reply ? `, ${n.reply}` : ""}`
+          : "";
+      return `PRScout says it's worth your time${why}. Start small with one of its good first issues.`;
     }
     case "first":
       if (repos.length) {
         return `None of the ${repos.length === 1 ? "repo" : `${repos.length} repos`} you saved or checked is worth your time yet. Find one where outside PRs get merged.`;
       }
-      if (m.again) return "Your last pull requests are wrapped up. Find a repo where outside PRs get merged and go again.";
-      return "Holt reads a repo's recent pull requests and tells you whether outsiders get replies and merges. Start with one where they do.";
+      if (m.again)
+        return "Your last pull requests are wrapped up. Find a repo where outside PRs get merged and go again.";
+      return "PRScout reads a repo's recent pull requests and tells you whether outsiders get replies and merges. Start with one where they do.";
   }
 }
 
 /** The small numbers under the head: what you've saved, checked and sent. Empty while you're starting. */
-export function homeFacts(s: { repos: YourRepo[]; pulls: ContributionPR[] }): string[] {
-  const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+export function homeFacts(s: {
+  repos: YourRepo[];
+  pulls: ContributionPR[];
+}): string[] {
+  const count = (n: number, one: string, many = `${one}s`) =>
+    `${n} ${n === 1 ? one : many}`;
   const saved = s.repos.filter((r) => r.savedAt).length;
   const checked = s.repos.filter((r) => r.checkedAt).length;
   const open = s.pulls.filter((p) => p.state === "open").length;
@@ -222,23 +306,43 @@ export function homeFacts(s: { repos: YourRepo[]; pulls: ContributionPR[] }): st
 
 /** Also for you: your checks running or just finished, PRs that need you (your
  * turn, or waiting longer than usual; not the headline one), and saved repos that turned. */
-export type AlsoItem = { kind: "checking" | "ready"; repo: YourRepo } | { kind: "pr"; wait: Waiting } | { kind: "turned"; repo: YourRepo };
+export type AlsoItem =
+  | { kind: "checking" | "ready"; repo: YourRepo }
+  | { kind: "pr"; wait: Waiting }
+  | { kind: "turned"; repo: YourRepo };
 
 /** A finished check stays in Also for you this long. */
 const READY_HOURS = 1;
 
-export function alsoForYou(m: NextMove, s: { pulls: ContributionPR[]; repos: YourRepo[]; now: number }): AlsoItem[] {
+export function alsoForYou(
+  m: NextMove,
+  s: { pulls: ContributionPR[]; repos: YourRepo[]; now: number },
+): AlsoItem[] {
   const lead = m.kind === "waiting" ? m.wait.pr.url : null;
   const checks: AlsoItem[] = s.repos
-    .filter((r) => r.checking || (r.checkedAt && r.headline && s.now - Date.parse(r.checkedAt) < READY_HOURS * HOUR))
+    .filter(
+      (r) =>
+        r.checking ||
+        (r.checkedAt &&
+          r.headline &&
+          s.now - Date.parse(r.checkedAt) < READY_HOURS * HOUR),
+    )
     .map((repo) => ({ kind: repo.checking ? "checking" : "ready", repo }));
-  const prs: AlsoItem[] = inFlight(s.pulls, s.now).filter((w) => needsYou(w) && w.pr.url !== lead).map((wait) => ({ kind: "pr", wait }));
-  const turned: AlsoItem[] = s.repos.filter((r) => r.savedAt && r.tone === "bad" && !r.checking).map((repo) => ({ kind: "turned", repo }));
+  const prs: AlsoItem[] = inFlight(s.pulls, s.now)
+    .filter((w) => needsYou(w) && w.pr.url !== lead)
+    .map((wait) => ({ kind: "pr", wait }));
+  const turned: AlsoItem[] = s.repos
+    .filter((r) => r.savedAt && r.tone === "bad" && !r.checking)
+    .map((repo) => ({ kind: "turned", repo }));
   return [...checks.slice(0, 2), ...prs, ...turned].slice(0, 3);
 }
 
 /** In flight: open PRs that aren't the headline and aren't already in Also for you. */
-export function othersInFlight(m: NextMove, pulls: ContributionPR[], now: number): Waiting[] {
+export function othersInFlight(
+  m: NextMove,
+  pulls: ContributionPR[],
+  now: number,
+): Waiting[] {
   const lead = m.kind === "waiting" ? m.wait.pr.url : null;
   return inFlight(pulls, now).filter((w) => w.pr.url !== lead && !needsYou(w));
 }

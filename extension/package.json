@@ -1,8 +1,8 @@
 {
-  "name": "holt-extension",
+  "name": "prscout-extension",
   "version": "0.1.0",
   "private": true,
-  "description": "Shows a Holt verdict chip on GitHub repository pages.",
+  "description": "Shows a PRScout verdict chip on GitHub repository pages.",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

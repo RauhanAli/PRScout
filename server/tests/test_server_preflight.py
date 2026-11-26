@@ -1,4 +1,4 @@
-"""PR pre-flight (holt_server/preflight.py) against a fake paid-features service.
+"""PR pre-flight (prscout_server/preflight.py) against a fake paid-features service.
 
 The service is an httpx.MockTransport: nothing touches the network.
 """
@@ -13,9 +13,9 @@ import time
 
 import httpx
 import pytest
-from holt_server import credits, preflight, pro
-from holt_server.db import CreditEvent, Job, Preflight
-from holt_server.errors import ApiError
+from prscout_server import credits, preflight, pro
+from prscout_server.db import CreditEvent, Job, Preflight
+from prscout_server.errors import ApiError
 from sqlalchemy import select
 
 KEY = "pro-secret-key-value"
@@ -102,7 +102,7 @@ def with_pro(h, fake):
 
 @pytest.fixture
 def hp(make_harness, fake):
-    return with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY), fake)
+    return with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY), fake)
 
 
 def call(h, fn, *args, **kw):
@@ -157,7 +157,7 @@ def wait_for_requests(fake: FakePro, n: int) -> None:
     ("https://github.com/pallets/flask/pull/3878", "pallets/flask", 3878),
     ("github.com/pallets/flask/pull/3878/files?w=1", "pallets/flask", 3878),
     ("https://www.github.com/pallets/flask/pull/12#discussion_r1", "pallets/flask", 12),
-    ("https://githolt.com/pallets/flask/pull/7", "pallets/flask", 7),
+    ("https://gitprscout.com/pallets/flask/pull/7", "pallets/flask", 7),
     ("pallets/flask#42", "pallets/flask", 42),
 ])
 def test_pull_request_links_are_understood(raw, repo, number):
@@ -280,7 +280,7 @@ def test_a_check_runs_charges_once_and_is_kept(hp, fake):
     assert str(req.url) == f"{URL}/v1/preflight"
     assert json.loads(req.content) == {"pr": "pallets/flask#3878", "days": 365,
                                        "summary": False, "refresh": False}
-    assert req.headers["X-Holt-Pro-Key"] == KEY and req.headers["X-Holt-User"] == "u"
+    assert req.headers["X-prscout-Pro-Key"] == KEY and req.headers["X-prscout-User"] == "u"
     assert req.headers["X-Request-Id"] == r.json()["job_id"]
 
     assert purchased(hp, "u") == 0
@@ -367,7 +367,7 @@ def test_an_answer_that_isnt_a_preflight_is_refunded(hp, fake):
 
 
 def test_a_check_that_takes_too_long_is_stopped_and_refunded(make_harness, fake):
-    h = with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY, HOLT_JOB_TIMEOUT_AI=0.3), fake)
+    h = with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY, PRSCOUT_JOB_TIMEOUT_AI=0.3), fake)
     fake.gate.clear()
     gift(h, "u")
     body = wait(h, start(h, "u").json()["job_id"])
@@ -392,7 +392,7 @@ def test_events_end_with_the_checks(hp):
 @pytest.mark.parametrize("status, code, held", [
     (503, "unavailable", 0), (400, "invalid_request", 0), (500, "internal", 50_000)])
 def test_a_summarys_budget_hold_comes_back_only_before_a_model_call(hp, fake, status, code, held):
-    from holt_server.db import AiBudget
+    from prscout_server.db import AiBudget
 
     fake.answer = httpx.Response(status, json={"error": {"code": code, "message": "m"}})
     gift(hp, "u")

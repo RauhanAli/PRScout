@@ -1,4 +1,4 @@
-"""Merging two Holt accounts: `POST /v1/me/merge` (API.md, "Merging accounts").
+"""Merging two PRScout accounts: `POST /v1/me/merge` (API.md, "Merging accounts").
 
 `old` is the account the GitHub sign-in belonged to (it goes away); `kept` is
 the one the person is signed in to."""
@@ -9,8 +9,8 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
-from holt_server import account_mail, alerts, credits
-from holt_server.db import (
+from prscout_server import account_mail, alerts, credits
+from prscout_server.db import (
     AccountEmail,
     AccountMail,
     Alert,

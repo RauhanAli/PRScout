@@ -20,12 +20,12 @@ from __future__ import annotations
 import json
 import pathlib
 
-from holt.agent.findings import Findings
-from holt.agent.signals import build_threads, compute
-from holt.agent.verdict import CATALOGUE_KINDS, CLOSED_KINDS, contested_kind
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import TRAJECTORY_DIR
-from holt.types import Window
+from prscout.agent.findings import Findings
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.verdict import CATALOGUE_KINDS, CLOSED_KINDS, contested_kind
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import TRAJECTORY_DIR
+from prscout.types import Window
 
 POOLS = [
     ("pool 1 (thresholds chosen here)", "eval/pool.json", ["", "run1", "run2", "run3"]),

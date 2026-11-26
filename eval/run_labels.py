@@ -13,8 +13,8 @@ import json
 from pathlib import Path
 
 from eval.labels import naive, qualifying
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import Window
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import Window
 
 POOL = Path("eval/pool.json")
 

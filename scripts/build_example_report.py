@@ -33,11 +33,11 @@ REPO = "home-assistant/core"
 
 
 def build(repo: str = REPO) -> dict:
-    from holt_server import engine
+    from prscout_server import engine
 
-    from holt.evidence.fixtures import FixtureProvider
-    from holt.model import TRAJECTORY_DIR, ReplayModel
-    from holt.types import T_CUTOFF, Window
+    from prscout.evidence.fixtures import FixtureProvider
+    from prscout.model import TRAJECTORY_DIR, ReplayModel
+    from prscout.types import T_CUTOFF, Window
 
     fixtures = ROOT / "fixtures"
     model = ReplayModel(ROOT / TRAJECTORY_DIR / (repo.replace("/", "__") + ".jsonl"))

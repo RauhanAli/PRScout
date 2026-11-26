@@ -1,7 +1,7 @@
 """Catalogue detection from diff shape: registries and lists, no model.
 
 The free report used to call is-a-dev/register "worth your time", because on
-every count Holt makes a registry looks healthy. These tests pin the three
+every count PRScout makes a registry looks healthy. These tests pin the three
 entry shapes, the cases that must not count, and the golden-set result: the
 catalogues are flagged and no software project is.
 """
@@ -13,12 +13,12 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from golden import golden
-from holt.agent import repo_kind_rules as rk
-from holt.agent.pipeline import analyze_without_model
-from holt.agent.verdict import rule_codes
-from holt.evidence.fixtures import FixtureProvider
-from holt.report import Verdict
-from holt.types import EvidenceRecord, Window
+from prscout.agent import repo_kind_rules as rk
+from prscout.agent.pipeline import analyze_without_model
+from prscout.agent.verdict import rule_codes
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.report import Verdict
+from prscout.types import EvidenceRecord, Window
 
 T0 = datetime(2026, 3, 1, tzinfo=UTC)  # before the fixture provider's cutoff
 REPO = "o/r"

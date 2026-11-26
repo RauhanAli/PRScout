@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
-from holt_server import alerts, pricing, schema
+from prscout_server import alerts, pricing, schema
 
 NOW = datetime(2026, 10, 1, 12, 0, tzinfo=UTC)
 CAT = pricing.load()
@@ -94,7 +94,7 @@ def test_an_approval_alerts_once():
     assert alerts.line("approved", "dotnet/efcore", 3310, found.facts) == (
         "Nice. @jrios approved efcore #3310.")
     assert alerts.events(new, new) == []
-    # A row stored before Holt kept who spoke last: an approval from weeks
+    # A row stored before PRScout kept who spoke last: an approval from weeks
     # ago is not news the first time it is read again.
     before = pr(turn="theirs", turn_at=at, review_decision="approved")
     assert alerts.events(before, new) == []
@@ -115,7 +115,7 @@ def test_merged_and_closed():
         "moment #6120 was closed without merging.")
 
 
-def test_nothing_for_a_pull_request_holt_wasnt_watching():
+def test_nothing_for_a_pull_request_prscout_wasnt_watching():
     yours = pr(turn="yours", turn_at=NOW, reply_by="lead", reply_kind="reply")
     assert alerts.events(None, yours) == []  # seen for the first time
     assert alerts.events(pr(state="merged"), pr(state="merged")) == []

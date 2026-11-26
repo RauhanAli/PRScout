@@ -3,17 +3,32 @@ import { test } from "node:test";
 import { EXAMPLE_REPORT } from "./example-report.ts";
 import { buildReplay, cliHours, plainLine } from "./landing-replay.ts";
 
-test("the terminal replay prints what `holt analyze` printed for the example repo", () => {
-  // uv run holt analyze home-assistant/core --replay --no-model
+test("the terminal replay prints what `prscout analyze` printed for the example repo", () => {
+  // uv run prscout analyze home-assistant/core --replay --no-model
   const r = buildReplay(EXAMPLE_REPORT);
   const text = r.terminal.map(plainLine);
-  assert.equal(r.command, "holt analyze home-assistant/core --live --no-model");
+  assert.equal(
+    r.command,
+    "prscout analyze home-assistant/core --live --no-model",
+  );
   assert.ok(text.includes("Worth your time — for a contributor with 7 days."));
   assert.ok(text.includes("Evidence up to 2026-06-01."));
-  assert.ok(text.includes("28 of 119 pull requests from outside contributors were merged."));
-  assert.ok(text.includes("Of the 64 that got a reply, half heard back within 2.3 hours."));
+  assert.ok(
+    text.includes(
+      "28 of 119 pull requests from outside contributors were merged.",
+    ),
+  );
+  assert.ok(
+    text.includes(
+      "Of the 64 that got a reply, half heard back within 2.3 hours.",
+    ),
+  );
   assert.ok(text.includes("55 got no reply at all."));
-  assert.ok(text.includes("• homeassistant/components — 26 merged of 104 attempted (25%)"));
+  assert.ok(
+    text.includes(
+      "• homeassistant/components — 26 merged of 104 attempted (25%)",
+    ),
+  );
 });
 
 test("the web replay lands the report's own verdict and numbers", () => {
@@ -32,14 +47,42 @@ test("waits read the way the CLI writes them", () => {
 });
 
 test("closed without a word is neither a reply nor left open", () => {
-  const r = buildReplay({ ...EXAMPLE_REPORT, stats: { ...EXAMPLE_REPORT.stats, outsider_attempts: 171, outsider_merged: 5, no_reply: 0, closed_silently: 99 } });
+  const r = buildReplay({
+    ...EXAMPLE_REPORT,
+    stats: {
+      ...EXAMPLE_REPORT.stats,
+      outsider_attempts: 171,
+      outsider_merged: 5,
+      no_reply: 0,
+      closed_silently: 99,
+    },
+  });
   const text = r.terminal.map(plainLine);
-  assert.ok(text.includes("Of the 72 that got a reply, half heard back within 2.3 hours."));
-  assert.ok(text.includes("99 were closed without a reply, which isn't counted as ignored."));
+  assert.ok(
+    text.includes(
+      "Of the 72 that got a reply, half heard back within 2.3 hours.",
+    ),
+  );
+  assert.ok(
+    text.includes(
+      "99 were closed without a reply, which isn't counted as ignored.",
+    ),
+  );
 });
 
 test("closes by a bot or the author are not counted as replies", () => {
-  const r = buildReplay({ ...EXAMPLE_REPORT, stats: { ...EXAMPLE_REPORT.stats, outsider_attempts: 100, outsider_merged: 10, no_reply: 20, closed_silently: 5, closed_by_bot: 40, withdrawn: 10 } });
+  const r = buildReplay({
+    ...EXAMPLE_REPORT,
+    stats: {
+      ...EXAMPLE_REPORT.stats,
+      outsider_attempts: 100,
+      outsider_merged: 10,
+      no_reply: 20,
+      closed_silently: 5,
+      closed_by_bot: 40,
+      withdrawn: 10,
+    },
+  });
   const text = r.terminal.map(plainLine);
   assert.ok(text.some((l) => l.startsWith("Of the 25 that got a reply")));
   assert.ok(text.includes("40 were closed by a bot."));

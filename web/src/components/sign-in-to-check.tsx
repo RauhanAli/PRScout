@@ -4,12 +4,24 @@
 import Link from "next/link";
 import { signInHref } from "@/lib/gate";
 
-export function SignInToCheck({ back, className = "p-4" }: { back: string; className?: string }) {
+export function SignInToCheck({
+  back,
+  className = "p-4",
+}: {
+  back: string;
+  className?: string;
+}) {
   return (
     <div className={`font-sans text-[0.9rem] ${className}`} data-signin-card>
-      <p className="text-muted">Holt hasn&apos;t checked this repo recently.</p>
-      <Link href={signInHref(back)} prefetch={false} className="text-link mt-2 inline-flex min-h-11 items-center font-mono text-[0.87rem]">
-        [ check it → ]
+      <p className="text-muted">
+        PRScout hasn&apos;t checked this repo recently.
+      </p>
+      <Link
+        href={signInHref(back)}
+        prefetch={false}
+        className="text-link mt-2 inline-flex min-h-11 items-center font-mono text-[0.87rem]"
+      >
+        Check it →
       </Link>
     </div>
   );

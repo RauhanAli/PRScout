@@ -1,4 +1,4 @@
-"""The environment's hard cap on AI spend (holt_server/budget.py).
+"""The environment's hard cap on AI spend (prscout_server/budget.py).
 
 Every run holds its most expensive possible cost from the budget when it is
 queued, so racing requests can't take the total past the cap; a run that
@@ -16,10 +16,10 @@ from dataclasses import dataclass, field
 
 import httpx
 import pytest
-from holt.model import Usage
-from holt_server import budget, credits, pro
-from holt_server.db import AiBudget, AiRun, Job
-from holt_server.errors import ApiError
+from prscout.model import Usage
+from prscout_server import budget, credits, pro
+from prscout_server.db import AiBudget, AiRun, Job
+from prscout_server.errors import ApiError
 from sqlalchemy import select
 
 from conftest import canned_report, make_settings
@@ -32,9 +32,9 @@ REPOS = ["octo/one", "octo/two", "octo/three", "octo/four", "pallets/flask", "Ni
 def budgeted(make_harness, usd: float = 0.25, **kw):
     """A harness with AI on: a model key, a budget, $0.10 a report."""
     values = {"OPENROUTER_API_KEY": "sk-test", "OPENROUTER_MODEL": "openai/gpt-5-mini",
-              "HOLT_AI_BUDGET_USD": usd, "HOLT_AI_BUDGET_OWNER_OK": False,
-              "HOLT_ENV": "staging", "HOLT_AI_RUN_MAX_USD": 0.10,
-              "HOLT_AI_PRO_RUN_MAX_USD": 0.05, "HOLT_ADMIN_USERS": ADMIN}
+              "PRSCOUT_AI_BUDGET_USD": usd, "PRSCOUT_AI_BUDGET_OWNER_OK": False,
+              "PRSCOUT_ENV": "staging", "PRSCOUT_AI_RUN_MAX_USD": 0.10,
+              "PRSCOUT_AI_PRO_RUN_MAX_USD": 0.05, "PRSCOUT_ADMIN_USERS": ADMIN}
     return make_harness(**{**values, **kw})
 
 
@@ -97,16 +97,16 @@ def test_no_budget_means_ai_is_off_and_costs_nothing(make_harness):
 
 
 def test_production_ignores_a_budget_without_the_owner_say_so(make_harness, caplog):
-    with caplog.at_level(logging.ERROR, logger="holt_server.budget"):
-        h = budgeted(make_harness, HOLT_ENV="production")
+    with caplog.at_level(logging.ERROR, logger="prscout_server.budget"):
+        h = budgeted(make_harness, PRSCOUT_ENV="production")
     assert ai(h, "octo/one", "u1").json()["error"]["code"] == "ai_unavailable"
-    assert "without HOLT_AI_BUDGET_OWNER_OK=1" in caplog.text
-    on = budgeted(make_harness, HOLT_ENV="production", HOLT_AI_BUDGET_OWNER_OK=True)
+    assert "without PRSCOUT_AI_BUDGET_OWNER_OK=1" in caplog.text
+    on = budgeted(make_harness, PRSCOUT_ENV="production", PRSCOUT_AI_BUDGET_OWNER_OK=True)
     assert on.svc.server_model_available()
 
 
 def test_a_model_without_a_price_cant_be_capped_so_ai_stays_off(tmp_path):
-    settings = make_settings(tmp_path, HOLT_AI_BUDGET_USD=1, HOLT_ENV="staging",
+    settings = make_settings(tmp_path, PRSCOUT_AI_BUDGET_USD=1, PRSCOUT_ENV="staging",
                              OPENROUTER_API_KEY="k", OPENROUTER_MODEL="some/model")
     level, line = budget.startup_line(settings)
     assert level == logging.ERROR and "no known price" in line
@@ -166,7 +166,7 @@ def test_a_failed_run_is_refunded_and_counts_what_its_model_spent(make_harness):
 
 
 def test_a_run_that_times_out_keeps_its_whole_hold(make_harness):
-    h = budgeted(make_harness, HOLT_JOB_TIMEOUT_AI=0.2)
+    h = budgeted(make_harness, PRSCOUT_JOB_TIMEOUT_AI=0.2)
     h.engine.gate.clear()
     gift(h, "u1")
     r = ai(h, "octo/one", "u1")
@@ -246,7 +246,7 @@ def test_a_job_run_again_needs_a_new_hold(make_harness):
 @pytest.fixture
 def hp(make_harness):
     fake = FakePro()
-    h = budgeted(make_harness, usd=0.12, HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY)
+    h = budgeted(make_harness, usd=0.12, PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY)
     asyncio.run(h.svc.pro.aclose())
     h.svc.pro = pro.ProClient(URL, KEY, transport=httpx.MockTransport(fake), retry_delay=0)
     return h, fake

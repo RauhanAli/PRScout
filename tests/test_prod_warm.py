@@ -4,7 +4,7 @@
 stubbed, so nothing is started. What must hold: a dry run never becomes a
 detached pass or waits for the one that is running, and neither script gives
 a refresh tier an age of its own: the tier's age comes from one place, the
-server's HOLT_REFRESH_*_HOURS, which compose.yml passes through. (On 6 Oct
+server's PRSCOUT_REFRESH_*_HOURS, which compose.yml passes through. (On 6 Oct
 2026 `warm.sh --tier monthly` passed none and the pass fell back to 20 hours.)
 """
 
@@ -55,8 +55,8 @@ class Rig:
             "HOME": str(self.home),
             "PATH": f"{self.home / '.local' / 'bin'}:{os.environ['PATH']}",
             "STUB_DIR": str(self.stubs),
-            "HOLT_PROD_HOME": str(self.state),
-            "HOLT_PROD_PROJECT": "warm-test",
+            "PRSCOUT_PROD_HOME": str(self.state),
+            "PRSCOUT_PROD_PROJECT": "warm-test",
             "GITHUB_TOKENS": "not-a-token",
         }
         return subprocess.run(["bash", str(PROD / script), *args], env=env,
@@ -81,7 +81,7 @@ def test_a_dry_run_is_in_the_foreground_even_while_a_pass_runs(rig: Rig, args) -
     r = rig.run("warm.sh", *args)
     assert r.returncode == 0, r.stderr
     [call] = rig.runs()
-    assert " run --rm --no-deps server python -m holt_server.warm " in call
+    assert " run --rm --no-deps server python -m prscout_server.warm " in call
     assert call.endswith(" ".join(args)) and " -d " not in call
 
 
@@ -90,7 +90,7 @@ def test_a_pass_is_detached_and_a_second_one_is_not_started(rig: Rig) -> None:
     assert r.returncode == 0, r.stderr
     [call] = rig.runs()
     assert " run -d --no-deps --name warm-test-warm " in call
-    assert call.endswith("python -m holt_server.warm --tier monthly --wait-for-budget")
+    assert call.endswith("python -m prscout_server.warm --tier monthly --wait-for-budget")
 
     (rig.stubs / "warm_running").touch()
     again = rig.run("warm.sh", "--tier", "monthly")
@@ -104,11 +104,11 @@ def test_neither_script_gives_a_tier_an_age_of_its_own(rig: Rig) -> None:
     by_hand, weekly, monthly = rig.runs()
     assert weekly.endswith("--tier weekly") and monthly.endswith("--tier monthly")
     for call in (by_hand, weekly, monthly):
-        assert "HOLT_WARM_MAX_AGE_HOURS" not in call and "_HOURS" not in call
+        assert "PRSCOUT_WARM_MAX_AGE_HOURS" not in call and "_HOURS" not in call
 
 
 def test_the_server_gets_the_tiers_ages_from_compose() -> None:
     compose = yaml.safe_load((PROD / "compose.yml").read_text(encoding="utf-8"))
     env = compose["services"]["server"]["environment"]
-    assert env["HOLT_REFRESH_WEEKLY_HOURS"] == "${HOLT_REFRESH_WEEKLY_HOURS:-168}"
-    assert env["HOLT_REFRESH_MONTHLY_HOURS"] == "${HOLT_REFRESH_MONTHLY_HOURS:-720}"
+    assert env["PRSCOUT_REFRESH_WEEKLY_HOURS"] == "${PRSCOUT_REFRESH_WEEKLY_HOURS:-168}"
+    assert env["PRSCOUT_REFRESH_MONTHLY_HOURS"] == "${PRSCOUT_REFRESH_MONTHLY_HOURS:-720}"

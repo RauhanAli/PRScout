@@ -1,5 +1,5 @@
 // Drives the real page controller against fixtures/github-repo.html with canned
-// answers, so the chip can be screenshotted without GitHub or a Holt server.
+// answers, so the chip can be screenshotted without GitHub or a PRScout server.
 // Build: npm run fixture. Open fixtures/github-repo.html (?state=missing|not_viable|insufficient_evidence,
 // or ?state=loading for the skeleton chip: the lookup never answers).
 import { createPageController, type LookupFn } from "../src/page";
@@ -13,7 +13,13 @@ const lookup = ((kind) => {
       data: {
         repo: "pallets/flask",
         issues: [
-          { number: 5612, why: ["Labelled good first issue", "Touches docs/, where 8 of 10 outsider PRs were merged"] },
+          {
+            number: 5612,
+            why: [
+              "Labelled good first issue",
+              "Touches docs/, where 8 of 10 outsider PRs were merged",
+            ],
+          },
           { number: 5598, why: ["Labelled good first issue"] },
         ],
       },

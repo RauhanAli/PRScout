@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from holt.agent.signals import FIRST_PR_OPEN_DAYS, build_threads, compute
-from holt.types import EvidenceRecord
+from prscout.agent.signals import FIRST_PR_OPEN_DAYS, build_threads, compute
+from prscout.types import EvidenceRecord
 
 REPO = "o/r"
 NOW = datetime(2026, 9, 29, tzinfo=UTC)

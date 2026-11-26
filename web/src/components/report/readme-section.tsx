@@ -6,10 +6,22 @@
 // the project without leaving. The text is untrusted: lib/readme-md.ts turns it
 // into plain blocks (no raw HTML, only http(s) links, images only from GitHub's
 // hosts) and this draws them in the page's own style.
-import { BookOpen, Check, ChevronDown, Copy, ExternalLink, Users } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  Users,
+} from "lucide-react";
 import { Fragment, useEffect, useId, useMemo, useState } from "react";
 import { contributingFileUrl } from "@/lib/contributing";
-import { badgeRow, parseReadme, type Block, type Inline } from "@/lib/readme-md";
+import {
+  badgeRow,
+  parseReadme,
+  type Block,
+  type Inline,
+} from "@/lib/readme-md";
 
 /** Shorter than this, the whole README fits the preview: nothing to open. */
 const SHORT = 700;
@@ -40,16 +52,37 @@ function Inlines({ nodes }: { nodes: Inline[] }) {
           case "text":
             return <Fragment key={i}>{n.v}</Fragment>;
           case "code":
-            return <code key={i} className="rounded-sm bg-panel-2 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">{n.v}</code>;
+            return (
+              <code
+                key={i}
+                className="rounded-sm bg-panel-2 px-1.5 py-0.5 font-mono text-[0.85em] text-ink"
+              >
+                {n.v}
+              </code>
+            );
           case "strong":
-            return <strong key={i} className="font-semibold text-ink"><Inlines nodes={n.c} /></strong>;
+            return (
+              <strong key={i} className="font-semibold text-ink">
+                <Inlines nodes={n.c} />
+              </strong>
+            );
           case "em":
-            return <em key={i}><Inlines nodes={n.c} /></em>;
+            return (
+              <em key={i}>
+                <Inlines nodes={n.c} />
+              </em>
+            );
           case "image":
             return <Img key={i} src={n.src} alt={n.alt} />;
           case "link":
             return (
-              <a key={i} href={n.href} target="_blank" rel="noopener noreferrer nofollow" className="text-blue underline decoration-blue/40 underline-offset-[3px] transition-colors hover:decoration-blue">
+              <a
+                key={i}
+                href={n.href}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="text-blue underline decoration-blue/40 underline-offset-[3px] transition-colors hover:decoration-blue"
+              >
                 <Inlines nodes={n.c} />
               </a>
             );
@@ -81,9 +114,23 @@ function CodeBlock({ lang, v }: { lang: string | null; v: string }) {
   return (
     <div className="mt-3 border border-line bg-panel-2" data-readme-code>
       <div className="flex items-center justify-between gap-3 border-b border-line px-3">
-        <span className="font-mono text-[0.72rem] text-faint">{lang ?? ""}</span>
-        <button type="button" onClick={copy} className="-mr-1.5 inline-flex min-h-8 items-center gap-1.5 px-1.5 font-sans text-[0.75rem] text-faint transition-colors hover:text-ink">
-          {copied ? <Check aria-hidden="true" strokeWidth={1.75} className="size-3.5 text-blue" /> : <Copy aria-hidden="true" strokeWidth={1.5} className="size-3.5" />}
+        <span className="font-mono text-[0.72rem] text-faint">
+          {lang ?? ""}
+        </span>
+        <button
+          type="button"
+          onClick={copy}
+          className="-mr-1.5 inline-flex min-h-8 items-center gap-1.5 px-1.5 font-sans text-[0.75rem] text-faint transition-colors hover:text-ink"
+        >
+          {copied ? (
+            <Check
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="size-3.5 text-blue"
+            />
+          ) : (
+            <Copy aria-hidden="true" strokeWidth={1.5} className="size-3.5" />
+          )}
           {copied ? "Copied" : "Copy"}
           <span className="sr-only"> this code</span>
         </button>
@@ -99,11 +146,17 @@ function BlockView({ b }: { b: Block }) {
   switch (b.t) {
     case "heading": {
       const Tag = b.level <= 2 ? "h3" : "h4"; // under the section's own h2
-      return <Tag className={HEADING[b.level]}><Inlines nodes={b.c} /></Tag>;
+      return (
+        <Tag className={HEADING[b.level]}>
+          <Inlines nodes={b.c} />
+        </Tag>
+      );
     }
     case "p":
       return (
-        <p className={`mt-3 first:mt-0 ${b.media ? "flex flex-wrap items-center gap-x-1.5 gap-y-1.5" : ""}`}>
+        <p
+          className={`mt-3 first:mt-0 ${b.media ? "flex flex-wrap items-center gap-x-1.5 gap-y-1.5" : ""}`}
+        >
           <Inlines nodes={b.c} />
         </p>
       );
@@ -120,7 +173,9 @@ function BlockView({ b }: { b: Block }) {
     case "list": {
       const List = b.ordered ? "ol" : "ul";
       return (
-        <List className={`mt-3 space-y-1.5 pl-6 ${b.ordered ? "list-decimal" : "list-disc"} marker:text-faint`}>
+        <List
+          className={`mt-3 space-y-1.5 pl-6 ${b.ordered ? "list-decimal" : "list-disc"} marker:text-faint`}
+        >
           {b.items.map((it, i) => (
             <li key={i} className={it.depth ? "ml-5 list-[circle]" : undefined}>
               <Inlines nodes={it.c} />
@@ -135,22 +190,48 @@ function BlockView({ b }: { b: Block }) {
 type Tab = "readme" | "contributing";
 
 /** The tab's text as blocks, a preview that opens in full. */
-function Doc({ markdown, repo, name }: { markdown: string; repo: string; name: Tab }) {
+function Doc({
+  markdown,
+  repo,
+  name,
+}: {
+  markdown: string;
+  repo: string;
+  name: Tab;
+}) {
   // Rows of status badges are left out: nothing a newcomer can act on, and they washed out in the preview's fade.
-  const blocks = useMemo(() => parseReadme(markdown, repo).filter((b) => !badgeRow(b)), [markdown, repo]);
+  const blocks = useMemo(
+    () => parseReadme(markdown, repo).filter((b) => !badgeRow(b)),
+    [markdown, repo],
+  );
   const [open, setOpen] = useState(false);
   const bodyId = useId();
-  if (!blocks.length) return <p className="px-4 py-5 font-sans text-[0.92rem] text-muted sm:px-6">This file is empty.</p>;
+  if (!blocks.length)
+    return (
+      <p className="px-4 py-5 font-sans text-[0.92rem] text-muted sm:px-6">
+        This file is empty.
+      </p>
+    );
   const long = markdown.length > SHORT;
 
   return (
     <>
-      <div id={bodyId} className={`relative px-4 pb-5 pt-4 font-sans text-[0.92rem] leading-7 text-ink sm:px-6 ${long && !open ? "max-h-[22rem] overflow-hidden" : ""}`}>
+      <div
+        id={bodyId}
+        className={`relative px-4 pb-5 pt-4 font-sans text-[0.92rem] leading-7 text-ink sm:px-6 ${long && !open ? "max-h-[22rem] overflow-hidden" : ""}`}
+      >
         {blocks.map((b, i) => (
           <BlockView key={i} b={b} />
         ))}
         {long && !open && (
-          <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-28" style={{ background: "linear-gradient(to bottom, transparent, var(--panel) 85%)" }} />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-28"
+            style={{
+              background:
+                "linear-gradient(to bottom, transparent, var(--panel) 85%)",
+            }}
+          />
         )}
       </div>
 
@@ -163,8 +244,16 @@ function Doc({ markdown, repo, name }: { markdown: string; repo: string; name: T
           data-umami-event={open ? `${name}-collapse` : `${name}-expand`}
           className="group flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-line font-sans text-[0.82rem] font-medium text-muted transition-colors hover:bg-panel-2/60 hover:text-ink"
         >
-          {open ? "Show less" : name === "readme" ? "Show full README" : "Show full guide"}
-          <ChevronDown aria-hidden="true" strokeWidth={1.75} className={`size-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+          {open
+            ? "Show less"
+            : name === "readme"
+              ? "Show full README"
+              : "Show full guide"}
+          <ChevronDown
+            aria-hidden="true"
+            strokeWidth={1.75}
+            className={`size-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          />
         </button>
       )}
     </>
@@ -188,15 +277,26 @@ function Contributing({ repo, link }: { repo: string; link: string }) {
   }, [repo]);
   if (text === undefined)
     return (
-      <p role="status" className="px-4 py-5 font-sans text-[0.92rem] text-faint sm:px-6">
+      <p
+        role="status"
+        className="px-4 py-5 font-sans text-[0.92rem] text-faint sm:px-6"
+      >
         Loading the contributing guide…
       </p>
     );
   if (text === null)
     return (
       <p className="px-4 py-5 font-sans text-[0.92rem] text-muted sm:px-6">
-        Holt couldn&apos;t load the guide here.{" "}
-        <a href={link} target="_blank" rel="noopener noreferrer" className="text-link">Read it on GitHub</a>.
+        PRScout couldn&apos;t load the guide here.{" "}
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-link"
+        >
+          Read it on GitHub
+        </a>
+        .
       </p>
     );
   return <Doc markdown={text} repo={repo} name="contributing" />;
@@ -207,18 +307,49 @@ function Contributing({ repo, link }: { repo: string; link: string }) {
  * that GitHub serves as a file (`contributing`, its GitHub link): two tabs, as
  * on GitHub. With no guide, only the README tab shows.
  */
-export function ReadmeSection({ markdown, repo, contributing }: { markdown: string; repo: string; contributing?: string | null }) {
-  const guide = contributing && contributingFileUrl(contributing, repo) ? contributing : null;
+export function ReadmeSection({
+  markdown,
+  repo,
+  contributing,
+}: {
+  markdown: string;
+  repo: string;
+  contributing?: string | null;
+}) {
+  const guide =
+    contributing && contributingFileUrl(contributing, repo)
+      ? contributing
+      : null;
   const [tab, setTab] = useState<Tab>("readme");
   const baseId = useId();
-  const tabs: { id: Tab; label: string; Icon: typeof BookOpen; href: string }[] = [
-    { id: "readme", label: "README", Icon: BookOpen, href: `https://github.com/${repo}#readme` },
-    ...(guide ? [{ id: "contributing" as const, label: "Contributing", Icon: Users, href: guide }] : []),
+  const tabs: {
+    id: Tab;
+    label: string;
+    Icon: typeof BookOpen;
+    href: string;
+  }[] = [
+    {
+      id: "readme",
+      label: "README",
+      Icon: BookOpen,
+      href: `https://github.com/${repo}#readme`,
+    },
+    ...(guide
+      ? [
+          {
+            id: "contributing" as const,
+            label: "Contributing",
+            Icon: Users,
+            href: guide,
+          },
+        ]
+      : []),
   ];
   const active = tabs.find((t) => t.id === tab) ?? tabs[0];
 
   function onKey(e: React.KeyboardEvent) {
-    if (tabs.length < 2 || (e.key !== "ArrowRight" && e.key !== "ArrowLeft")) return;
+    if (tabs.length < 2 || (e.key !== "ArrowRight" && e.key !== "ArrowLeft"))
+      return;
     e.preventDefault();
     const next = tabs[(tabs.indexOf(active) + 1) % tabs.length];
     setTab(next.id);
@@ -226,11 +357,22 @@ export function ReadmeSection({ markdown, repo, contributing }: { markdown: stri
   }
 
   return (
-    <section aria-labelledby={`${baseId}-title`} className="border border-line-strong bg-panel" data-readme>
-      <h2 id={`${baseId}-title`} className="sr-only">{guide ? "README and contributing guide" : "README"}</h2>
+    <section
+      aria-labelledby={`${baseId}-title`}
+      className="border border-line-strong bg-panel"
+      data-readme
+    >
+      <h2 id={`${baseId}-title`} className="sr-only">
+        {guide ? "README and contributing guide" : "README"}
+      </h2>
       {/* The tabs, as on GitHub, and the way to the real file. */}
       <div className="flex items-stretch gap-2 border-b border-line px-2 sm:px-3">
-        <div role="tablist" aria-label="Project files" className="flex min-w-0 items-stretch" onKeyDown={onKey}>
+        <div
+          role="tablist"
+          aria-label="Project files"
+          className="flex min-w-0 items-stretch"
+          onKeyDown={onKey}
+        >
           {tabs.map((t) => {
             const on = t.id === active.id;
             return (
@@ -245,24 +387,47 @@ export function ReadmeSection({ markdown, repo, contributing }: { markdown: stri
                 onClick={() => setTab(t.id)}
                 data-umami-event={`readme-tab-${t.id}`}
                 className={`-mb-px inline-flex min-h-11 items-center gap-2 border-b-2 px-3 font-sans text-[0.88rem] transition-colors ${
-                  on ? "border-sel font-semibold text-ink" : "border-transparent text-muted hover:text-ink"
+                  on
+                    ? "border-sel font-semibold text-ink"
+                    : "border-transparent text-muted hover:text-ink"
                 }`}
               >
-                <t.Icon aria-hidden="true" strokeWidth={1.5} className="size-4 shrink-0 text-faint" />
+                <t.Icon
+                  aria-hidden="true"
+                  strokeWidth={1.5}
+                  className="size-4 shrink-0 text-faint"
+                />
                 {t.label}
               </button>
             );
           })}
         </div>
-        <a href={active.href} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 font-sans text-[0.78rem] text-muted transition-colors hover:text-blue">
+        <a
+          href={active.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 font-sans text-[0.78rem] text-muted transition-colors hover:text-blue"
+        >
           View on GitHub
-          <ExternalLink aria-hidden="true" strokeWidth={1.5} className="size-3.5" />
+          <ExternalLink
+            aria-hidden="true"
+            strokeWidth={1.5}
+            className="size-3.5"
+          />
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
       </div>
 
-      <div role="tabpanel" id={`${baseId}-panel`} aria-labelledby={`${baseId}-${active.id}-tab`}>
-        {active.id === "contributing" && guide ? <Contributing key="contributing" repo={repo} link={guide} /> : <Doc key="readme" markdown={markdown} repo={repo} name="readme" />}
+      <div
+        role="tabpanel"
+        id={`${baseId}-panel`}
+        aria-labelledby={`${baseId}-${active.id}-tab`}
+      >
+        {active.id === "contributing" && guide ? (
+          <Contributing key="contributing" repo={repo} link={guide} />
+        ) : (
+          <Doc key="readme" markdown={markdown} repo={repo} name="readme" />
+        )}
       </div>
     </section>
   );

@@ -18,13 +18,13 @@ export interface SignInNotice {
 
 const LINKED: SignInNotice = {
   tone: "error",
-  title: "That email already has a Holt account",
-  body: "It was made with the other sign-in button. Use that one instead.",
+  title: "That email already has a PRScout account",
+  body: "It was made another way: with an email and password, or the other sign-in button. Sign in that way instead.",
 };
 const UNFINISHED: SignInNotice = {
   tone: "error",
   title: "Sign-in didn't finish",
-  body: "GitHub or Google didn't hand you back to Holt. Try again. If it keeps failing, try the other button.",
+  body: "GitHub or Google didn't hand you back to PRScout. Try again. If it keeps failing, try the other button.",
 };
 const OUR_SIDE: SignInNotice = {
   tone: "error",
@@ -43,7 +43,7 @@ const NOTICES: Record<string, SignInNotice> = {
   AccessDenied: {
     tone: "error",
     title: "Sign-in was cancelled",
-    body: "Nothing was shared with Holt. Try again when you're ready.",
+    body: "Nothing was shared with PRScout. Try again when you're ready.",
   },
   OAuthCallbackError: UNFINISHED,
   OAuthCallback: UNFINISHED,
@@ -63,6 +63,11 @@ const NOTICES: Record<string, SignInNotice> = {
   },
   Configuration: OUR_SIDE,
   AdapterError: OUR_SIDE,
+  SessionExpired: {
+    tone: "info",
+    title: "Your session has ended",
+    body: "Sign in again to pick up where you left off.",
+  },
   SessionRequired: {
     tone: "info",
     title: "Sign in to see that page",
@@ -70,13 +75,15 @@ const NOTICES: Record<string, SignInNotice> = {
 };
 
 /** The notice for an Auth.js `?error=` value, or null when there is none. */
-export function signInNotice(error: string | string[] | undefined | null): SignInNotice | null {
+export function signInNotice(
+  error: string | string[] | undefined | null,
+): SignInNotice | null {
   const code = Array.isArray(error) ? error[0] : error;
   if (!code) return null;
   return Object.hasOwn(NOTICES, code) ? NOTICES[code] : FALLBACK;
 }
 
-export const SIGN_IN_HEADING = "Sign in to Holt";
+export const SIGN_IN_HEADING = "Sign in to PRScout";
 // A longer repo name than this would crowd the card; it gets the plain heading.
 const MAX_REPO = 50;
 
@@ -84,20 +91,30 @@ const MAX_REPO = 50;
  * The sign-in page's heading, from its `callbackUrl`: the repo a check waits
  * on, or the language a Find search does. The callback is anyone's to write,
  * so it only ever picks between these wordings: a report path whose owner and
- * name are valid GitHub ones, or /find with one language Holt lists. Anything
+ * name are valid GitHub ones, or /find with one language PRScout lists. Anything
  * else gets the plain heading.
  */
-export function signInHeading(callbackUrl: string | string[] | undefined | null): string {
+export function signInHeading(
+  callbackUrl: string | string[] | undefined | null,
+): string {
   const to = safeCallback(callbackUrl, "");
   if (!to) return SIGN_IN_HEADING;
-  const { pathname, search } = new URL(to, "http://holt.invalid");
+  const { pathname, search } = new URL(to, "http://prscout.invalid");
   const parts = pathname.split("/").filter(Boolean);
-  if (parts.length === 2 && !isAppRoute(parts[0]) && isValidRepo(parts[0], parts[1]) && pathname.length - 1 <= MAX_REPO) {
+  if (
+    parts.length === 2 &&
+    !isAppRoute(parts[0]) &&
+    isValidRepo(parts[0], parts[1]) &&
+    pathname.length - 1 <= MAX_REPO
+  ) {
     return `Sign in to check ${parts[0]}/${parts[1]}`;
   }
   if (pathname === "/find") {
     const langs = picksFromQuery(search.slice(1))?.langs ?? [];
-    const name = langs.length === 1 ? [...LANGS, ...MORE_LANGS].find((l) => l.toLowerCase() === langs[0]) : undefined;
+    const name =
+      langs.length === 1
+        ? [...LANGS, ...MORE_LANGS].find((l) => l.toLowerCase() === langs[0])
+        : undefined;
     if (name) return `Sign in to search ${name} projects`;
   }
   return SIGN_IN_HEADING;

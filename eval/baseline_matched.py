@@ -17,11 +17,11 @@ is worth knowing and publishing.
 
 from __future__ import annotations
 
-from holt.agent.signals import build_threads, compute
-from holt.agent.stages import _render_thread
-from holt.evidence.provider import EvidenceProvider
-from holt.model import ModelClient
-from holt.report import Assessment, Claim, Verdict
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.stages import _render_thread
+from prscout.evidence.provider import EvidenceProvider
+from prscout.model import ModelClient
+from prscout.report import Assessment, Claim, Verdict
 
 SYSTEM = """You assess whether a GitHub repository is a worthwhile place for an \
 outside developer -- someone with no prior connection to the project -- to spend \

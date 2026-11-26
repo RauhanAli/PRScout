@@ -7,7 +7,7 @@ Two parts, both easy to break without noticing until a deploy:
   healthcheck on server and web, and neither may publish a port or pin a
   container name (two of each run for a moment).
 - the edge (`deploy/*/edge.conf`) answers nginx's own 502/503/504 with a
-  small "Holt is updating" page: a 503 that is never cached, with
+  small "PRScout is updating" page: a 503 that is never cached, with
   Retry-After, identical on prod and staging.
 
 `swap_service` runs here for real, in bash, with `docker` replaced by a stub
@@ -73,7 +73,7 @@ def test_the_page_is_a_safe_nginx_string_and_reads_plainly(conf: Path) -> None:
     html = page(conf)
     # nginx would end the string at a quote and expand $name as a variable.
     assert "'" not in html and "$" not in html
-    assert "Holt is updating." in html
+    assert "PRScout is updating." in html
     assert "Back in a few seconds." in html
     assert "prefers-color-scheme:dark" in html
     assert 'http-equiv="refresh" content="5"' in html   # without JavaScript
@@ -224,7 +224,7 @@ def test_a_one_off_container_of_the_service_is_not_counted(stub: Path) -> None:
     assert sorted(left.splitlines()) == ["new2 healthy", "warm oneoff"]
 
 
-# --- several replicas (prod and staging run HOLT_WEB_REPLICAS web containers) ---
+# --- several replicas (prod and staging run PRSCOUT_WEB_REPLICAS web containers) ---
 
 
 def test_every_replica_is_started_and_healthy_before_the_old_ones_go(stub: Path) -> None:
@@ -288,7 +288,7 @@ def test_a_changed_replica_count_swaps_even_when_nothing_else_changed(stub: Path
 @pytest.mark.parametrize("compose", COMPOSES, ids=lambda p: p.parent.name)
 def test_web_runs_two_containers_by_default_and_the_server_one(compose: Path) -> None:
     services = yaml.safe_load(compose.read_text(encoding="utf-8"))["services"]
-    assert services["web"]["deploy"]["replicas"] == "${HOLT_WEB_REPLICAS:-2}"
+    assert services["web"]["deploy"]["replicas"] == "${PRSCOUT_WEB_REPLICAS:-2}"
     assert services["web"]["mem_limit"] == "768m"
     # The API server stays one process: its job queue and locks assume it.
     assert "deploy" not in services["server"] and "scale" not in services["server"]

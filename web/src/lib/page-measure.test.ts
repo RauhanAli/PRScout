@@ -17,7 +17,7 @@ test("the header and footer take the page's measure", () => {
   const bars = rule(".site-header .wrap,\n  .site-footer .wrap");
   assert.match(bars, /width: min\(calc\(100% - 2 \* var\(--page-gut\)\), var\(--page-max\)\)/);
   assert.match(read("components/header.tsx"), /className="site-header [^"]*"[^>]*>\s*<div className="wrap /);
-  assert.equal(read("components/footer.tsx").match(/<footer [^>]*className="site-footer /g)?.length, 2);
+  assert.equal(read("components/footer.tsx").match(/<footer\s[^>]*className="site-footer /g)?.length, 2);
 });
 
 test("each page width is written once", () => {

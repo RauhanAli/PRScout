@@ -10,9 +10,9 @@ from datetime import timedelta
 import pytest
 
 from conftest import STATS, canned_report
-from holt.starter import RULES_VERSION
-from holt_server import recommendations
-from holt_server.db import (
+from prscout.starter import RULES_VERSION
+from prscout_server import recommendations
+from prscout_server.db import (
     ENGINE_VERSION,
     Contribution,
     FindCache,
@@ -91,7 +91,7 @@ def names(body):
 
 def test_signed_in_only(h):
     assert h.get(URL).status_code == 401
-    assert h.client.get(URL, headers={"X-Holt-User": "u1"}).status_code == 401
+    assert h.client.get(URL, headers={"X-prscout-User": "u1"}).status_code == 401
 
 
 def test_a_new_account_gets_popular_languages_spread_out(h):

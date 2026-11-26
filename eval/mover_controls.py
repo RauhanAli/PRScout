@@ -23,8 +23,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from eval.labels.progression import histories
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import Window
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import Window
 
 # The nine repositories that turned out to be one programme. Listed explicitly
 # rather than detected, so a reader can check the membership themselves:

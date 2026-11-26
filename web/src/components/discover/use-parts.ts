@@ -9,11 +9,30 @@
 // Coming back to the list (the back button, a reload) shows the parts that
 // were loaded, at the place it was left: they are kept per `storeKey`, in
 // this tab only, for half an hour.
-import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
-import { appendPart, failedParts, loadingParts, restoreParts, saveParts, startParts, type Part, type Parts, type SavedParts } from "@/lib/parts";
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  appendPart,
+  failedParts,
+  loadingParts,
+  restoreParts,
+  saveParts,
+  startParts,
+  type Part,
+  type Parts,
+  type SavedParts,
+} from "@/lib/parts";
 import type { ApiError, Result } from "@/lib/types";
 
-const UNREACHABLE: ApiError = { code: "upstream", message: "Couldn't reach Holt. Check your connection and try again." };
+const UNREACHABLE: ApiError = {
+  code: "upstream",
+  message: "Couldn't reach PRScout. Check your connection and try again.",
+};
 /** How far above the end of the list the next part is asked for. */
 const AHEAD = "0px 0px 900px 0px";
 /** Lists longer than this are remembered for this visit only, not across a reload. */
@@ -23,18 +42,28 @@ const CAME_BACK_MS = 10_000;
 
 // What each list looked like when it was last on screen.
 const memory = new Map<string, SavedParts<unknown>>();
-const stored = (key: string) => `holt-parts:${key}`;
+const stored = (key: string) => `prscout-parts:${key}`;
 
 let popped = { at: -Infinity, to: "" };
 // False until a component of this page has mounted: the first lists are the
 // ones the browser loaded the page with.
 let booted = false;
-if (typeof window !== "undefined") window.addEventListener("popstate", () => (popped = { at: performance.now(), to: window.location.href }));
+if (typeof window !== "undefined")
+  window.addEventListener(
+    "popstate",
+    () => (popped = { at: performance.now(), to: window.location.href }),
+  );
 
 /** Whether this mount is the reader coming back to a page (back, forward, reload), not arriving on it. */
 function cameBack(): boolean {
-  if (booted) return popped.to === window.location.href && performance.now() - popped.at < CAME_BACK_MS;
-  const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  if (booted)
+    return (
+      popped.to === window.location.href &&
+      performance.now() - popped.at < CAME_BACK_MS
+    );
+  const nav = performance.getEntriesByType("navigation")[0] as
+    | PerformanceNavigationTiming
+    | undefined;
   return nav?.type === "back_forward" || nav?.type === "reload";
 }
 
@@ -52,7 +81,8 @@ function remembered<T>(key: string): SavedParts<T> | null {
 function persist(key: string) {
   try {
     const kept = memory.get(key);
-    if (kept && kept.items.length <= STORED_MAX) window.sessionStorage.setItem(stored(key), JSON.stringify(kept));
+    if (kept && kept.items.length <= STORED_MAX)
+      window.sessionStorage.setItem(stored(key), JSON.stringify(kept));
     else window.sessionStorage.removeItem(stored(key));
   } catch {
     // Full or unavailable: this visit still has `memory`.
@@ -67,7 +97,13 @@ export interface PartsList<T> {
   sentinel: React.RefObject<HTMLDivElement | null>;
 }
 
-export function useParts<T>({ first, load, id, storeKey, auto = true }: {
+export function useParts<T>({
+  first,
+  load,
+  id,
+  storeKey,
+  auto = true,
+}: {
   first: Part<T>;
   load: (cursor: string) => Promise<Result<Part<T>>>;
   /** What makes two items the same one. */
@@ -117,7 +153,8 @@ export function useParts<T>({ first, load, id, storeKey, auto = true }: {
     // Now that the longer list is laid out; and once more a frame later, in case the browser moved the page meanwhile.
     window.scrollTo({ top: y, behavior: "instant" });
     const frame = requestAnimationFrame(() => {
-      if (Math.abs(window.scrollY - y) > 2) window.scrollTo({ top: y, behavior: "instant" });
+      if (Math.abs(window.scrollY - y) > 2)
+        window.scrollTo({ top: y, behavior: "instant" });
     });
     return () => cancelAnimationFrame(frame);
   }, [state]);
@@ -143,9 +180,15 @@ export function useParts<T>({ first, load, id, storeKey, auto = true }: {
     const cursor = state.next;
     if (cursor === null || state.status === "loading") return;
     setState(loadingParts);
-    const r = await load(cursor).catch((): Result<Part<T>> => ({ ok: false, status: 0, error: UNREACHABLE }));
+    const r = await load(cursor).catch(
+      (): Result<Part<T>> => ({ ok: false, status: 0, error: UNREACHABLE }),
+    );
     if (!mounted.current) return;
-    setState((s) => (r.ok ? appendPart(s, cursor, r.data, id) : failedParts(s, cursor, r.error)));
+    setState((s) =>
+      r.ok
+        ? appendPart(s, cursor, r.data, id)
+        : failedParts(s, cursor, r.error),
+    );
   };
   const near = useEffectEvent(() => void more());
 
@@ -157,7 +200,10 @@ export function useParts<T>({ first, load, id, storeKey, auto = true }: {
   useEffect(() => {
     const el = sentinel.current;
     if (!waiting || !el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && near(), { rootMargin: AHEAD });
+    const io = new IntersectionObserver(
+      (entries) => entries.some((e) => e.isIntersecting) && near(),
+      { rootMargin: AHEAD },
+    );
     io.observe(el);
     return () => io.disconnect();
   }, [waiting, loaded]);

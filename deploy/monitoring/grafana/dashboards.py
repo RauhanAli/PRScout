@@ -119,7 +119,7 @@ def alerts_table(pos):
 
 
 def dashboard(uid, title, panels, time_from, description, templating=None, links=None):
-    return {"uid": uid, "title": title, "description": description, "tags": ["holt"],
+    return {"uid": uid, "title": title, "description": description, "tags": ["prscout"],
             "schemaVersion": 39, "version": 1, "editable": True, "graphTooltip": 1,
             "timezone": "browser", "refresh": "1m",
             "time": {"from": time_from, "to": "now"},
@@ -133,42 +133,42 @@ def link(title, uid):
 
 
 P95 = ('histogram_quantile({q}, sum by (le) '
-       '(rate(holt_http_request_duration_seconds_bucket[$__rate_interval])))')
-ERR = ('sum(rate(holt_http_requests_total{status=~"5.."}[5m])) '
-       '/ sum(rate(holt_http_requests_total[5m]))')
-POINTS = 'sum(min by (token) (holt_github_points_left))'
+       '(rate(prscout_http_request_duration_seconds_bucket[$__rate_interval])))')
+ERR = ('sum(rate(prscout_http_requests_total{status=~"5.."}[5m])) '
+       '/ sum(rate(prscout_http_requests_total[5m]))')
+POINTS = 'sum(min by (token) (prscout_github_points_left))'
 
 
 def health():
     p = []
     w = 3
     p += [
-        stat("Site", 'min(probe_success{job="holt-site", path="public"})', (0, 0, w, 4),
+        stat("Site", 'min(probe_success{job="prscout-site", path="public"})', (0, 0, w, 4),
              thresholds=[(None, RED), (1, GREEN)], mappings=named(RED, "Down", GREEN, "Up"),
-             desc="githolt.com from outside: Cloudflare, the tunnel, the edge, the web app."),
-        stat("API servers", 'count(up{job="holt-server"} == 1) or vector(0)', (3, 0, w, 4),
+             desc="gitprscout.com from outside: Cloudflare, the tunnel, the edge, the web app."),
+        stat("API servers", 'count(up{job="prscout-server"} == 1) or vector(0)', (3, 0, w, 4),
              thresholds=[(None, RED), (1, GREEN)],
              desc="Server containers answering /metrics. 2 for a moment during a deploy."),
         stat("Requests failing", f"({ERR}) or vector(0)", (6, 0, w, 4), unit="percentunit",
              thresholds=[(None, GREEN), (0.01, YELLOW), (0.05, RED)], decimals=1,
              desc="Share of API requests ending in a 5xx, last 5 minutes. Alert: over 5%."),
         stat("p95 response", '(histogram_quantile(0.95, sum by (le) '
-             '(rate(holt_http_request_duration_seconds_bucket[5m]))) >= 0) or vector(0)',
+             '(rate(prscout_http_request_duration_seconds_bucket[5m]))) >= 0) or vector(0)',
              (9, 0, w, 4), unit="s",
              thresholds=[(None, GREEN), (1, YELLOW), (2, RED)], decimals=2,
              desc="19 in 20 API requests start answering within this (0 with no traffic). "
                   "Alert: over 2 s."),
-        stat("Longest wait in queue", 'max(holt_jobs_oldest_queued_seconds{lane="user"})',
+        stat("Longest wait in queue", 'max(prscout_jobs_oldest_queued_seconds{lane="user"})',
              (12, 0, w, 4), unit="s", thresholds=[(None, GREEN), (30, YELLOW), (60, RED)],
              desc="How long the longest-waiting person's check has been queued. Alert: over 60 s."),
-        stat("Waiting for a DB connection", "max(holt_db_pool_waiting)", (15, 0, w, 4),
+        stat("Waiting for a DB connection", "max(prscout_db_pool_waiting)", (15, 0, w, 4),
              thresholds=[(None, GREEN), (1, RED)],
              desc="Requests and jobs waiting for a pool connection now. Alert: above 0 for 5 minutes."),
         stat("GitHub points left", POINTS, (18, 0, w, 4),
              thresholds=[(None, RED), (500, YELLOW), (1500, GREEN)],
              desc="GraphQL points until the hourly reset. Warm passes stop under 1500; alert under 500. "
                   "Blank until the server has made a GitHub call since the last reset."),
-        stat("Last deploy", 'max(probe_failed_due_to_regex{job="holt-deploy"})', (21, 0, w, 4),
+        stat("Last deploy", 'max(probe_failed_due_to_regex{job="prscout-deploy"})', (21, 0, w, 4),
              thresholds=[(None, GREEN), (1, RED)], mappings=named(GREEN, "OK", RED, "Failed"),
              desc="From /__build: whether the last production deploy failed or is held back."),
         alerts_table((0, 4, 24, 5)),
@@ -177,7 +177,7 @@ def health():
     p += [
         row("Requests", y),
         ts("Requests per second, by status", [target(
-            'sum by (status) (rate(holt_http_requests_total[$__rate_interval]))', "{{status}}")],
+            'sum by (status) (rate(prscout_http_requests_total[$__rate_interval]))', "{{status}}")],
             (0, y + 1, 12, 8), unit="reqps", stack=True, fill=30),
         ts("Response time", [target(P95.format(q=0.5), "p50"), target(P95.format(q=0.95), "p95"),
                              target(P95.format(q=0.99), "p99")], (12, y + 1, 12, 8), unit="s",
@@ -185,9 +185,9 @@ def health():
            desc="Time to the first byte of the answer. The line is the alert: p95 over 2 s."),
         ts("Slowest routes (p95)", [target(
             'topk(5, histogram_quantile(0.95, sum by (le, route) '
-            '(rate(holt_http_request_duration_seconds_bucket[5m]))))', "{{route}}")],
+            '(rate(prscout_http_request_duration_seconds_bucket[5m]))))', "{{route}}")],
             (0, y + 9, 12, 8), unit="s", fill=0),
-        ts("Page load, probed", [target('probe_duration_seconds{job="holt-site"}', "{{path}}")],
+        ts("Page load, probed", [target('probe_duration_seconds{job="prscout-site"}', "{{path}}")],
            (12, y + 9, 12, 8), unit="s", fill=0,
            desc="Seconds to fetch the home page every 30 s: from outside (public) and straight "
                 "at the edge (internal). The gap is Cloudflare and the tunnel."),
@@ -195,43 +195,43 @@ def health():
     y += 17
     p += [
         row("Jobs", y),
-        ts("Jobs queued and running", [target('max by (status, lane) (holt_jobs)',
+        ts("Jobs queued and running", [target('max by (status, lane) (prscout_jobs)',
                                               "{{status}} · {{lane}}")], (0, y + 1, 8, 8),
            desc="From the jobs table, so every process's jobs are counted."),
         ts("Workers busy", [
-            target('sum by (lane) (holt_job_workers_busy)', "busy · {{lane}}"),
-            target('max(holt_job_workers{lane="user"})', "user workers (HOLT_JOB_CONCURRENCY)"),
-        ], (8, y + 1, 8, 8), overrides=[dashed("user workers (HOLT_JOB_CONCURRENCY)")],
+            target('sum by (lane) (prscout_job_workers_busy)', "busy · {{lane}}"),
+            target('max(prscout_job_workers{lane="user"})', "user workers (PRSCOUT_JOB_CONCURRENCY)"),
+        ], (8, y + 1, 8, 8), overrides=[dashed("user workers (PRSCOUT_JOB_CONCURRENCY)")],
            desc="Busy user workers at the dashed line means people's checks are queueing."),
         ts("Wait in the queue", [
-            target('max by (lane) (holt_jobs_oldest_queued_seconds)', "longest now · {{lane}}"),
+            target('max by (lane) (prscout_jobs_oldest_queued_seconds)', "longest now · {{lane}}"),
             target('histogram_quantile(0.95, sum by (le, lane) '
-                   '(rate(holt_job_wait_seconds_bucket[15m])))', "p95 of started · {{lane}}"),
+                   '(rate(prscout_job_wait_seconds_bucket[15m])))', "p95 of started · {{lane}}"),
         ], (16, y + 1, 8, 8), unit="s", thresholds=[(None, "transparent"), (60, RED)], fill=0,
            desc="The line is the alert for the user lane: over 60 s. Background work is meant to wait."),
         ts("Jobs finished per hour", [target(
-            'sum by (kind, outcome) (increase(holt_jobs_finished_total[1h]))',
+            'sum by (kind, outcome) (increase(prscout_jobs_finished_total[1h]))',
             "{{kind}} · {{outcome}}")], (0, y + 9, 12, 8), fill=0),
         ts("How long jobs run (p95)", [target(
             'histogram_quantile(0.95, sum by (le, kind) '
-            '(rate(holt_job_duration_seconds_bucket[15m])))', "{{kind}}")],
+            '(rate(prscout_job_duration_seconds_bucket[15m])))', "{{kind}}")],
             (12, y + 9, 12, 8), unit="s", fill=0),
     ]
     y += 17
     p += [
         row("Database", y),
         ts("Connection pool", [
-            target("max(holt_db_pool_in_use)", "in use"),
-            target("max(holt_db_pool_waiting)", "waiting"),
-            target("max(holt_db_pool_size)", "pool size"),
+            target("max(prscout_db_pool_in_use)", "in use"),
+            target("max(prscout_db_pool_waiting)", "waiting"),
+            target("max(prscout_db_pool_size)", "pool size"),
         ], (0, y + 1, 8, 8), overrides=[dashed("pool size"), {
             "matcher": {"id": "byName", "options": "waiting"},
             "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": RED}}]}],
            desc="In use at the dashed line with anything waiting is a full pool."),
         ts("Wait for a connection", [
             target('histogram_quantile(0.95, sum by (le) '
-                   '(rate(holt_db_pool_wait_seconds_bucket[$__rate_interval])))', "p95 wait"),
-            target('sum(increase(holt_db_pool_timeouts_total[5m]))', "gave up (per 5 min)"),
+                   '(rate(prscout_db_pool_wait_seconds_bucket[$__rate_interval])))', "p95 wait"),
+            target('sum(increase(prscout_db_pool_timeouts_total[5m]))', "gave up (per 5 min)"),
         ], (8, y + 1, 8, 8), unit="s", fill=0, overrides=[{
             "matcher": {"id": "byName", "options": "gave up (per 5 min)"},
             "properties": [{"id": "unit", "value": "short"},
@@ -248,32 +248,32 @@ def health():
     y += 9
     p += [
         row("GitHub, AI, email, warm passes", y),
-        ts("GitHub points left", [target('min by (token) (holt_github_points_left)',
+        ts("GitHub points left", [target('min by (token) (prscout_github_points_left)',
                                          "token {{token}}")], (0, y + 1, 8, 8),
            thresholds=[(None, RED), (500, YELLOW), (1500, "transparent")], fill=0,
            desc="Refills every hour. Under 1500 warm passes stop; under 500 is the alert."),
         ts("GitHub points used per hour", [target(
-            'sum(increase(holt_github_points_used_total[1h]))', "used")], (8, y + 1, 8, 8)),
+            'sum(increase(prscout_github_points_used_total[1h]))', "used")], (8, y + 1, 8, 8)),
         ts("AI spend against the budget", [
-            target('max by (kind) (holt_ai_spent_usd)', "spent · {{kind}}"),
-            target("max(holt_ai_committed_usd)", "spent + held by running jobs"),
-            target("max(holt_ai_budget_usd)", "budget"),
+            target('max by (kind) (prscout_ai_spent_usd)', "spent · {{kind}}"),
+            target("max(prscout_ai_committed_usd)", "spent + held by running jobs"),
+            target("max(prscout_ai_budget_usd)", "budget"),
         ], (16, y + 1, 8, 8), unit="currencyUSD", fill=0, overrides=[dashed("budget")],
-           desc="The budget is HOLT_AI_BUDGET_USD: 0 means AI is off. merge_plan is the merge plan."),
+           desc="The budget is PRSCOUT_AI_BUDGET_USD: 0 means AI is off. merge_plan is the merge plan."),
         ts("Emails in the last 24 hours", [
-            target('max by (stream, status) (holt_emails_last_day)', "{{stream}} · {{status}}"),
-            target("max(holt_email_daily_limit)", "provider's daily limit"),
+            target('max by (stream, status) (prscout_emails_last_day)', "{{stream}} · {{status}}"),
+            target("max(prscout_email_daily_limit)", "provider's daily limit"),
         ], (0, y + 9, 12, 8), fill=0, overrides=[dashed("provider's daily limit")]),
         ts("Warm pass", [
-            target('max(holt_repos_reported{engine="older"})', "repos still on an older engine"),
-            target('max(holt_jobs{lane="background", status="queued"})', "background jobs queued"),
-            target('max(holt_warm_pass_running)', "a pass is running (1)"),
+            target('max(prscout_repos_reported{engine="older"})', "repos still on an older engine"),
+            target('max(prscout_jobs{lane="background", status="queued"})', "background jobs queued"),
+            target('max(prscout_warm_pass_running)', "a pass is running (1)"),
         ], (12, y + 9, 12, 8), fill=0,
            desc="After an engine change a warm pass redoes old reports: the first line falls to 0."),
     ]
-    return dashboard("holt-health", "Holt health", p, "now-6h",
-                     "Is Holt working right now: errors, speed, the queue, the database "
-                     "pool, GitHub points.", links=[link("Capacity", "holt-capacity")])
+    return dashboard("prscout-health", "PRScout health", p, "now-6h",
+                     "Is PRScout working right now: errors, speed, the queue, the database "
+                     "pool, GitHub points.", links=[link("Capacity", "prscout-capacity")])
 
 
 GUIDE = """\
@@ -291,15 +291,15 @@ It is time when, **on ordinary days**, any of these holds:
 | User workers busy | all of them, for **over an hour a day** | people queue; more workers need more memory (about 50 MB each) |
 | Checks per hour | over **60%** of GitHub's ceiling | that limit is GitHub's, not the server's: a bigger server won't help, more tokens will |
 
-Red dashed lines on the charts are those limits. Raising `HOLT_JOB_CONCURRENCY` or the pool is the first step; moving is for when the machine itself is the limit.
+Red dashed lines on the charts are those limits. Raising `PRSCOUT_JOB_CONCURRENCY` or the pool is the first step; moving is for when the machine itself is the limit.
 """
 
 CPU = '1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))'
 ROOT = ('node_filesystem_avail_bytes{{mountpoint="{m}"}} '
         '/ node_filesystem_size_bytes{{mountpoint="{m}"}}')
-CHECKS = ('(sum(increase(holt_jobs_finished_total{kind="analysis", outcome="done"}[1h])) '
+CHECKS = ('(sum(increase(prscout_jobs_finished_total{kind="analysis", outcome="done"}[1h])) '
           'or vector(0))')
-CEILING = '$points_per_hour * count(max by (token) (holt_github_token_usable)) / $points_per_check'
+CEILING = '$points_per_hour * count(max by (token) (prscout_github_token_usable)) / $points_per_check'
 
 
 def capacity():
@@ -320,11 +320,11 @@ def capacity():
         stat("/home disk free", ROOT.format(m="/home"), (12, y, w, 4), unit="percentunit",
              thresholds=[(None, RED), (0.10, YELLOW), (0.20, GREEN)], decimals=0,
              desc="/home holds the database backups, evidence snapshots and this stack's data."),
-        stat("User workers busy, peak", 'sum(holt_job_workers_busy{lane="user"}) '
-             '/ max(holt_job_workers{lane="user"})', (16, y, w, 4), unit="percentunit",
+        stat("User workers busy, peak", 'sum(prscout_job_workers_busy{lane="user"}) '
+             '/ max(prscout_job_workers{lane="user"})', (16, y, w, 4), unit="percentunit",
              calc="max", instant=False, decimals=0,
              thresholds=[(None, GREEN), (0.7, YELLOW), (1, RED)],
-             desc="The most user workers busy at once, as a share of HOLT_JOB_CONCURRENCY."),
+             desc="The most user workers busy at once, as a share of PRSCOUT_JOB_CONCURRENCY."),
         stat("Checks per hour, peak vs GitHub", f"({CHECKS}) / ({CEILING})", (20, y, w, 4),
              unit="percentunit", calc="max", instant=False, decimals=0,
              thresholds=[(None, GREEN), (0.4, YELLOW), (0.6, RED)],
@@ -366,19 +366,19 @@ def capacity():
     ]
     y += 25
     p += [
-        row("Holt on the machine", y),
+        row("PRScout on the machine", y),
         ts("Memory by container", [target(
-            'sum by (service) (container_memory_working_set_bytes{stack="holt"})', "{{service}}")],
+            'sum by (service) (container_memory_working_set_bytes{stack="prscout"})', "{{service}}")],
             (0, y + 1, 12, 8), unit="bytes", stack=True, fill=30),
         ts("Memory against each container's limit", [target(
-            'max by (service) (container_memory_working_set_bytes{stack="holt"} '
-            '/ (container_spec_memory_limit_bytes{stack="holt"} > 0))', "{{service}}")],
+            'max by (service) (container_memory_working_set_bytes{stack="prscout"} '
+            '/ (container_spec_memory_limit_bytes{stack="prscout"} > 0))', "{{service}}")],
             (12, y + 1, 12, 8), unit="percentunit", fill=0,
             thresholds=[(None, "transparent"), (0.9, RED)],
             desc="At 100% Docker kills the container. Over 90% often: raise its mem_limit "
                  "(deploy/prod/compose.yml)."),
         ts("CPU by container", [target(
-            'sum by (service) (rate(container_cpu_usage_seconds_total{stack="holt"}[5m]))',
+            'sum by (service) (rate(container_cpu_usage_seconds_total{stack="prscout"}[5m]))',
             "{{service}}")], (0, y + 9, 12, 8), unit="short", stack=True, fill=30,
             desc="In cores: 1 is one core fully busy."),
         ts("Postgres connections against its limit", [
@@ -390,12 +390,12 @@ def capacity():
     p += [
         row("Traffic against the limits", y),
         ts("User workers busy", [
-            target('sum(holt_job_workers_busy{lane="user"})', "busy"),
-            target('max(holt_job_workers{lane="user"})', "workers (HOLT_JOB_CONCURRENCY)"),
-        ], (0, y + 1, 12, 8), overrides=[dashed("workers (HOLT_JOB_CONCURRENCY)")],
+            target('sum(prscout_job_workers_busy{lane="user"})', "busy"),
+            target('max(prscout_job_workers{lane="user"})', "workers (PRSCOUT_JOB_CONCURRENCY)"),
+        ], (0, y + 1, 12, 8), overrides=[dashed("workers (PRSCOUT_JOB_CONCURRENCY)")],
            desc="Peak concurrency. Busy touching the line for long means people queue."),
-        ts("Requests in flight", [target("sum(holt_http_requests_in_flight)", "in flight"),
-                                  target('sum(rate(holt_http_requests_total[5m]))', "per second")],
+        ts("Requests in flight", [target("sum(prscout_http_requests_in_flight)", "in flight"),
+                                  target('sum(rate(prscout_http_requests_total[5m]))', "per second")],
            (12, y + 1, 12, 8), fill=0,
            desc="Requests being answered at once (open progress streams included), and the rate."),
         ts("Checks per hour against GitHub's ceiling", [
@@ -405,8 +405,8 @@ def capacity():
            desc="The ceiling is what GitHub's hourly points allow: points per hour per token "
                 "÷ points one check uses (the two boxes at the top of the page)."),
         ts("GitHub points used per hour", [
-            target('sum(increase(holt_github_points_used_total[1h]))', "used"),
-            target('$points_per_hour * count(max by (token) (holt_github_token_usable))',
+            target('sum(increase(prscout_github_points_used_total[1h]))', "used"),
+            target('$points_per_hour * count(max by (token) (prscout_github_token_usable))',
                    "GitHub's hourly allowance"),
         ], (12, y + 9, 12, 8), overrides=[dashed("GitHub's hourly allowance")],
            desc="Warm passes and people's checks together."),
@@ -431,17 +431,17 @@ def capacity():
          "query": "12", "current": {"text": "12", "value": "12"},
          "options": [{"selected": True, "text": "12", "value": "12"}], "hide": 0},
     ]
-    return dashboard("holt-capacity", "Holt capacity: when to migrate", p, "now-7d",
+    return dashboard("prscout-capacity", "PRScout capacity: when to migrate", p, "now-7d",
                      "Is the home server still big enough: headroom over days, peaks "
                      "against the limits.", templating=variables,
-                     links=[link("Health", "holt-health")])
+                     links=[link("Health", "prscout-health")])
 
 
 def main(argv: list[str]) -> int:
     global _id
     out = Path(__file__).with_name("dashboards")
     stale = []
-    for name, build in (("holt-health", health), ("holt-capacity", capacity)):
+    for name, build in (("prscout-health", health), ("prscout-capacity", capacity)):
         _id = 0
         body = json.dumps(build(), indent=2) + "\n"
         path = out / f"{name}.json"

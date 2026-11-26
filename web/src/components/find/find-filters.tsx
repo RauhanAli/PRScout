@@ -266,7 +266,7 @@ export function FindFilters({ picks, onChange, hf, busy = false }: {
                 enterKeyHint="search"
                 className="h-10 min-w-0 flex-1 border border-line-strong bg-bg px-3 text-[0.82rem] outline-none focus-visible:border-blue read-only:cursor-not-allowed sm:h-8"
               />
-              <button type="submit" disabled={topicsFull} className="btn-ghost h-10 min-h-0 text-[0.82rem] sm:h-8">add</button>
+              <button type="submit" disabled={topicsFull} className="btn-ghost h-10 min-h-0 text-[0.82rem] sm:h-8">Add</button>
             </div>
             {topicChips.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{topicChips}</div>}
           </form>

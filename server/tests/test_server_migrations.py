@@ -1,6 +1,6 @@
 """Schema migrations: fresh databases, pre-migration databases, and drift.
 
-Runs on SQLite, or on the Postgres in HOLT_TEST_DATABASE_URL (as CI does).
+Runs on SQLite, or on the Postgres in PRSCOUT_TEST_DATABASE_URL (as CI does).
 """
 
 from __future__ import annotations
@@ -9,14 +9,14 @@ import asyncio
 import os
 
 import pytest
-from holt_server import migrate
-from holt_server.db import Base, Database
+from prscout_server import migrate
+from prscout_server.db import Base, Database
 from sqlalchemy import inspect, text
 
 
 @pytest.fixture
 def db(tmp_path, drop_everything):
-    url = os.environ.get("HOLT_TEST_DATABASE_URL") or f"sqlite+aiosqlite:///{tmp_path / 'm.db'}"
+    url = os.environ.get("PRSCOUT_TEST_DATABASE_URL") or f"sqlite+aiosqlite:///{tmp_path / 'm.db'}"
     database = Database(url)
 
     async def reset():

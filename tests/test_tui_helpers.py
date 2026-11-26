@@ -2,10 +2,10 @@
 
 import pytest
 
-from holt.tui.screens.home import _looks_like_repo
-from holt.tui.widgets.candidates import _slug
-from holt.tui.widgets.evidence import elide
-from holt.tui.widgets.recent import _repo
+from prscout.tui.screens.home import _looks_like_repo
+from prscout.tui.widgets.candidates import _slug
+from prscout.tui.widgets.evidence import elide
+from prscout.tui.widgets.recent import _repo
 
 
 @pytest.mark.parametrize("shorten", [_slug, _repo])

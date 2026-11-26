@@ -6,10 +6,10 @@ import ast
 import inspect
 from pathlib import Path
 
-from holt import model
-from holt.agent import pipeline
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import Window
+from prscout import model
+from prscout.agent import pipeline
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import Window
 
 CANARY = "home-assistant/core"
 
@@ -75,13 +75,13 @@ def test_model_rationale_is_labelled_on_evidence_claims():
 
 
 def test_fixture_root_can_be_pointed_elsewhere(tmp_path, monkeypatch):
-    monkeypatch.setenv("HOLT_FIXTURE_ROOT", str(tmp_path))
+    monkeypatch.setenv("PRSCOUT_FIXTURE_ROOT", str(tmp_path))
     assert FixtureProvider(Window.PRE_T).root == tmp_path
 
 
 def test_every_file_call_in_the_engine_names_utf8():
     """Windows defaults to a legacy code page; every text read and write says utf-8."""
-    root = Path(__file__).resolve().parent.parent / "src" / "holt"
+    root = Path(__file__).resolve().parent.parent / "src" / "prscout"
     files = [*(root / "agent").glob("*.py"), *(root / "evidence").glob("*.py"),
              root / "reponame.py", root / "model.py"]
     offenders = []

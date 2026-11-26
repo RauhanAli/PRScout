@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 LABELS = Path("eval/labels")
-FORBIDDEN = "holt.agent"
+FORBIDDEN = "prscout.agent"
 
 
 def label_modules() -> list[Path]:

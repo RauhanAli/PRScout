@@ -79,8 +79,8 @@ jobs:
         run: |
           uv venv .release-venv
           uv pip install --python .release-venv/bin/python dist/*.whl
-          .release-venv/bin/python -c "import holt.tui.app"
-          .release-venv/bin/holt --help
+          .release-venv/bin/python -c "import prscout.tui.app"
+          .release-venv/bin/prscout --help
 
   tests:
     needs: changes
@@ -106,7 +106,7 @@ jobs:
       # installs are aimed at live use.
       - name: No-key smoke tests
         run: |
-          PYTHONPATH=. uv run holt analyze NixOS/nixpkgs --replay
+          PYTHONPATH=. uv run prscout analyze NixOS/nixpkgs --replay
           PYTHONPATH=. uv run python eval/harness.py --replay --run-tag run1
 
       # Offline. Fails on any verdict or count on the golden set that changed
@@ -126,19 +126,19 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: holt
-          POSTGRES_PASSWORD: holt
-          POSTGRES_DB: holt
+          POSTGRES_USER: prscout
+          POSTGRES_PASSWORD: prscout
+          POSTGRES_DB: prscout
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U holt -d holt"
+          --health-cmd "pg_isready -U prscout -d prscout"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
     env:
-      HOLT_TEST_DATABASE_URL: postgresql+asyncpg://holt:holt@127.0.0.1:5432/holt
-      DATABASE_URL: postgresql+asyncpg://holt:holt@127.0.0.1:5432/holt
+      PRSCOUT_TEST_DATABASE_URL: postgresql+asyncpg://prscout:prscout@127.0.0.1:5432/prscout
+      DATABASE_URL: postgresql+asyncpg://prscout:prscout@127.0.0.1:5432/prscout
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -154,8 +154,8 @@ jobs:
       - name: Migrate an empty database and compare it with the models
         working-directory: server
         run: |
-          uv run python -m holt_server.migrate
-          uv run python -m holt_server.migrate check
+          uv run python -m prscout_server.migrate
+          uv run python -m prscout_server.migrate check
 
       - name: Server tests
         run: uv run pytest -rs -n auto --durations=15 server/tests

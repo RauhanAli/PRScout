@@ -18,14 +18,14 @@ from pathlib import Path
 import httpx
 import pytest
 
-from holt.agent.findings import Findings
-from holt.agent.pipeline import analyze_without_model
-from holt.agent.signals import build_threads, compute
-from holt.agent.verdict import classify
-from holt.evidence import github_graphql as gql
-from holt.evidence.fixtures import FixtureProvider, fixture_root, write_fixture
-from holt.evidence.provider import EvidenceProvider
-from holt.types import EvidenceRecord, Window
+from prscout.agent.findings import Findings
+from prscout.agent.pipeline import analyze_without_model
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.verdict import classify
+from prscout.evidence import github_graphql as gql
+from prscout.evidence.fixtures import FixtureProvider, fixture_root, write_fixture
+from prscout.evidence.provider import EvidenceProvider
+from prscout.types import EvidenceRecord, Window
 
 _FILE = json.loads(
     (Path(__file__).parent / "recordings" / "evidence_v2" / "recorded.json")
@@ -419,7 +419,7 @@ def test_the_screen_query_is_the_full_one_without_the_timeline():
 
 
 def test_discover_screens_without_the_timeline_and_reports_read_it(monkeypatch):
-    from holt import discover
+    from prscout import discover
 
     asked: list[str] = []
 
@@ -540,7 +540,7 @@ def test_a_lookup_without_a_canonical_name_searches_as_asked():
 
 
 def test_the_report_and_cli_say_how_many_attempts_came_from_people_new_to_the_repo():
-    from holt.cli import stats_from
+    from prscout.cli import stats_from
 
     slug = "pallets/flask"
     # Without draft state and labels: this sample's outside pull requests are

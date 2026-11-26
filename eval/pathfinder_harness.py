@@ -24,10 +24,10 @@ import statistics
 from pathlib import Path
 
 from eval.labels import pathfinder
-from holt.agent import entry
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import OpenAIModel, ReplayModel, TRAJECTORY_DIR
-from holt.types import Window
+from prscout.agent import entry
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import OpenAIModel, ReplayModel, TRAJECTORY_DIR
+from prscout.types import Window
 
 ISSUE_ROOT = Path("fixtures/issues")
 K = 3

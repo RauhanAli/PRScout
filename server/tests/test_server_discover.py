@@ -7,11 +7,11 @@ from datetime import timedelta
 
 import pytest
 from conftest import STATS, canned_report
-from holt_server import discover, github, warm
-from holt_server.db import RepoMeta, Report, StarterCache, Usage, now
-from holt_server.discover import standouts
-from holt_server.errors import ApiError
-from holt_server.schema import WELCOMING_LINE, Stats
+from prscout_server import discover, github, warm
+from prscout_server.db import RepoMeta, Report, StarterCache, Usage, now
+from prscout_server.discover import standouts
+from prscout_server.errors import ApiError
+from prscout_server.schema import WELCOMING_LINE, Stats
 
 
 def add(h, *items):
@@ -508,7 +508,7 @@ def test_details_query_is_one_request_with_one_alias_per_repo():
 
 
 def test_details_when_every_repo_is_gone_or_unanswered():
-    from holt.evidence.errors import RepoNotFound, UpstreamError
+    from prscout.evidence.errors import RepoNotFound, UpstreamError
 
     def gone(v):
         raise RepoNotFound("octo/gone")

@@ -7,16 +7,40 @@
 // finished): server HTML is never wound back. Each number keeps the width of
 // its final value, so nothing shifts; screen readers and reduced motion get
 // the final text.
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { countAt, countBetween, countFrom, countParts, parseSeen, settle } from "@/lib/count-up";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import {
+  countAt,
+  countBetween,
+  countFrom,
+  countParts,
+  parseSeen,
+  settle,
+} from "@/lib/count-up";
 import { prefersReducedMotion } from "@/lib/motion";
 
 type Phase = "wait" | "go" | "done";
 const Group = createContext<Phase>("done");
 
-export function CountUpGroup({ children, className }: { children: React.ReactNode; className?: string }) {
+export function CountUpGroup({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
-  const [phase, setPhase] = useState<Phase>(() => (typeof window === "undefined" || prefersReducedMotion() ? "done" : "wait"));
+  const [phase, setPhase] = useState<Phase>(() =>
+    typeof window === "undefined" || prefersReducedMotion() ? "done" : "wait",
+  );
 
   useEffect(() => {
     const el = ref.current;
@@ -69,7 +93,11 @@ export function CountUp({ text, delay = 0 }: { text: string; delay?: number }) {
       <span aria-hidden="true">
         {parts.map((part, i) =>
           "n" in part ? (
-            <span key={i} className="inline-block text-right tabular-nums" style={{ minWidth: `${part.final.length}ch` }}>
+            <span
+              key={i}
+              className="inline-block text-right tabular-nums"
+              style={{ minWidth: `${part.final.length}ch` }}
+            >
               {countAt(part, p)}
             </span>
           ) : (
@@ -81,7 +109,7 @@ export function CountUp({ text, delay = 0 }: { text: string; delay?: number }) {
   );
 }
 
-const SEEN_KEY = "holt-seen";
+const SEEN_KEY = "prscout-seen";
 // What each number started from on this page view, so React's dev double
 // effects (and a re-render before the count ends) don't lose it.
 const started = new Map<string, number | null>();
@@ -112,10 +140,22 @@ const noop = () => () => {};
  * with a client navigation or changes while the page is open. Reduced motion
  * and screen readers get the final value.
  */
-export function NewCount({ id, value, className }: { id: string; value: number; className?: string }) {
+export function NewCount({
+  id,
+  value,
+  className,
+}: {
+  id: string;
+  value: number;
+  className?: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   // False while React hydrates the server's HTML, true when mounted on the client.
-  const client = useSyncExternalStore(noop, () => true, () => false);
+  const client = useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
   const hydrated = useRef(!client);
 
   useLayoutEffect(() => {
@@ -147,7 +187,12 @@ export function NewCount({ id, value, className }: { id: string; value: number; 
   return (
     <>
       <span className="sr-only">{value}</span>
-      <span ref={ref} aria-hidden="true" className={`inline-block text-right tabular-nums ${className ?? ""}`} style={{ minWidth: `${String(value).length}ch` }}>
+      <span
+        ref={ref}
+        aria-hidden="true"
+        className={`inline-block text-right tabular-nums ${className ?? ""}`}
+        style={{ minWidth: `${String(value).length}ch` }}
+      >
         {value}
       </span>
     </>

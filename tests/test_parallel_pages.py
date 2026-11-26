@@ -20,8 +20,8 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import pytest
 
-from holt.evidence import github_graphql as gql
-from holt.types import Window
+from prscout.evidence import github_graphql as gql
+from prscout.types import Window
 
 
 def cursor(offset: int) -> str:

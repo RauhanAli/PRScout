@@ -3,7 +3,7 @@ at a blank line and never inside a code block."""
 
 from __future__ import annotations
 
-from holt.about import MAX_README, readme_excerpt
+from prscout.about import MAX_README, readme_excerpt
 
 
 def test_a_short_readme_is_kept_whole_without_comments():

@@ -1,6 +1,6 @@
 """The discovery layer, and the coupling it is allowed to have.
 
-`holt.tui.discovery` reassembles the screening step from `discover`'s own public
+`prscout.tui.discovery` reassembles the screening step from `discover`'s own public
 parts rather than parsing the markdown `run_replay` prints. That is a real
 dependency on the engine, so it is pinned here: the manifest shape, the
 functions it calls, and the fact that screening still decides what it decided.
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from holt.tui import discovery
+from prscout.tui import discovery
 
 #: The recorded session is optional in a checkout, and it is no longer the path
 #: the interface opens on, so it gates only the tests that actually read it.
@@ -60,7 +60,7 @@ def test_survivors_come_first_and_keep_the_search_order():
 
     import json
 
-    from holt import discover
+    from prscout import discover
 
     manifest = json.loads(discover.manifest_path(session.name).read_text())
     order = [c["slug"] for c in manifest["candidates"]]
@@ -73,10 +73,10 @@ def test_the_screening_verdict_is_the_engines_not_ours():
     """`screen_records` holds the rule. This asks it; it does not restate it."""
     import json
 
-    from holt import discover
-    from holt.evidence.fixtures import FixtureProvider
-    from holt.profile import Profile
-    from holt.types import Window
+    from prscout import discover
+    from prscout.evidence.fixtures import FixtureProvider
+    from prscout.profile import Profile
+    from prscout.types import Window
 
     session = discovery.load()
     manifest = json.loads(discover.manifest_path(session.name).read_text())
@@ -148,7 +148,7 @@ class _Stub:
 def _step(index, total, slug, category=None, error=None):
     from types import SimpleNamespace
 
-    from holt import discover
+    from prscout import discover
 
     candidate = discover.Candidate(
         slug=slug, description=f"{slug} does things", stars=120, language="Python"
@@ -167,8 +167,8 @@ def _step(index, total, slug, category=None, error=None):
 
 def _run(monkeypatch, steps):
     """Run a search over stubbed steps and wait for the worker to finish."""
-    from holt import discover
-    from holt.profile import Profile
+    from prscout import discover
+    from prscout.profile import Profile
 
     stub = _Stub(steps)
     monkeypatch.setattr(discover, "source_live", lambda *a, **k: stub)
@@ -232,8 +232,8 @@ def test_a_candidate_that_could_not_be_read_is_not_a_rejection(monkeypatch):
 def test_a_search_that_fails_reports_the_reason_rather_than_raising(monkeypatch):
     """The worker is a thread. An exception that escaped it would be a screen
     that waits forever for a row that is never coming."""
-    from holt import discover
-    from holt.profile import Profile
+    from prscout import discover
+    from prscout.profile import Profile
 
     def boom(*a, **k):
         raise RuntimeError("github said no")
@@ -251,8 +251,8 @@ def test_a_search_that_fails_reports_the_reason_rather_than_raising(monkeypatch)
 def test_a_cancelled_search_keeps_what_it_already_screened(monkeypatch):
     """Those rows were free and they are still true. Throwing them away would
     punish impatience."""
-    from holt import discover
-    from holt.profile import Profile
+    from prscout import discover
+    from prscout.profile import Profile
 
     steps = [_step(i, 4, f"n{i}/repo") for i in range(1, 5)]
     stub = _Stub(steps)
@@ -273,7 +273,7 @@ def test_a_cancelled_search_keeps_what_it_already_screened(monkeypatch):
 
 def test_progress_reads_truthfully_before_anything_has_landed(monkeypatch):
     """A screen draws this line before the first row exists."""
-    from holt.profile import Profile
+    from prscout.profile import Profile
 
     search = discovery.Search(profile=Profile())
     assert "searching" in search.describe()

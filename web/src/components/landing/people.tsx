@@ -17,7 +17,7 @@ export interface Person {
   title: string;
   body: string;
   mood: CatMood;
-  /** A real example, e.g. "home-assistant/core" and what Holt found there. */
+  /** A real example, e.g. "home-assistant/core" and what PRScout found there. */
   example: { repo: string; fact: string };
 }
 
@@ -28,30 +28,52 @@ export function People({ people }: { people: Person[] }) {
   return (
     <ul ref={ref} className="ls-people" data-phase={phase}>
       {people.map((p, i) => (
-        <li key={p.key} className="ls-person ls-lift relative flex flex-col border border-line bg-panel" style={{ ["--i" as string]: i }}>
+        <li
+          key={p.key}
+          className="ls-person ls-lift relative flex flex-col border border-line bg-panel"
+          style={{ ["--i" as string]: i }}
+        >
           <div className="flex items-start justify-between gap-3">
-            <p className="text-[0.78rem] uppercase tracking-[0.08em] text-faint">{p.who}</p>
+            <p className="text-[0.78rem] uppercase tracking-[0.08em] text-faint">
+              {p.who}
+            </p>
             <ReactiveCat mood={p.mood} className="ls-person-cat" />
           </div>
-          <p className="ls-person-title mt-auto font-semibold tracking-tight text-ink">{p.title}</p>
+          <p className="ls-person-title mt-auto font-semibold tracking-tight text-ink">
+            {p.title}
+          </p>
           <p className="ls-person-body mt-2 font-sans text-muted">{p.body}</p>
           <p className="mt-4 border-t border-dashed border-line pt-3 text-[0.82rem]">
             <span className="text-faint">e.g. </span>
-            <Link href={`/${p.example.repo}`} prefetch={false} className="text-blue hover:underline">
+            <Link
+              href={`/${p.example.repo}`}
+              prefetch={false}
+              className="text-blue hover:underline"
+            >
               {p.example.repo}
             </Link>
             <span className="text-muted">: {p.example.fact}</span>
           </p>
         </li>
       ))}
-      <li className="ls-person ls-person--you ls-lift relative flex flex-col border border-orange/60 bg-panel" style={{ ["--i" as string]: people.length }}>
+      <li
+        className="ls-person ls-person--you ls-lift relative flex flex-col border border-blue/45 bg-panel"
+        style={{ ["--i" as string]: people.length }}
+      >
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[0.78rem] uppercase tracking-[0.08em] text-orange">you, maybe</p>
+          <p className="text-[0.78rem] uppercase tracking-[0.08em] text-blue">
+            you, maybe
+          </p>
           <ReactiveCat mood="ready" className="ls-person-cat" />
         </div>
-        <p className="ls-person-title mt-auto font-semibold tracking-tight text-ink">Starting from zero?</p>
-        <Link href="/find" className="bracket-link bracket-link--orange ls-person-cta mt-4 min-h-11 self-start">
-          [ find a project in your language → ]
+        <p className="ls-person-title mt-auto font-semibold tracking-tight text-ink">
+          Starting from zero?
+        </p>
+        <Link
+          href="/find"
+          className="btn-primary ls-person-cta mt-4 min-h-11 self-start"
+        >
+          Find a project in your language →
         </Link>
       </li>
     </ul>

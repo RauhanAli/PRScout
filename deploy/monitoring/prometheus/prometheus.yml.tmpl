@@ -1,6 +1,6 @@
-# Rendered by up.sh into $HOLT_MON_HOME/config/prometheus/prometheus.yml,
+# Rendered by up.sh into $PRSCOUT_MON_HOME/config/prometheus/prometheus.yml,
 # which fills in the names between at-signs: the monitored compose project
-# (holt-prod), this stack's project, and the site's public address. Edit
+# (prscout-prod), this stack's project, and the site's public address. Edit
 # this file, then run up.sh again.
 global:
   scrape_interval: 30s
@@ -19,7 +19,7 @@ scrape_configs:
   # The API's own numbers. Docker's DNS answers `server` with every server
   # container on the target network, so both are scraped while a deploy
   # swaps them, and a one-off container (a warm pass) never is.
-  - job_name: holt-server
+  - job_name: prscout-server
     dns_sd_configs:
       - names: [server]
         type: A
@@ -31,7 +31,7 @@ scrape_configs:
       - targets: [node-exporter:9100]
 
   # cAdvisor reports every container on the host. Keep the monitored stack's
-  # and this one's, as stack="holt" / stack="monitoring" and service="web"...,
+  # and this one's, as stack="prscout" / stack="monitoring" and service="web"...,
   # and drop the rest before it is stored.
   - job_name: cadvisor
     static_configs:
@@ -40,7 +40,7 @@ scrape_configs:
       - source_labels: [container_label_com_docker_compose_project]
         regex: '@TARGET_PROJECT@'
         target_label: stack
-        replacement: holt
+        replacement: prscout
       - source_labels: [container_label_com_docker_compose_project]
         regex: '@MON_PROJECT@'
         target_label: stack
@@ -71,7 +71,7 @@ scrape_configs:
   # Is the site up: once from outside (Cloudflare, the tunnel, the edge, the
   # web app) and once from inside (the edge and the web app only), so an
   # alert says which half broke.
-  - job_name: holt-site
+  - job_name: prscout-site
     metrics_path: /probe
     params:
       module: [http_2xx]
@@ -89,7 +89,7 @@ scrape_configs:
         replacement: blackbox:9115
 
   # Did the last deploy fail (blackbox.yml, deploy_state).
-  - job_name: holt-deploy
+  - job_name: prscout-deploy
     metrics_path: /probe
     scrape_interval: 60s
     params:

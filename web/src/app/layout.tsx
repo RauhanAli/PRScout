@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, JetBrains_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Footer } from "@/components/footer";
 import { MarketingHeader } from "@/components/header";
@@ -20,45 +20,51 @@ import { SITE_URL } from "@/lib/site";
 import "lenis/dist/lenis.css";
 import "./globals.css";
 
-const mono = JetBrains_Mono({
-  variable: "--font-jetbrains",
-  // greek: the ω in the header cat is on every page; preloading it with latin
-  // saves a second font swap (and re-layout) right after first paint.
-  subsets: ["latin", "greek"],
-  display: "swap",
-});
-
-// Only the hero's sub-line uses it, at the regular weight.
-const sans = Archivo({
-  variable: "--font-archivo",
-  weight: "400",
+// Harbor's type: Geist for reading and the interface, Bricolage Grotesque
+// for headings and the wordmark, Geist Mono for code, URLs and figures.
+const sans = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
   display: "swap",
+});
+const mono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+const display = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+  display: "swap",
+  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Holt · will this repo merge your PR?",
-    template: "%s · Holt",
+    default: "PRScout · will this repo merge your PR?",
+    template: "%s · PRScout",
   },
   description:
-    "Paste any GitHub repo. Holt reads its recent pull requests and tells you, in plain English, whether outside contributors get replies, get merged, and where their work lands.",
+    "Paste any GitHub repo. PRScout reads its recent pull requests and tells you, in plain English, whether outside contributors get replies, get merged, and where their work lands.",
   openGraph: {
-    siteName: "Holt",
+    siteName: "PRScout",
     type: "website",
-    title: "Holt · check whether a repo actually merges outsiders' PRs",
-    description: "See how a project treats outside contributors before you spend your week on it. Swap hub for holt in any GitHub link.",
+    title: "PRScout · check whether a repo actually merges outsiders' PRs",
+    description:
+      "See how a project treats outside contributors before you spend your week on it. Swap hub for PRScout in any GitHub link.",
   },
   twitter: { card: "summary_large_image" },
   // Staging and previews: keep search engines out (robots.txt disallows too).
-  ...(process.env.ROBOTS_NOINDEX === "1" ? { robots: { index: false, follow: false } } : {}),
+  ...(process.env.ROBOTS_NOINDEX === "1"
+    ? { robots: { index: false, follow: false } }
+    : {}),
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f6f1" },
-    { media: "(prefers-color-scheme: dark)", color: "#121312" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a1115" },
   ],
 };
 
@@ -72,10 +78,22 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // The motion setting, on <html> before the first paint (lib/motion.ts).
   const motion = motionAttr(motionFromCookies(jar));
   return (
-    <html lang="en" className={`${mono.variable} ${sans.variable}`} data-motion={motion} data-rail={rail ? "collapsed" : undefined} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${sans.variable} ${mono.variable} ${display.variable}`}
+      data-motion={motion}
+      data-rail={rail ? "collapsed" : undefined}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        {ANALYTICS && <script defer src={ANALYTICS.src} data-website-id={ANALYTICS.websiteId} />}
+        {ANALYTICS && (
+          <script
+            defer
+            src={ANALYTICS.src}
+            data-website-id={ANALYTICS.websiteId}
+          />
+        )}
       </head>
       {/* Extensions such as Grammarly add attributes to <body> before React
           hydrates. This only silences attribute mismatches on <body> itself. */}
@@ -83,7 +101,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <a href="#content" className="skip-link">
           Skip to content
         </a>
-        <ShellFrame marketingHeader={<MarketingHeader user={user} />} footer={<Footer signedIn={Boolean(user)} />} topBar={app?.topBar ?? null} rail={app?.rail ?? null}>
+        <ShellFrame
+          marketingHeader={<MarketingHeader user={user} />}
+          footer={<Footer signedIn={Boolean(user)} />}
+          topBar={app?.topBar ?? null}
+          rail={app?.rail ?? null}
+        >
           {children}
           <RouteFallback />
         </ShellFrame>

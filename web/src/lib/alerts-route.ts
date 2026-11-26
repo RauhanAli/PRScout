@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { unsubscribeStep, unsubscribeToken } from "./alerts";
 import { setAlertEmailByToken } from "./api";
 import { clientIpFrom } from "./client-ip";
-import { rateLimit } from "./rate-limit";
+import { take } from "./limits";
 import { currentUser, type SessionUser } from "./session";
 import type { Result } from "./types";
 
@@ -44,7 +44,7 @@ async function tokenFrom(req: NextRequest): Promise<string | null> {
  * unsubscribeStep). 200 with {"email_on"}; a link that isn't current is 404.
  */
 export async function setEmailByToken(req: NextRequest, on: boolean): Promise<NextResponse> {
-  const limited = rateLimit(`unsubscribe:${clientIpFrom(req.headers) ?? "unknown"}`, 30);
+  const limited = await take(`unsubscribe:${clientIpFrom(req.headers) ?? "unknown"}`, 30, 60_000);
   if (!limited.ok) return refuse(429, "rate_limited", "Too many tries. Wait a minute.", { "Retry-After": String(limited.retryAfter) });
   const token = await tokenFrom(req);
   if (!token || unsubscribeStep(req.method, token) !== "unsubscribe") return refuse(400, "invalid_request", "That link doesn't work any more.");

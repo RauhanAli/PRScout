@@ -1,21 +1,21 @@
-# Holt's monitoring stack (compose project holt-monitoring). Optional: Holt
+# PRScout's monitoring stack (compose project prscout-monitoring). Optional: PRScout
 # runs the same without it.
 #
 # Start it with up.sh, never by hand with `compose up`: up.sh makes the data
-# directories on /home, renders the configs into $HOLT_MON_HOME/config, makes
+# directories on /home, renders the configs into $PRSCOUT_MON_HOME/config, makes
 # the secrets and the read-only database role, and checks every config first.
 #
 #   prometheus  scrapes everything below, keeps 15 days, evaluates the alerts
-#     server:8000/metrics      the API's own numbers (holt_server/metrics.py)
+#     server:8000/metrics      the API's own numbers (prscout_server/metrics.py)
 #     node-exporter            the host: CPU, memory, disks, load
-#     cadvisor                 memory and CPU of the Holt containers
-#     postgres-exporter        the Holt database
+#     cadvisor                 memory and CPU of the PRScout containers
+#     postgres-exporter        the PRScout database
 #     blackbox                 is the site up, did the last deploy fail
 #   alertmanager  sends the alerts (email, a webhook, a dead man's ping)
 #   grafana       the dashboards, on 127.0.0.1 only (an SSH tunnel)
 #
 # It reads the production stack over that stack's own Docker network
-# (`target`, holt-prod_default), which prometheus, postgres-exporter and
+# (`target`, prscout-prod_default), which prometheus, postgres-exporter and
 # blackbox join. Nothing here is published except Grafana, on 127.0.0.1.
 # Nothing in the production stack changes, restarts or depends on this.
 #
@@ -32,34 +32,34 @@ services:
   prometheus:
     <<: *common
     image: prom/prometheus:v2.54.1
-    user: "${HOLT_MON_UID:?run up.sh}:${HOLT_MON_GID:?run up.sh}"
+    user: "${PRSCOUT_MON_UID:?run up.sh}:${PRSCOUT_MON_GID:?run up.sh}"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       # 15 days, and never more than 2 GB on /home whatever happens.
-      - --storage.tsdb.retention.time=${HOLT_MON_RETENTION:-15d}
-      - --storage.tsdb.retention.size=${HOLT_MON_RETENTION_SIZE:-2GB}
+      - --storage.tsdb.retention.time=${PRSCOUT_MON_RETENTION:-15d}
+      - --storage.tsdb.retention.size=${PRSCOUT_MON_RETENTION_SIZE:-2GB}
       - --web.enable-lifecycle
     environment:
       GOMEMLIMIT: 200MiB
     volumes:
-      - ${HOLT_MON_HOME:?run up.sh}/config/prometheus:/etc/prometheus:ro
-      - ${HOLT_MON_HOME}/data/prometheus:/prometheus
+      - ${PRSCOUT_MON_HOME:?run up.sh}/config/prometheus:/etc/prometheus:ro
+      - ${PRSCOUT_MON_HOME}/data/prometheus:/prometheus
     networks: [default, target]
     mem_limit: 256m
 
   alertmanager:
     <<: *common
     image: prom/alertmanager:v0.27.0
-    user: "${HOLT_MON_UID}:${HOLT_MON_GID}"
+    user: "${PRSCOUT_MON_UID}:${PRSCOUT_MON_GID}"
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
       - --storage.path=/alertmanager
       - --cluster.listen-address=
     volumes:
-      - ${HOLT_MON_HOME}/config/alertmanager:/etc/alertmanager:ro
-      - ${HOLT_MON_HOME}/secrets/smtp-password:/run/secrets/smtp_password:ro
-      - ${HOLT_MON_HOME}/data/alertmanager:/alertmanager
+      - ${PRSCOUT_MON_HOME}/config/alertmanager:/etc/alertmanager:ro
+      - ${PRSCOUT_MON_HOME}/secrets/smtp-password:/run/secrets/smtp_password:ro
+      - ${PRSCOUT_MON_HOME}/data/alertmanager:/alertmanager
     # So a webhook or the watchdog ping can be a service on this machine
     # (healthchecks, uptime-kuma): http://host.docker.internal:<port>/...
     extra_hosts:
@@ -69,7 +69,7 @@ services:
   grafana:
     <<: *common
     image: grafana/grafana:11.2.2
-    user: "${HOLT_MON_UID}:${HOLT_MON_GID}"
+    user: "${PRSCOUT_MON_UID}:${PRSCOUT_MON_GID}"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       # Read on Grafana's first start only; change it in Grafana after that.
@@ -82,16 +82,16 @@ services:
       GF_NEWS_NEWS_FEED_ENABLED: "false"
       # Alerts are Prometheus's and Alertmanager's (prometheus/rules), not Grafana's.
       GF_UNIFIED_ALERTING_ENABLED: "false"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/holt-health.json
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/prscout-health.json
     volumes:
-      - ${HOLT_MON_HOME}/config/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ${HOLT_MON_HOME}/config/grafana/dashboards:/etc/grafana/dashboards:ro
-      - ${HOLT_MON_HOME}/secrets/grafana-admin:/run/secrets/grafana_admin:ro
-      - ${HOLT_MON_HOME}/data/grafana:/var/lib/grafana
+      - ${PRSCOUT_MON_HOME}/config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ${PRSCOUT_MON_HOME}/config/grafana/dashboards:/etc/grafana/dashboards:ro
+      - ${PRSCOUT_MON_HOME}/secrets/grafana-admin:/run/secrets/grafana_admin:ro
+      - ${PRSCOUT_MON_HOME}/data/grafana:/var/lib/grafana
     # The one published port, and only on this machine: reach it through an
     # SSH tunnel (README.md).
     ports:
-      - "127.0.0.1:${HOLT_GRAFANA_PORT:-8320}:3000"
+      - "127.0.0.1:${PRSCOUT_GRAFANA_PORT:-8320}:3000"
     mem_limit: 320m
 
   # The host's own numbers. It sees the host's /proc and / read-only; it
@@ -118,7 +118,7 @@ services:
     mem_limit: 48m
 
   # Memory and CPU per container. It reads every container on the host
-  # (read-only); prometheus keeps only Holt's and this stack's.
+  # (read-only); prometheus keeps only PRScout's and this stack's.
   cadvisor:
     <<: *common
     image: gcr.io/cadvisor/cadvisor:v0.49.1
@@ -135,21 +135,21 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
     mem_limit: 128m
 
-  # Connects as holt_monitor (made by up.sh): Postgres's pg_monitor role and
-  # nothing else, so it reads statistics and can't read a row of Holt's data.
+  # Connects as prscout_monitor (made by up.sh): Postgres's pg_monitor role and
+  # nothing else, so it reads statistics and can't read a row of PRScout's data.
   postgres-exporter:
     <<: *common
     image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
-    user: "${HOLT_MON_UID}:${HOLT_MON_GID}"
+    user: "${PRSCOUT_MON_UID}:${PRSCOUT_MON_GID}"
     command:
       - --no-collector.stat_user_tables
       - --no-collector.statio_user_tables
     environment:
-      DATA_SOURCE_URI: db:5432/holt?sslmode=disable
-      DATA_SOURCE_USER: holt_monitor
+      DATA_SOURCE_URI: db:5432/prscout?sslmode=disable
+      DATA_SOURCE_USER: prscout_monitor
       DATA_SOURCE_PASS_FILE: /run/secrets/db_password
     volumes:
-      - ${HOLT_MON_HOME}/secrets/db-password:/run/secrets/db_password:ro
+      - ${PRSCOUT_MON_HOME}/secrets/db-password:/run/secrets/db_password:ro
     networks: [default, target]
     mem_limit: 48m
 
@@ -159,13 +159,13 @@ services:
     command:
       - --config.file=/etc/blackbox/blackbox.yml
     volumes:
-      - ${HOLT_MON_HOME}/config/blackbox:/etc/blackbox:ro
+      - ${PRSCOUT_MON_HOME}/config/blackbox:/etc/blackbox:ro
     networks: [default, target]
     mem_limit: 24m
 
 networks:
   default: {}
-  # The monitored stack's network. It must exist: Holt is deployed first.
+  # The monitored stack's network. It must exist: PRScout is deployed first.
   target:
-    name: ${HOLT_MON_NETWORK:?run up.sh}
+    name: ${PRSCOUT_MON_NETWORK:?run up.sh}
     external: true

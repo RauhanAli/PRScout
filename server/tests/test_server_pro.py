@@ -1,4 +1,4 @@
-"""The paid-features client (holt_server/pro.py) against a fake service.
+"""The paid-features client (prscout_server/pro.py) against a fake service.
 
 Every test uses httpx.MockTransport: nothing touches the network.
 """
@@ -13,16 +13,16 @@ import threading
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from holt_server import pro
-from holt_server.errors import ApiError
-from holt_server.main import create_app
-from holt_server.services import Services
+from prscout_server import pro
+from prscout_server.errors import ApiError
+from prscout_server.main import create_app
+from prscout_server.services import Services
 
 from conftest import make_settings
 
 KEY = "pro-secret-key-value"
 URL = "http://pro:8000"
-PING = {"ok": True, "service": "holt-pro", "version": "0.1.0", "engine": "0.2.0",
+PING = {"ok": True, "service": "prscout-pro", "version": "0.1.0", "engine": "0.2.0",
         "user_id": None}
 
 
@@ -63,19 +63,19 @@ def run(fake: FakePro, method: str, *args, **kw):
 def test_ping_sends_the_key_and_the_user():
     fake = FakePro(httpx.Response(200, json=dict(PING, user_id="u_1")))
     p = run(fake, "ping", user_id="u_1", request_id="req-9")
-    assert p == pro.Ping(ok=True, service="holt-pro", version="0.1.0", engine="0.2.0",
+    assert p == pro.Ping(ok=True, service="prscout-pro", version="0.1.0", engine="0.2.0",
                          user_id="u_1")
     (req,) = fake.requests
     assert req.method == "POST" and str(req.url) == f"{URL}/v1/ping"
-    assert req.headers["X-Holt-Pro-Key"] == KEY
-    assert req.headers["X-Holt-User"] == "u_1"
+    assert req.headers["X-prscout-Pro-Key"] == KEY
+    assert req.headers["X-prscout-User"] == "u_1"
     assert req.headers["X-Request-Id"] == "req-9"
 
 
 def test_ping_without_a_user_sends_no_user_header():
     fake = FakePro(httpx.Response(200, json=PING))
     assert run(fake, "ping").user_id is None
-    assert "X-Holt-User" not in fake.requests[0].headers
+    assert "X-prscout-User" not in fake.requests[0].headers
     assert "X-Request-Id" not in fake.requests[0].headers
 
 
@@ -88,7 +88,7 @@ def test_wrong_key_is_unavailable_and_the_key_is_never_logged(caplog):
     assert (e.pro_code, e.code, e.status) == ("unauthorized", "upstream", 502)
     assert e.message == pro.UNAVAILABLE
     assert len(fake.requests) == 1                        # 4xx is never retried
-    assert "HOLT_PRO_KEY" in caplog.text
+    assert "PRSCOUT_PRO_KEY" in caplog.text
     assert KEY not in caplog.text
 
 
@@ -189,10 +189,10 @@ def test_ready_never_raises(resp, expected):
 
 def test_check_says_one_line():
     ok, line = asyncio.run(_check(FakePro(httpx.Response(200, json=PING))))
-    assert ok and line == f"holt-pro: ok at {URL} (version 0.1.0, engine 0.2.0)"
+    assert ok and line == f"prscout-pro: ok at {URL} (version 0.1.0, engine 0.2.0)"
     ok, line = asyncio.run(_check(FakePro(httpx.ConnectError("refused"))))
-    assert not ok and line == f"holt-pro: not working at {URL} (unavailable)"
-    assert asyncio.run(pro.check(None)) == (False, "holt-pro: off (HOLT_PRO_URL is not set)")
+    assert not ok and line == f"prscout-pro: not working at {URL} (unavailable)"
+    assert asyncio.run(pro.check(None)) == (False, "prscout-pro: off (PRSCOUT_PRO_URL is not set)")
 
 
 async def _check(fake: FakePro):
@@ -216,8 +216,8 @@ def test_off_without_a_url(tmp_path):
 
 
 def test_on_with_a_url(tmp_path):
-    svc = Services(make_settings(tmp_path, HOLT_PRO_URL="http://pro:8000/",
-                                 HOLT_PRO_KEY=KEY))
+    svc = Services(make_settings(tmp_path, PRSCOUT_PRO_URL="http://pro:8000/",
+                                 PRSCOUT_PRO_KEY=KEY))
     try:
         assert svc.require_pro() is svc.pro
         assert svc.pro.base_url == URL
@@ -226,15 +226,15 @@ def test_on_with_a_url(tmp_path):
 
 
 def test_startup_pings_and_logs_one_line(tmp_path, caplog, drop_everything):
-    caplog.set_level(logging.INFO, logger="holt_server.pro")
+    caplog.set_level(logging.INFO, logger="prscout_server.pro")
     pinged = threading.Event()
 
     def handler(request: httpx.Request) -> httpx.Response:
         pinged.set()
         return httpx.Response(200, json=PING)
 
-    svc = Services(make_settings(tmp_path, HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY))
-    if os.environ.get("HOLT_TEST_DATABASE_URL"):
+    svc = Services(make_settings(tmp_path, PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY))
+    if os.environ.get("PRSCOUT_TEST_DATABASE_URL"):
         # A shared Postgres starts from empty, as in the make_harness fixture.
         async def reset():
             await drop_everything(svc.db.engine)
@@ -247,8 +247,8 @@ def test_startup_pings_and_logs_one_line(tmp_path, caplog, drop_everything):
         assert pinged.wait(5)
         assert client.get("/health").status_code == 200
         for _ in range(100):
-            if "holt-pro: ok" in caplog.text:
+            if "prscout-pro: ok" in caplog.text:
                 break
             threading.Event().wait(0.02)
-    assert "holt-pro: ok at http://pro:8000" in caplog.text
+    assert "prscout-pro: ok at http://pro:8000" in caplog.text
     assert svc.pro._http.is_closed

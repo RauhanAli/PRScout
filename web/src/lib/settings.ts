@@ -5,13 +5,49 @@
 export const SETTINGS = "/settings";
 
 export const SECTIONS = [
-  { id: "profile", href: "/settings/profile", label: "Profile", title: "Your profile", blurb: "Languages, time and experience. Your picks start here." },
-  { id: "plan", href: "/settings/plan", label: "Plan", title: "Plan", blurb: "Your pass, merge plans left and purchases." },
-  { id: "accounts", href: "/settings/accounts", label: "Accounts", title: "Connected accounts", blurb: "How you sign in, and your GitHub connection." },
-  { id: "privacy", href: "/settings/privacy", label: "Privacy", title: "Privacy and data", blurb: "Statistics, what Holt keeps, and deleting it." },
-  { id: "display", href: "/settings/display", label: "Display", title: "Display", blurb: "Motion on the site." },
+  {
+    id: "profile",
+    href: "/settings/profile",
+    label: "Profile",
+    title: "Your profile",
+    blurb: "Languages, time and experience. Your picks start here.",
+  },
+  {
+    id: "plan",
+    href: "/settings/plan",
+    label: "Plan",
+    title: "Plan",
+    blurb: "Your pass, merge plans left and purchases.",
+  },
+  {
+    id: "accounts",
+    href: "/settings/accounts",
+    label: "Accounts",
+    title: "Connected accounts",
+    blurb: "How you sign in, and your GitHub connection.",
+  },
+  {
+    id: "privacy",
+    href: "/settings/privacy",
+    label: "Privacy",
+    title: "Privacy and data",
+    blurb: "Statistics, what PRScout keeps, and deleting it.",
+  },
+  {
+    id: "display",
+    href: "/settings/display",
+    label: "Display",
+    title: "Display",
+    blurb: "Motion on the site.",
+  },
   // Only while PR watch is switched on (sectionsFor).
-  { id: "alerts", href: "/settings/alerts", label: "Alerts", title: "Alerts", blurb: "The bell and email for your pull requests." },
+  {
+    id: "alerts",
+    href: "/settings/alerts",
+    label: "Alerts",
+    title: "Alerts",
+    blurb: "The bell and email for your pull requests.",
+  },
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]["id"];
@@ -68,7 +104,10 @@ const BY_QUERY: [string, string][] = [
  * `hash` and `search` are as in `location` ("#profile", "?subscribed=1"), leading
  * character optional. The query string travels along so notices still show.
  */
-export function legacySettingsHref(hash: string, search: string): string | null {
+export function legacySettingsHref(
+  hash: string,
+  search: string,
+): string | null {
   const h = hash.replace(/^#/, "").toLowerCase();
   const q = new URLSearchParams(search.replace(/^\?/, ""));
   const qs = q.size ? `?${q}` : "";

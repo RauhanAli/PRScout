@@ -10,8 +10,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from holt.evidence import ContaminationError, EvidenceProvider
-from holt.types import T_CUTOFF, EvidenceRecord, Window
+from prscout.evidence import ContaminationError, EvidenceProvider
+from prscout.types import T_CUTOFF, EvidenceRecord, Window
 
 BEFORE = T_CUTOFF - timedelta(days=1)
 AFTER = T_CUTOFF + timedelta(days=1)
@@ -100,8 +100,8 @@ def test_live_provider_defaults_to_now_not_the_benchmark_cutoff():
     """
     from datetime import UTC
 
-    from holt.evidence.github_graphql import LiveGitHubIssueProvider, LiveGitHubProvider
-    from holt.types import T_CUTOFF
+    from prscout.evidence.github_graphql import LiveGitHubIssueProvider, LiveGitHubProvider
+    from prscout.types import T_CUTOFF
 
     dummy_transport = object()
     for cls in (LiveGitHubProvider, LiveGitHubIssueProvider):

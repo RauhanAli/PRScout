@@ -30,10 +30,10 @@ import time
 from datetime import timedelta
 from typing import Any
 
-from holt.report import Assessment, Claim, EntryPoint, Verdict
-from holt.types import T_CUTOFF, EvidenceRecord
-from holt.tui import events, store
-from holt.tui.session import RunOptions, Session
+from prscout.report import Assessment, Claim, EntryPoint, Verdict
+from prscout.types import T_CUTOFF, EvidenceRecord
+from prscout.tui import events, store
+from prscout.tui.session import RunOptions, Session
 
 REPO = "home-assistant/core"
 
@@ -60,7 +60,7 @@ def assessment(
             )
             for i in range(claims)
         ],
-        method="holt (A classify, B opportunity, C outcomes, D verify, "
+        method="PRScout (A classify, B opportunity, C outcomes, D verify, "
         "deterministic verdict, E narrate)",
         replayed=True,
     )
@@ -199,7 +199,7 @@ def stored_entry(
     """An assessment as the store holds one.
 
     `trace=True` gives it the run's events and `evidence=True` the records
-    behind its claims, which is what a real one saved since holt started
+    behind its claims, which is what a real one saved since PRScout started
     keeping them has. Both default to off, because that is also a real case:
     everything stored before then.
     """

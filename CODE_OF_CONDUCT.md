@@ -73,8 +73,8 @@ and this Code of Conduct reinforces encouraged behaviors and norms that can
 help avoid conflicts and minimize harm.
 
 When an incident does occur, it is important to report it promptly. To report a
-possible violation, email **aahilminookhan@gmail.com** with the subject
-`[Holt conduct]`. Reports are received privately by the maintainer and treated
+possible violation, email **rauhanali2@gmail.com** with the subject
+`[PRScout conduct]`. Reports are received privately by the maintainer and treated
 as confidential. Please do not file a public GitHub issue for a Code of Conduct
 concern; doing so may amplify harm to the people involved.
 

@@ -14,8 +14,17 @@ describe("parseRepo", () => {
   });
 
   it.each([
-    "/", "/pallets", "/settings/profile", "/orgs/pallets/repositories", "/marketplace/actions",
-    "/topics/python", "/notifications/beta", "/-bad/repo", "/o/..", "/o/%E0%A4%A", "/o/re po",
+    "/",
+    "/pallets",
+    "/settings/profile",
+    "/orgs/pallets/repositories",
+    "/marketplace/actions",
+    "/topics/python",
+    "/notifications/beta",
+    "/-bad/repo",
+    "/o/..",
+    "/o/%E0%A4%A",
+    "/o/re po",
   ])("%s is not a repo page", (path) => {
     expect(parseRepo(path)).toBeNull();
   });
@@ -34,7 +43,9 @@ describe("isIssueListPath", () => {
 
 describe("urls", () => {
   it("points at the configured host", () => {
-    expect(reportPageUrl("pallets", "flask")).toBe("https://githolt.com/pallets/flask");
+    expect(reportPageUrl("pallets", "flask")).toBe(
+      "https://gitprscout.com/pallets/flask",
+    );
     expect(publicApiUrl("report", "pallets", "flask", "example.test")).toBe(
       "https://example.test/api/public/report/pallets/flask",
     );

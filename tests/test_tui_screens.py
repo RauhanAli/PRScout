@@ -1,11 +1,11 @@
 """The screens, driven headlessly against a scripted run.
 
-Textual is a product dependency because bare `holt` opens this interface. A
+Textual is a product dependency because bare `PRScout` opens this interface. A
 plain `uv sync` therefore runs these tests rather than silently omitting the
 primary user experience.
 
 No engine. The events and the `Assessment` come from `tests/fake_run.py`, so a
-prompt change in `holt.agent` cannot break a test about layout or wording. The
+prompt change in `prscout.agent` cannot break a test about layout or wording. The
 tests that genuinely exercise the engine live in `test_tui_observe.py` and are
 gated on replay being healthy; the ones here are about the interface and run
 regardless.
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-os.environ.setdefault("HOLT_TUI_NO_ANIMATION", "1")
+os.environ.setdefault("PRSCOUT_TUI_NO_ANIMATION", "1")
 
 from tests import fake_run  # noqa: E402
 
@@ -46,7 +46,7 @@ def _forget_reused_reads():
     Cleared on the way out as well so the dict does not outlive the test that
     filled it.
     """
-    from holt.tui.screens import next_steps
+    from prscout.tui.screens import next_steps
 
     next_steps.cache_clear()
     yield
@@ -96,11 +96,11 @@ async def workers_done(app, pilot, timeout: float = 10.0) -> None:
 
 def drive(body, store_root: Path, size=(100, 44)):
     """Open the app on a private store, then hand the pilot to `body`."""
-    from holt.tui import store
-    from holt.tui.app import HoltApp
+    from prscout.tui import store
+    from prscout.tui.app import PRScoutApp
 
     async def main():
-        app = HoltApp(None, assessments=store.Store(root=store_root))
+        app = PRScoutApp(None, assessments=store.Store(root=store_root))
         async with app.run_test(size=size) as pilot:
             # run_test returns once the home screen is mounted; this lets
             # what mounting queued (the recent list, focus) finish.
@@ -117,14 +117,14 @@ async def show_run(app, pilot, complete: bool = True, **script_kw):
     stays on the run screen: a finished run hands off to the report, and
     asserting on the screen you have just left proves nothing.
     """
-    from holt.tui.screens.live import LiveScreen
-    from holt.tui import events as _events
+    from prscout.tui.screens.live import LiveScreen
+    from prscout.tui import events as _events
 
     script = fake_run.script(**script_kw)
     if not complete:
         script = [e for e in script if not isinstance(e, _events.RunFinished)]
     session = fake_run.session(repo=script_kw.get("repo", fake_run.REPO), queued=script)
-    # Registered exactly as `HoltApp.start_run` registers a real one. The app,
+    # Registered exactly as `PRScoutApp.start_run` registers a real one. The app,
     # not the screen, is what drains a run, so a session the app does not know
     # about would sit there with a full queue and an empty screen.
     app.session = session
@@ -135,7 +135,7 @@ async def show_run(app, pilot, complete: bool = True, **script_kw):
 
 
 async def show_report(app, pilot, **kw):
-    from holt.tui.screens.assessment import AssessmentScreen
+    from prscout.tui.screens.assessment import AssessmentScreen
 
     app.session = fake_run.finished(**kw)
     await app.push_screen(AssessmentScreen())
@@ -168,8 +168,8 @@ def test_the_suggested_repository_really_is_free():
     the one path offered to someone with nothing on screen was a paid one, or a
     dead end without a key.
     """
-    from holt.tui.screens.home import REPLAY_SUGGESTION as SUGGESTION
-    from holt.tui.session import has_recording
+    from prscout.tui.screens.home import REPLAY_SUGGESTION as SUGGESTION
+    from prscout.tui.session import has_recording
 
     assert has_recording(SUGGESTION), (
         f"{SUGGESTION} has no committed trajectory, so the empty state is "
@@ -178,7 +178,7 @@ def test_the_suggested_repository_really_is_free():
 
 
 def test_recent_rows_carry_the_verdict_the_age_and_the_mode(tmp_path):
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv", age=300))
@@ -194,7 +194,7 @@ def test_recent_rows_carry_the_verdict_the_age_and_the_mode(tmp_path):
 
 
 def test_typing_filters_what_you_already_have(tmp_path):
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv"))
@@ -239,7 +239,7 @@ def test_replay_without_a_recording_says_so_instead_of_failing(tmp_path):
 
 def test_a_recent_assessment_is_reused_rather_than_re_bought(tmp_path):
     """The cache exists so asking twice costs once. It must also say so."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, age=120))
@@ -264,7 +264,7 @@ def test_a_recent_assessment_is_reused_rather_than_re_bought(tmp_path):
 
 def test_a_stale_assessment_is_not_reused(tmp_path):
     """Older than the window: the interface must not quietly serve it."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(
@@ -307,7 +307,7 @@ def test_a_clean_run_shows_no_drop_and_no_red(tmp_path):
 
 def test_a_failing_run_reports_it_and_stops_every_spinner(tmp_path):
     """A stage left turning after a failure reads as still working."""
-    from holt.tui.widgets.stages import StageRow
+    from prscout.tui.widgets.stages import StageRow
 
     async def body(app, pilot):
         screen = await show_run(app, pilot, fail="outcomes")
@@ -326,7 +326,7 @@ def test_a_replay_never_shows_a_dollar_figure(tmp_path):
     their cost would tell a reader they had just spent money on a run that made
     no calls.
     """
-    from holt.tui import events
+    from prscout.tui import events
 
     async def body(app, pilot):
         script = fake_run.script()
@@ -341,7 +341,7 @@ def test_a_replay_never_shows_a_dollar_figure(tmp_path):
 
 
 async def show_run_with(app, pilot, script):
-    from holt.tui.screens.live import LiveScreen
+    from prscout.tui.screens.live import LiveScreen
 
     app.session = fake_run.session(queued=script)
     await app.push_screen(LiveScreen())
@@ -370,7 +370,7 @@ def test_an_unknown_event_renders_instead_of_raising(tmp_path):
 def test_a_stage_the_engine_grew_appears_rather_than_vanishing(tmp_path):
     """The interface reports the pipeline that ran, not the one it was written
     against."""
-    from holt.tui import events
+    from prscout.tui import events
 
     async def body(app, pilot):
         screen = await show_run(app, pilot, complete=False)
@@ -407,7 +407,7 @@ def test_the_report_leads_with_the_answer_and_keeps_its_limits(tmp_path):
 def test_every_claim_on_the_report_carries_an_evidence_id(tmp_path):
     async def body(app, pilot):
         screen = await show_report(app, pilot)
-        from holt.tui.widgets.claims import ClaimList
+        from prscout.tui.widgets.claims import ClaimList
 
         claims = screen.query_one("#claims", ClaimList)
         assert claims.claims
@@ -418,14 +418,14 @@ def test_every_claim_on_the_report_carries_an_evidence_id(tmp_path):
 
 
 def test_a_verdict_this_build_has_never_seen_renders_neutrally(tmp_path):
-    """`holt.report` owns the enum. The interface must not need editing when a
+    """`prscout.report` owns the enum. The interface must not need editing when a
     fourth answer is added to it."""
-    from holt.tui import theme
+    from prscout.tui import theme
 
     assert theme.verdict_colour("a_verdict_added_later") == theme.VERDICT_FALLBACK
 
     async def body(app, pilot):
-        from holt.tui.widgets.recent import headline
+        from prscout.tui.widgets.recent import headline
 
         assert headline("something_new") == "something new"
 
@@ -472,7 +472,7 @@ def test_a_reopened_assessment_still_reads_the_record_behind_a_claim(tmp_path):
     closed the tool. The fixture a replay read is still on disk, so it is read
     again, and the screen says that is where the record came from.
     """
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, age=60))
@@ -495,7 +495,7 @@ def test_a_reopened_assessment_still_reads_the_record_behind_a_claim(tmp_path):
 def test_a_reopened_assessment_says_which_ids_the_evidence_does_not_have(tmp_path):
     """The other side of it. Now that something is loaded, "does not resolve"
     is a statement about the evidence again, and true."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, age=60))
@@ -518,7 +518,7 @@ def test_a_reopened_live_assessment_reads_the_records_stored_with_it(tmp_path):
     used to say the records were not kept, which made the one report that
     cannot be checked against a fixture the one report nobody could check.
     """
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, mode="live", age=60, evidence=True))
@@ -543,12 +543,12 @@ def test_a_reopened_live_assessment_reads_the_records_stored_with_it(tmp_path):
 def test_a_live_assessment_stored_before_records_were_kept_says_so(tmp_path):
     """Three states, three sentences.
 
-    An assessment stored before holt kept records has none, and a live one's
+    An assessment stored before PRScout kept records has none, and a live one's
     cannot be recovered: re-crawling from a keypress would be a different read
     against a window that has moved. So the screen says what it has and what
     to do instead, rather than blaming the id.
     """
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, mode="live", age=60))
@@ -585,7 +585,7 @@ def test_a_reopened_assessment_opens_the_trace_that_was_stored_with_it(tmp_path)
     """`t` on a reopened report used to do nothing at all: the trace lived on
     the run screen, and the run screen died with the process. The events are
     stored with the assessment now, and rendered by the same code."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, age=60, trace=True))
@@ -616,7 +616,7 @@ def test_a_reopened_assessment_opens_the_trace_that_was_stored_with_it(tmp_path)
 def test_an_assessment_stored_without_a_trace_says_so(tmp_path):
     """Everything saved before traces were kept. A keypress that does nothing
     is indistinguishable from one that is broken."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo=CLEAN, age=60))
@@ -655,7 +655,7 @@ def test_finishing_a_run_stores_it_and_home_lists_it(tmp_path):
 
 async def _choose_recording(app, pilot):
     """Pick the recorded search off the start screen and wait for its rows."""
-    from holt.tui.screens.discover import ChoiceList
+    from prscout.tui.screens.discover import ChoiceList
 
     choices = app.screen.query_one("#choices", ChoiceList)
     index = [c.action for c in choices.choices].index("replay")
@@ -667,7 +667,7 @@ async def _choose_recording(app, pilot):
 def test_discover_opens_on_a_choice_not_on_a_canned_list(tmp_path):
     """The recorded search is somebody else's result. Opening on it presented
     twenty-five repositories as an answer to a question nobody had asked."""
-    from holt.tui import discovery
+    from prscout.tui import discovery
 
     async def body(app, pilot):
         await pilot.press("ctrl+f")
@@ -689,7 +689,7 @@ def test_discover_lists_survivors_and_what_it_cut(tmp_path):
 
     Reached by choosing the recording, which is now where it lives.
     """
-    from holt.tui import discovery
+    from prscout.tui import discovery
 
     if not discovery.manifest_path_exists():
         pytest.skip("the recorded discovery session is not present")
@@ -720,8 +720,8 @@ def test_walking_the_finder_with_the_keyboard_scrolls_the_pane(tmp_path):
     candidates below the sixteen survivors could not be reached by keyboard at
     all.
     """
-    from holt.tui import discovery
-    from holt.tui.widgets.candidates import CandidateList
+    from prscout.tui import discovery
+    from prscout.tui.widgets.candidates import CandidateList
 
     if not discovery.manifest_path_exists():
         pytest.skip("the recorded discovery session is not present")
@@ -781,7 +781,7 @@ def test_discover_draws_live_rows_as_they_land(tmp_path, monkeypatch):
     with the engine is pinned in `test_tui_discovery.py`, and what is checked
     here is that the screen draws whatever the search is currently reporting.
     """
-    from holt.tui import discovery
+    from prscout.tui import discovery
 
     monkeypatch.setenv("GITHUB_TOKEN", "t")
 
@@ -877,8 +877,8 @@ def test_a_live_find_is_assessed_live_even_where_a_recording_exists(
     up, with nothing on screen saying so. Which evidence a run reads is a
     choice, and the contents of `fixtures/` do not get to make it.
     """
-    from holt.tui import discovery, session as session_module
-    from holt.tui.screens.home import REPLAY_SUGGESTION as SUGGESTION
+    from prscout.tui import discovery, session as session_module
+    from prscout.tui.screens.home import REPLAY_SUGGESTION as SUGGESTION
 
     monkeypatch.setenv("GITHUB_TOKEN", "t")
     monkeypatch.setenv("OPENAI_API_KEY", "k")
@@ -944,8 +944,8 @@ def test_a_recorded_row_with_no_recording_says_so_rather_than_going_live(
     """The other half of the same rule. A row from the recorded session whose
     assessment was never recorded used to flip silently to live and then ask
     for credentials, which names the wrong problem."""
-    from holt.tui import discovery
-    from holt.tui.screens.discover import DiscoverScreen
+    from prscout.tui import discovery
+    from prscout.tui.screens.discover import DiscoverScreen
 
     started = []
 
@@ -977,7 +977,7 @@ def test_which_evidence_a_run_reads_has_no_default(tmp_path):
     the question and you got committed fixtures, rendered as an assessment."""
     import pytest as _pytest
 
-    from holt.tui.session import RunOptions
+    from prscout.tui.session import RunOptions
 
     with _pytest.raises(TypeError):
         RunOptions(repo=CLEAN)  # type: ignore[call-arg]
@@ -987,7 +987,7 @@ def test_which_evidence_a_run_reads_has_no_default(tmp_path):
 
 
 def test_discover_says_so_when_the_session_is_missing(tmp_path):
-    from holt.tui.screens.discover import DiscoverScreen
+    from prscout.tui.screens.discover import DiscoverScreen
 
     async def body(app, pilot):
         await app.push_screen(DiscoverScreen("no-such-session"))
@@ -1016,7 +1016,7 @@ def test_profile_round_trips_through_the_same_file_the_cli_uses(tmp_path, monkey
         await settle(pilot, lambda: "Saved to" in screen_text(app))
         assert "Saved to" in screen_text(app)
 
-        from holt import profile as profile_mod
+        from prscout import profile as profile_mod
 
         stored = profile_mod.load()
         assert stored.languages == ["python", "rust"]
@@ -1039,7 +1039,7 @@ def test_profile_refuses_a_day_budget_that_is_not_a_number(tmp_path, monkeypatch
         await settle(pilot, lambda: "is not a number of days" in screen_text(app))
         assert "is not a number of days" in screen_text(app)
 
-        from holt import profile as profile_mod
+        from prscout import profile as profile_mod
 
         assert profile_mod.load() is None, "nothing should have been written"
 
@@ -1047,10 +1047,10 @@ def test_profile_refuses_a_day_budget_that_is_not_a_number(tmp_path, monkeypatch
 
 
 def test_what_next_never_shows_an_order_without_its_measurement(tmp_path):
-    """`holt next` has always printed the number that says how well the ranking
+    """`prscout next` has always printed the number that says how well the ranking
     works. This screen is the second path that shows an order and it was
     printing the order alone."""
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui.screens.next_steps import NextScreen
 
     async def body(app, pilot):
         app.session = fake_run.finished()
@@ -1073,7 +1073,7 @@ def test_what_next_names_the_token_rather_than_blaming_the_recording(
     """Assessing a repository live and pressing `n` used to report 'no committed
     evidence' — true, irrelevant, and naming the wrong problem."""
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui.screens.next_steps import NextScreen
 
     async def body(app, pilot):
         app.session = fake_run.finished()
@@ -1090,7 +1090,7 @@ def test_what_next_names_the_token_rather_than_blaming_the_recording(
 
 def test_what_next_reads_what_the_report_read_first(monkeypatch):
     """The report in front of you was built one way. The ranking starts there."""
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui.screens.next_steps import NextScreen
 
     monkeypatch.setenv("GITHUB_TOKEN", "t")
     # A replayed report may reach past its recording to GitHub: you chose the
@@ -1119,8 +1119,8 @@ def test_what_next_keeps_answering_while_the_evidence_is_being_read(
     """
     import threading
 
-    from holt.tui import session as session_module
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui import session as session_module
+    from prscout.tui.screens.next_steps import NextScreen
 
     # The read blocks until the test lets it go, rather than sleeping for a
     # second: under load a fixed sleep could end before the assertions below
@@ -1165,7 +1165,7 @@ def test_what_next_keeps_answering_while_the_evidence_is_being_read(
 
 def test_what_next_asks_for_a_github_username_in_those_words(tmp_path):
     """"a GitHub login" left people guessing what belonged in the box."""
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui.screens.next_steps import NextScreen
 
     async def body(app, pilot):
         app.session = fake_run.finished()
@@ -1181,7 +1181,7 @@ def test_what_next_asks_for_a_github_username_in_those_words(tmp_path):
 def test_home_opens_live_and_says_when_it_is_rules_only(tmp_path, monkeypatch):
     """No model set up is not a dead end: runs are rules-only, and the chrome
     says so next to the mode, with the key that adds a model."""
-    from holt import model
+    from prscout import model
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     model.enable_user_models_config(model.ModelsConfig())
@@ -1200,9 +1200,9 @@ def test_first_live_run_asks_for_a_token_then_runs(tmp_path, monkeypatch):
     import os
     import stat
 
-    from holt import credentials
+    from prscout import credentials
 
-    monkeypatch.setenv("HOLT_CONFIG_DIR", str(tmp_path / "config"))
+    monkeypatch.setenv("PRSCOUT_CONFIG_DIR", str(tmp_path / "config"))
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     started = []
 
@@ -1224,7 +1224,7 @@ def test_first_live_run_asks_for_a_token_then_runs(tmp_path, monkeypatch):
 
 
 def test_question_mark_opens_help_and_q_on_a_report_goes_back(tmp_path):
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv", age=120))
@@ -1263,7 +1263,7 @@ def test_a_live_report_is_never_ranked_from_fixtures_unasked(monkeypatch):
     already on screen. That is a pre-holdout recording presented as a live
     answer. It now takes `ctrl+e`.
     """
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui.screens.next_steps import NextScreen
 
     monkeypatch.setenv("GITHUB_TOKEN", "t")
     screen = NextScreen("x/y", live=True)
@@ -1277,7 +1277,7 @@ def test_what_next_offers_the_committed_evidence_rather_than_taking_it(tmp_path,
                                                                       monkeypatch):
     """The miss names the key, and the key is hidden until it would do something."""
     monkeypatch.setenv("GITHUB_TOKEN", "t")
-    from holt.tui.screens import next_steps
+    from prscout.tui.screens import next_steps
 
     next_steps.cache_clear()
 
@@ -1317,7 +1317,7 @@ def test_what_next_reuses_a_read_and_says_how_old_it_is(tmp_path):
     """Three logins against one repository was three round trips for the same
     two fetches. A cache nobody can see the age of is a cache that lies, so the
     age is in the sentence."""
-    from holt.tui.screens import next_steps
+    from prscout.tui.screens import next_steps
 
     next_steps.cache_clear()
 
@@ -1345,8 +1345,8 @@ def test_a_read_older_than_the_window_is_not_reused(monkeypatch):
     """Ten minutes, the same window a stored assessment stays reusable for."""
     import time
 
-    from holt.tui import store
-    from holt.tui.screens import next_steps
+    from prscout.tui import store
+    from prscout.tui.screens import next_steps
 
     next_steps.cache_clear()
     assert next_steps.CACHE_SECONDS == store.DEFAULT_MAX_AGE_SECONDS
@@ -1363,7 +1363,7 @@ def test_a_read_older_than_the_window_is_not_reused(monkeypatch):
 def test_what_next_says_plainly_when_the_login_has_landed_nothing(tmp_path):
     """An empty list would read as a ranking that found nothing, rather than a
     question that cannot be asked yet."""
-    from holt.tui.screens.next_steps import NextScreen
+    from prscout.tui.screens.next_steps import NextScreen
 
     async def body(app, pilot):
         app.session = fake_run.finished()
@@ -1383,7 +1383,7 @@ def test_what_next_says_plainly_when_the_login_has_landed_nothing(tmp_path):
 
 def test_home_leads_with_the_masthead(tmp_path):
     """An empty screen that says nothing is what this replaces."""
-    from holt.tui import mascot
+    from prscout.tui import mascot
 
     async def body(app, pilot):
         text = screen_text(app)
@@ -1398,8 +1398,8 @@ def test_home_leads_with_the_masthead(tmp_path):
 
 def test_the_cat_has_a_mood_for_every_state_the_engine_has():
     """The face reports state or it has no business being on screen."""
-    from holt.report import VERDICT_HEADLINES
-    from holt.tui import mascot
+    from prscout.report import VERDICT_HEADLINES
+    from prscout.tui import mascot
 
     for verdict in VERDICT_HEADLINES:
         mood = mascot.mood_for_verdict(verdict.value)
@@ -1416,7 +1416,7 @@ def test_every_mood_animates_and_fits_its_column():
     chrome gives it."""
     from rich.cells import cell_len
 
-    from holt.tui import mascot
+    from prscout.tui import mascot
 
     for mood, cycle in mascot.MOODS.items():
         assert len(set(cycle)) > 1, f"{mood} never changes, so it is not animated"
@@ -1427,7 +1427,7 @@ def test_every_mood_animates_and_fits_its_column():
 def test_the_accent_changes_between_launches_but_never_means_anything():
     """The one arbitrary colour in the app. It must stay clear of the five that
     carry meaning, or a session's decoration would read as a verdict."""
-    from holt.tui import mascot, theme
+    from prscout.tui import mascot, theme
 
     meaning = {
         theme.VIABLE,
@@ -1441,20 +1441,20 @@ def test_the_accent_changes_between_launches_but_never_means_anything():
 
 
 def test_a_pinned_accent_wins_so_screenshots_and_tests_are_stable(monkeypatch):
-    from holt.tui import mascot
+    from prscout.tui import mascot
 
-    monkeypatch.setenv("HOLT_TUI_ACCENT", "#123456")
+    monkeypatch.setenv("PRSCOUT_TUI_ACCENT", "#123456")
     assert mascot.pick_accent() == "#123456"
 
 
 def test_a_long_verdict_does_not_run_into_the_age(tmp_path):
     """`Not enough evidence to say` is 26 characters; the column was 22, so it
     rendered as "Not enough evidence to say8 hours ago"."""
-    from holt.report import Verdict
-    from holt.tui import store
-    from holt.tui.widgets.recent import HEADLINE_WIDTH
+    from prscout.report import Verdict
+    from prscout.tui import store
+    from prscout.tui.widgets.recent import HEADLINE_WIDTH
 
-    from holt.report import VERDICT_HEADLINES
+    from prscout.report import VERDICT_HEADLINES
 
     assert HEADLINE_WIDTH > max(len(h) for h in VERDICT_HEADLINES.values())
 
@@ -1498,8 +1498,8 @@ def test_choosing_a_model_warns_that_replay_will_fail(tmp_path, monkeypatch):
     """The reproducibility guarantee is never a surprise sprung later."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
-    from holt import model as model_module
-    from holt.tui import models as models_layer
+    from prscout import model as model_module
+    from prscout.tui import models as models_layer
 
     async def body(app, pilot):
         await pilot.press("ctrl+l")
@@ -1527,7 +1527,7 @@ def test_the_model_screen_never_reaches_the_network_in_tests(tmp_path, monkeypat
     rather than calling the SDK directly."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
-    from holt.tui import models as models_layer
+    from prscout.tui import models as models_layer
 
     assert not models_layer.network_allowed()
 
@@ -1555,7 +1555,7 @@ def rail_colour(app, needle: str) -> str | None:
     and all of them had to be clicked. A test that reads only characters would
     have stayed green through all of it.
     """
-    from holt.tui import theme
+    from prscout.tui import theme
 
     for strip in app.screen._compositor.render_strips():
         text = "".join(segment.text for segment in strip)
@@ -1571,7 +1571,7 @@ def rail_colour(app, needle: str) -> str | None:
 
 
 def test_the_recent_list_shows_where_the_keyboard_is(tmp_path):
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv", age=120))
@@ -1595,7 +1595,7 @@ def test_the_recent_list_shows_where_the_keyboard_is(tmp_path):
 
 def test_arrows_move_through_recent_without_taking_the_input(tmp_path):
     """The input holds focus the whole time, so typing never stops working."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv", age=120))
@@ -1623,7 +1623,7 @@ def test_arrows_move_through_recent_without_taking_the_input(tmp_path):
 
 
 def test_enter_opens_the_highlighted_one_and_nothing_is_run(tmp_path):
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv", age=120))
@@ -1643,7 +1643,7 @@ def test_enter_opens_the_highlighted_one_and_nothing_is_run(tmp_path):
 def test_a_pasted_url_finds_the_repository_you_already_have(tmp_path):
     """It filtered to nothing and announced "nothing matches that" about a
     repository in the store, while enter on the same text opened it."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="astral-sh/uv", mode="live", age=120))
@@ -1666,7 +1666,7 @@ def test_a_pasted_url_finds_the_repository_you_already_have(tmp_path):
 def test_discover_starts_on_the_candidates_not_the_scroll_box(tmp_path):
     """Focus landed on the container, where ↑↓ scrolled past every candidate
     and enter did nothing at all."""
-    from holt.tui import discovery
+    from prscout.tui import discovery
 
     if not discovery.manifest_path_exists():
         pytest.skip("no recorded discover session in this checkout")
@@ -1707,7 +1707,7 @@ def test_enter_on_a_claim_you_tabbed_to_opens_its_record(tmp_path):
 
 def test_the_report_copies_as_the_markdown_the_engine_writes(tmp_path, monkeypatch):
     """Not a transcription of the screen — the artefact itself, ids and all."""
-    from holt.tui import clipboard
+    from prscout.tui import clipboard
 
     copied: list[str] = []
     # Patched, or a test run would overwrite the clipboard of whoever ran it.
@@ -1728,7 +1728,7 @@ def test_the_report_copies_as_the_markdown_the_engine_writes(tmp_path, monkeypat
 def test_a_copy_that_cannot_be_confirmed_does_not_claim_it_was(tmp_path, monkeypatch):
     """OSC 52 is unacknowledged. Saying "copied" when nothing may have happened
     is the one thing this must not do."""
-    from holt.tui import clipboard
+    from prscout.tui import clipboard
 
     monkeypatch.setattr(clipboard, "native", lambda text: "")
 
@@ -1748,7 +1748,7 @@ def test_the_clipboard_never_shells_out_to_a_tool_that_has_nothing_to_talk_to(
 ):
     """`wl-copy` outside Wayland and `xclip` with no display both exist on a lot
     of machines and fail on all of them."""
-    from holt.tui import clipboard
+    from prscout.tui import clipboard
 
     monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
     monkeypatch.delenv("DISPLAY", raising=False)
@@ -1794,8 +1794,8 @@ def test_a_replayed_run_still_says_it_is_reading_the_holdout(tmp_path):
 
 def test_the_evidence_line_says_nothing_it_cannot_back():
     """A provider that reports no cutoff gets no window claim at all."""
-    from holt.tui import events
-    from holt.tui.screens.live import evidence_line
+    from prscout.tui import events
+    from prscout.tui.screens.live import evidence_line
 
     assert evidence_line(events.EvidenceLoaded(count=95, window="pre_t")) == (
         "95 evidence records"
@@ -1806,7 +1806,7 @@ def test_the_evidence_line_says_nothing_it_cannot_back():
 
 
 def attach(app, repo: str, script: list):
-    """Register a scripted run the way `HoltApp.start_run` registers a real one."""
+    """Register a scripted run the way `PRScoutApp.start_run` registers a real one."""
     session = fake_run.session(repo=repo, queued=script)
     app.session = session
     app.runs[repo] = session
@@ -1815,14 +1815,14 @@ def attach(app, repo: str, script: list):
 
 async def watch(app, pilot):
     """Put the live screen up on whatever `app.session` currently is."""
-    from holt.tui.screens.live import LiveScreen
+    from prscout.tui.screens.live import LiveScreen
 
     await app.push_screen(LiveScreen())
     await caught_up(app, pilot)
 
 
 def unfinished(repo: str, **kw) -> list:
-    from holt.tui import events as _events
+    from prscout.tui import events as _events
 
     return [
         e
@@ -1839,7 +1839,7 @@ def test_a_run_that_finishes_while_nobody_watches_is_still_kept(tmp_path):
     left the worker computing an answer that nothing would ever collect: the
     run looked stopped because its result was thrown away.
     """
-    from holt.tui import events as _events
+    from prscout.tui import events as _events
 
     async def body(app, pilot):
         session = attach(app, CLEAN, unfinished(CLEAN))
@@ -1865,7 +1865,7 @@ def test_a_run_that_finishes_while_nobody_watches_is_still_kept(tmp_path):
 
 
 def test_two_repositories_can_be_assessed_at_once(tmp_path):
-    from holt.tui import events as _events
+    from prscout.tui import events as _events
 
     other = "pallets/flask"
 
@@ -1936,7 +1936,7 @@ def test_home_lists_a_run_in_flight_and_enter_rejoins_it(tmp_path):
         assert CLEAN in text
         assert "running · " in text
 
-        from holt.tui.widgets.recent import RecentList
+        from prscout.tui.widgets.recent import RecentList
 
         listing = app.screen.query_one("#recent", RecentList)
         listing.focus()
@@ -2066,7 +2066,7 @@ def test_quitting_with_nothing_running_does_not_ask(tmp_path):
 
 
 def test_a_stopped_run_reads_as_stopped_and_not_as_a_failure(tmp_path):
-    from holt.tui import events as _events
+    from prscout.tui import events as _events
 
     async def body(app, pilot):
         session = attach(app, CLEAN, unfinished(CLEAN))
@@ -2092,14 +2092,14 @@ def test_a_stopped_run_reads_as_stopped_and_not_as_a_failure(tmp_path):
 
 async def palette_commands(app) -> list[tuple[str, str]]:
     """Every command the palette would offer right now, in order."""
-    from holt.tui.commands import HoltCommands
+    from prscout.tui.commands import PRScoutCommands
 
-    provider = HoltCommands(app.screen)
+    provider = PRScoutCommands(app.screen)
     return [(name, help_text) for name, help_text, _ in provider._commands()]
 
 
-def test_the_palette_leads_with_holt_and_keeps_the_framework(tmp_path):
-    """holt's own commands first, then Textual's, in a written order.
+def test_the_palette_leads_with_prscout_and_keeps_the_framework(tmp_path):
+    """PRScout's own commands first, then Textual's, in a written order.
 
     `App.COMMANDS` is a set and providers are searched concurrently, so two
     providers interleave differently between launches. One provider yielding in
@@ -2123,7 +2123,7 @@ def test_the_palette_leads_with_holt_and_keeps_the_framework(tmp_path):
 
 def test_the_palette_offers_what_is_true_right_now(tmp_path):
     """Runs in flight and stored assessments are commands while they exist."""
-    from holt.tui import store
+    from prscout.tui import store
 
     keep = store.Store(root=tmp_path)
     keep.save(fake_run.stored_entry(repo="vercel/next.js", age=120))
@@ -2153,13 +2153,13 @@ def test_the_palette_offers_what_is_true_right_now(tmp_path):
 
 
 def _run_finished(assessment):
-    from holt.tui import events as _events
+    from prscout.tui import events as _events
 
     return _events.RunFinished(assessment=assessment, trace=None)
 
 
 def test_the_palette_opens_and_is_styled_as_one_surface(tmp_path):
-    """Opened, it shows holt's commands and none of Textual's default chrome."""
+    """Opened, it shows PRScout's commands and none of Textual's default chrome."""
 
     async def body(app, pilot):
         await pilot.press("ctrl+p")
@@ -2274,7 +2274,7 @@ async def open_openai_models(app, pilot, monkeypatch, ids=None):
     decide between live and replay, so a models test silently flipped the mode
     of tests that ran after it.
     """
-    from holt.tui import models as models_layer
+    from prscout.tui import models as models_layer
 
     monkeypatch.setattr(
         models_layer, "_list_openai_wire", lambda provider, key: sorted(ids or OPENAI_IDS)
@@ -2298,7 +2298,7 @@ def listed_ids(screen):
     return [row.entry.id for row in screen.query_one("#models", ListView).children]
 
 
-def test_the_model_list_leads_with_what_holt_can_price(tmp_path, monkeypatch):
+def test_the_model_list_leads_with_what_prscout_can_price(tmp_path, monkeypatch):
     """Alphabetical opened on `babbage-002`, and buried `gpt-5` under speech
     models. The ones with a known rate come first; nothing is hidden for it."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
@@ -2416,7 +2416,7 @@ def test_opening_a_screen_already_open_returns_to_it(tmp_path):
 
     `push_screen("discover")` hands back the *installed instance*, so opening
     discover a second time while it is still below you puts the same `Screen`
-    at two depths at once. Every screen in holt is `background: transparent`,
+    at two depths at once. Every screen in PRScout is `background: transparent`,
     which means Textual renders each screen underneath the current one as its
     background — and a screen that appears twice in that stack renders itself
     inside itself, forever. It crashed the interface with a `RecursionError`

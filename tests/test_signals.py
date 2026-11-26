@@ -6,10 +6,10 @@ from datetime import timedelta
 
 import pytest
 
-from holt.agent import people
-from holt.agent.signals import build_threads, compute, first_timer_threads, outsider_threads
-from holt.evidence.fixtures import FixtureProvider, fixture_root
-from holt.types import T_CUTOFF, EvidenceRecord, Window
+from prscout.agent import people
+from prscout.agent.signals import build_threads, compute, first_timer_threads, outsider_threads
+from prscout.evidence.fixtures import FixtureProvider, fixture_root
+from prscout.types import T_CUTOFF, EvidenceRecord, Window
 
 T0 = T_CUTOFF - timedelta(days=30)
 

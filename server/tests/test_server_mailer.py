@@ -10,9 +10,9 @@ from datetime import UTC, date, datetime, timedelta
 
 import httpx
 import pytest
-from holt_server import alert_email, alerts, alerts_api, mailer
-from holt_server.db import Alert, AlertEmail, AlertSettings, User
-from holt_server.mailer import Pending, Prefs, Queue
+from prscout_server import alert_email, alerts, alerts_api, mailer
+from prscout_server.db import Alert, AlertEmail, AlertSettings, User
+from prscout_server.mailer import Pending, Prefs, Queue
 from sqlalchemy import select
 
 from test_server_contributions import call
@@ -190,17 +190,17 @@ def test_your_turn_goes_first_when_the_daily_limit_is_near():
 
 FRAME = alert_email.EmailFrame(
     to="you@example.com", status="Alerts until 14 Oct. Your turn right away, the rest at 8:00.",
-    prs_url="https://githolt.com/me/contributions",
-    settings_url="https://githolt.com/settings/alerts",
-    unsubscribe_url="https://githolt.com/alerts/unsubscribe?t=abc&x=1",
-    home_url="https://githolt.com")
+    prs_url="https://gitprscout.com/me/contributions",
+    settings_url="https://gitprscout.com/settings/alerts",
+    unsubscribe_url="https://gitprscout.com/alerts/unsubscribe?t=abc&x=1",
+    home_url="https://gitprscout.com")
 
 
 def item(kind: str, pr: str, title: str, **facts) -> alert_email.EmailAlert:
     repo, number = pr.split(" #")
     return alert_email.EmailAlert(kind, repo, int(number), title,
                                   f"https://github.com/{repo}/pull/{number}",
-                                  f"https://githolt.com/{repo}", facts)
+                                  f"https://gitprscout.com/{repo}", facts)
 
 
 TURN = [
@@ -229,8 +229,8 @@ def test_the_emails_are_built_from_the_shared_template():
     for html in (one, two, daily):
         assert html.startswith("<!doctype html>") and "(=^•ω•^=)" in html
         assert "<img" not in html and "<script" not in html
-        assert 'href="https://githolt.com/settings/alerts"' in html
-        assert "Sent to you@example.com by Holt, githolt.com" in html
+        assert 'href="https://gitprscout.com/settings/alerts"' in html
+        assert "Sent to you@example.com by PRScout, gitprscout.com" in html
     # One solid button an email: the pull request's when there is one alert,
     # "see all" when there are several (theirs are outlined).
     assert one.count('class="h-btn"') == 1 and "see all your pull requests" not in one
@@ -246,7 +246,7 @@ def test_pull_request_titles_are_escaped():
     html = alert_email.your_turn_email(TURN[:1], FRAME).html
     assert "<b>shell</b>" not in html
     assert "Fix &lt;b&gt;shell&lt;/b&gt; completion &amp; &quot;nested&quot; groups" in html
-    assert 'href="https://githolt.com/alerts/unsubscribe?t=abc&amp;x=1"' in html
+    assert 'href="https://gitprscout.com/alerts/unsubscribe?t=abc&amp;x=1"' in html
     hostile = item("reply", "a/b #1", '"><script>alert(1)</script><img src=x onerror=alert(2)>',
                    who="x")
     html = alert_email.your_turn_email([hostile], FRAME).html
@@ -283,7 +283,7 @@ def test_your_turn_on_two_pull_requests():
         "First up, @mkoval asked for changes:\n"
         'pallets/click #2811 · Fix <b>shell</b> completion & "nested" groups\n'
         "Open the PR: https://github.com/pallets/click/pull/2811\n"
-        "Holt's report: https://githolt.com/pallets/click\n\n"
+        "PRScout's report: https://gitprscout.com/pallets/click\n\n"
         "And @lead replied here:\n"
         "processing/p5.js #7120 · Add describe() to the textToPoints reference\n")
     for said in ("Two maintainers replied to your pull requests.",
@@ -346,13 +346,13 @@ def test_the_daily_email():
         "p5.js #7120 is on day 6 with no reply yet. Most PRs here get one within 4 days.\n"
         "processing/p5.js #7120 · Add describe() to the textToPoints reference\n"
         "Open the PR: https://github.com/processing/p5.js/pull/7120\n"
-        "Holt's report: https://githolt.com/processing/p5.js\n\n"
+        "PRScout's report: https://gitprscout.com/processing/p5.js\n\n"
         "free-programming-books #11020 has been quiet for 25 days. "
         "The bot closes PRs here after 30.\n")
     assert "\nefcore #3310 was approved by @jrios.\n" in daily.text
     assert "\nmoment #6120 was closed without merging.\n" in daily.text
     assert daily.text.endswith(
-        "Stop these emails: https://githolt.com/alerts/unsubscribe?t=abc&x=1")
+        "Stop these emails: https://gitprscout.com/alerts/unsubscribe?t=abc&x=1")
     # The short name leads in bold in the HTML, and plainly in the text.
     assert "*" not in daily.text
     assert ('<strong style="font-weight:600;">p5.js #7120</strong> is on day 6 with no reply '
@@ -417,13 +417,13 @@ def test_the_footer_says_when_alerts_end():
 
 
 MESSAGE = mailer.Message(to="you@example.com", subject="s", html="<p>h</p>", text="t",
-                         headers={"List-Unsubscribe": "<https://githolt.com/x>"},
+                         headers={"List-Unsubscribe": "<https://gitprscout.com/x>"},
                          idempotency_key="key-1")
 
 
 def resend(handler) -> mailer.Resend:
     return mailer.Resend(httpx.Client(transport=httpx.MockTransport(handler)), "re_secret",
-                         "Holt <alerts@githolt.com>", "hello@githolt.com")
+                         "PRScout <alerts@gitprscout.com>", "hello@gitprscout.com")
 
 
 def test_resend_gets_the_message_and_the_key():
@@ -439,10 +439,10 @@ def test_resend_gets_the_message_and_the_key():
     assert req.headers["authorization"] == "Bearer re_secret"
     assert req.headers["idempotency-key"] == "key-1"
     body = json.loads(req.content)
-    assert body == {"from": "Holt <alerts@githolt.com>", "to": ["you@example.com"],
+    assert body == {"from": "PRScout <alerts@gitprscout.com>", "to": ["you@example.com"],
                     "subject": "s", "html": "<p>h</p>", "text": "t",
-                    "reply_to": "hello@githolt.com",
-                    "headers": {"List-Unsubscribe": "<https://githolt.com/x>"}}
+                    "reply_to": "hello@gitprscout.com",
+                    "headers": {"List-Unsubscribe": "<https://gitprscout.com/x>"}}
 
 
 def test_resend_trouble_is_retried_and_a_refusal_is_not():
@@ -464,10 +464,10 @@ def test_resend_trouble_is_retried_and_a_refusal_is_not():
 def test_no_mailer_without_the_key(make_harness):
     h = make_harness()
     assert h.svc.mailer is None
-    with_key = make_harness(RESEND_API_KEY="re_test", HOLT_PR_WATCH=True)
+    with_key = make_harness(RESEND_API_KEY="re_test", PRSCOUT_PR_WATCH=True)
     assert isinstance(with_key.svc.mailer, mailer.Resend)
     # Unsubscribe links are made with the server's secret: no secret, no email.
-    assert mailer.build(make_harness(RESEND_API_KEY="re_test", HOLT_SECRET_KEY="").svc.settings,
+    assert mailer.build(make_harness(RESEND_API_KEY="re_test", PRSCOUT_SECRET_KEY="").svc.settings,
                         h.svc.http) is None
 
 
@@ -488,7 +488,7 @@ class FakeMailer:
 
 @pytest.fixture
 def hm(make_harness):
-    h = make_harness(HOLT_PR_WATCH=True)
+    h = make_harness(PRSCOUT_PR_WATCH=True)
     h.svc.mailer = h.outbox = FakeMailer()
     return h
 
@@ -538,9 +538,9 @@ def test_a_run_sends_your_turn_and_records_it(hm):
     assert "Alerts until 11 Oct. Your turn right away, the rest at 8:00." in msg.text
     # One-click unsubscribe (RFC 8058), and the same token in the footer link.
     token = msg.headers["List-Unsubscribe"].removeprefix(
-        "<https://githolt.com/api/alerts/unsubscribe?t=").removesuffix(">")
+        "<https://gitprscout.com/api/alerts/unsubscribe?t=").removesuffix(">")
     assert msg.headers["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
-    assert f"https://githolt.com/alerts/unsubscribe?t={token}" in msg.text
+    assert f"https://gitprscout.com/alerts/unsubscribe?t={token}" in msg.text
     [settings] = call(hm, lambda s: _settings(s))
     assert alerts.token_hash(token) == settings.unsubscribe_hash
 
@@ -602,12 +602,12 @@ def test_an_empty_daily_email_is_skipped_and_marked_done(hm):
 
 def test_without_a_provider_key_nothing_is_sent_and_alerts_stay_on_the_bell(make_harness,
                                                                            caplog, monkeypatch):
-    h = make_harness(HOLT_PR_WATCH=True)  # no RESEND_API_KEY
+    h = make_harness(PRSCOUT_PR_WATCH=True)  # no RESEND_API_KEY
     at = ist(14)
     monkeypatch.setattr(alerts, "now", lambda: at)  # the bell asks if the free days still run
     seed(h, at, ("changes", "pallets/click", 2811, timedelta(minutes=10)))
     mailer._said_off = False
-    with caplog.at_level(logging.INFO, logger="holt_server.mailer"):
+    with caplog.at_level(logging.INFO, logger="prscout_server.mailer"):
         assert run(h, at).skipped == "off"
         assert run(h, at + timedelta(minutes=5)).skipped == "off"
     said = [r for r in caplog.records if "alert emails are off" in r.getMessage()]
@@ -689,7 +689,7 @@ def test_turning_email_back_on_waits_for_the_next_8_oclock(hm, monkeypatch):
 
 
 def test_a_move_west_doesnt_skip_a_day():
-    from holt_server.db import AlertSettings as Row
+    from prscout_server.db import AlertSettings as Row
     row = Row(user_id="u1", tz="America/Los_Angeles", last_daily_on=date(2026, 10, 2))
     at = datetime(2026, 10, 2, 4, tzinfo=UTC)  # still 1 October in Los Angeles
     mailer.skip_today(row, at, starting=False)
@@ -723,7 +723,7 @@ def test_a_refused_email_is_not_sent_again(hm):
 
 
 def test_the_daily_limit_holds_emails_back(make_harness):
-    h = make_harness(HOLT_PR_WATCH=True, HOLT_ALERT_EMAIL_DAILY_LIMIT=6)  # 6 - 5 in hand = 1
+    h = make_harness(PRSCOUT_PR_WATCH=True, PRSCOUT_ALERT_EMAIL_DAILY_LIMIT=6)  # 6 - 5 in hand = 1
     h.svc.mailer = h.outbox = FakeMailer()
     at = ist(14)
     seed(h, at, ("changes", "pallets/click", 2811, timedelta(minutes=10)))
@@ -741,7 +741,7 @@ def test_a_muted_pull_request_is_left_out_of_email(hm):
     seed(hm, at, ("changes", "pallets/click", 2811, timedelta(minutes=10)))
 
     async def mute(s):
-        from holt_server.db import WatchMute
+        from prscout_server.db import WatchMute
         s.add(WatchMute(user_id="u1", repo_key="pallets/click", number=2811))
     call(hm, mute)
     assert run(hm, at).sent == 0

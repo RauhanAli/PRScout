@@ -3,11 +3,21 @@
 // profile, or the defaults. The URL format is the one the old find form
 // submitted, so profile links (findHref) and shared searches keep working.
 // No imports beyond types, so it runs under `node --test` and in the browser.
-import { contributions, days as daysOf, level as levelOf, topics as topicsOf } from "./profile.ts";
-import type { ContributionType, FindQuery, Level, ProfilePrefs } from "./types.ts";
+import {
+  contributions,
+  days as daysOf,
+  level as levelOf,
+  topics as topicsOf,
+} from "./profile.ts";
+import type {
+  ContributionType,
+  FindQuery,
+  Level,
+  ProfilePrefs,
+} from "./types.ts";
 
 /** Remembers the last search, as its query string. Read by the server, written by the page. */
-export const PICKS_COOKIE = "holt_find";
+export const PICKS_COOKIE = "prscout_find";
 
 export interface Picks {
   langs: string[];
@@ -25,16 +35,31 @@ type Params = Record<string, string | string[] | undefined>;
 
 const KEYS = ["go", "lang", "days", "topics", "level", "type", "hacktoberfest"];
 const list = (v: string | string[] | undefined) =>
-  (Array.isArray(v) ? v : v ? v.split(",") : []).map((s) => s.trim()).filter(Boolean);
+  (Array.isArray(v) ? v : v ? v.split(",") : [])
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 export function defaultPicks(hfOn: boolean): Picks {
-  return { langs: [], days: 7, topics: [], hf: hfOn, level: "experienced", types: [] };
+  return {
+    langs: [],
+    days: 7,
+    topics: [],
+    hf: hfOn,
+    level: "experienced",
+    types: [],
+  };
 }
 
 /** Picks from URL params, or null when the URL has none (then something else decides). */
 export function picksFromParams(sp: Params): Picks | null {
   if (!KEYS.some((k) => sp[k] != null)) return null;
-  const langs = [...new Set(list(sp.lang).map((l) => l.toLowerCase()).filter((l) => l.length <= 40))].slice(0, 10);
+  const langs = [
+    ...new Set(
+      list(sp.lang)
+        .map((l) => l.toLowerCase())
+        .filter((l) => l.length <= 40),
+    ),
+  ].slice(0, 10);
   return {
     langs,
     days: daysOf(first(sp.days)),
@@ -60,8 +85,18 @@ export function picksFromQuery(q: string | undefined): Picks | null {
   return picksFromParams(sp);
 }
 
-export function picksFromProfile(p: Omit<ProfilePrefs, "updated_at">, hfOn: boolean): Picks {
-  return { langs: p.languages, days: daysOf(p.days), topics: p.topics, hf: hfOn, level: p.level, types: p.contributions };
+export function picksFromProfile(
+  p: Omit<ProfilePrefs, "updated_at">,
+  hfOn: boolean,
+): Picks {
+  return {
+    langs: p.languages,
+    days: daysOf(p.days),
+    topics: p.topics,
+    hf: hfOn,
+    level: p.level,
+    types: p.contributions,
+  };
 }
 
 /**
@@ -69,9 +104,19 @@ export function picksFromProfile(p: Omit<ProfilePrefs, "updated_at">, hfOn: bool
  * the profile, else the defaults. Outside the Hacktoberfest window the switch
  * is hidden, so it is always off.
  */
-export function resolvePicks(
-  { params, cookie, profile, hfWindow, hfOn }: { params: Params; cookie?: string; profile: Omit<ProfilePrefs, "updated_at"> | null; hfWindow: boolean; hfOn: boolean },
-): { picks: Picks; source: PicksSource } {
+export function resolvePicks({
+  params,
+  cookie,
+  profile,
+  hfWindow,
+  hfOn,
+}: {
+  params: Params;
+  cookie?: string;
+  profile: Omit<ProfilePrefs, "updated_at"> | null;
+  hfWindow: boolean;
+  hfOn: boolean;
+}): { picks: Picks; source: PicksSource } {
   const url = picksFromParams(params);
   const last = url ? null : picksFromQuery(cookie);
   const [picks, source]: [Picks, PicksSource] = url
@@ -101,27 +146,53 @@ export const FIND_FIRST = 12;
 
 /** The part of the picks the server searches on (the rest is applied in the browser). */
 export function findQuery(p: Picks, limit = FIND_FIRST): FindQuery {
-  return { languages: p.langs, topics: p.topics, days: p.days, hacktoberfest: p.hf, limit };
+  return {
+    languages: p.langs,
+    topics: p.topics,
+    days: p.days,
+    hacktoberfest: p.hf,
+    limit,
+  };
 }
 
 /** Equal for picks that need the same search upstream. */
 export function searchKey(p: Picks): string {
-  return JSON.stringify([[...p.langs].sort(), [...p.topics].sort(), p.days, p.hf]);
+  return JSON.stringify([
+    [...p.langs].sort(),
+    [...p.topics].sort(),
+    p.days,
+    p.hf,
+  ]);
 }
 
 /** How many of the tucked-away filters (experience, work type, topics) are set. */
 export function extraCount(p: Picks): number {
-  return (p.level === "newcomer" ? 1 : 0) + p.types.length + (p.topics.length ? 1 : 0);
+  return (
+    (p.level === "newcomer" ? 1 : 0) +
+    p.types.length +
+    (p.topics.length ? 1 : 0)
+  );
 }
 
 /** One-tap ways to widen a search that found nothing, most likely to help first. */
 export function widen(p: Picks): { label: string; picks: Picks }[] {
   const out: { label: string; picks: Picks }[] = [];
-  if (p.topics.length) out.push({ label: "Drop the topics", picks: { ...p, topics: [] } });
-  if (p.hf) out.push({ label: "Include repos outside Hacktoberfest", picks: { ...p, hf: false } });
-  if (p.level === "newcomer") out.push({ label: "Show all starter issues", picks: { ...p, level: "experienced" } });
-  if (p.langs.length) out.push({ label: "Any language", picks: { ...p, langs: [] } });
-  if (p.days < 30) out.push({ label: "I have a month", picks: { ...p, days: 30 } });
+  if (p.topics.length)
+    out.push({ label: "Drop the topics", picks: { ...p, topics: [] } });
+  if (p.hf)
+    out.push({
+      label: "Include repos outside Hacktoberfest",
+      picks: { ...p, hf: false },
+    });
+  if (p.level === "newcomer")
+    out.push({
+      label: "Show all starter issues",
+      picks: { ...p, level: "experienced" },
+    });
+  if (p.langs.length)
+    out.push({ label: "Any language", picks: { ...p, langs: [] } });
+  if (p.days < 30)
+    out.push({ label: "I have a month", picks: { ...p, days: 30 } });
   return out.slice(0, 3);
 }
 

@@ -1,6 +1,6 @@
 # Governance
 
-Holt is maintained in public by the `holt-oss` organization. Aahil Khan is the
+PRScout is maintained in public by the `RauhanAli` organization. Rauhan Ali is the
 founding and lead maintainer.
 
 ## How decisions are made

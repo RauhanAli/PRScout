@@ -9,8 +9,8 @@ trace fails these tests instead of silently miscounting a rejection summary.
 import json
 from datetime import UTC, datetime, timedelta
 
-from holt import discover
-from holt.discover import (
+from prscout import discover
+from prscout.discover import (
     CAT_ARCHIVED,
     CAT_HOSTILE,
     CAT_NO_LANDING,
@@ -20,11 +20,11 @@ from holt.discover import (
     contribution_notes,
     screen_records,
 )
-from holt.agent import landing as landing_mod
-from holt.agent.signals import build_threads
-from holt.evidence.fixtures import write_fixture
-from holt.profile import Profile
-from holt.types import EvidenceRecord, Window
+from prscout.agent import landing as landing_mod
+from prscout.agent.signals import build_threads
+from prscout.evidence.fixtures import write_fixture
+from prscout.profile import Profile
+from prscout.types import EvidenceRecord, Window
 
 SLUG = "owner/repo"
 OPENED = datetime(2026, 5, 1, tzinfo=UTC)
@@ -139,7 +139,7 @@ def test_recorded_session_replays_without_credentials(tmp_path, monkeypatch):
 
 
 def test_committed_demo_session_replays_from_a_clean_clone():
-    """The shipped demo: `holt discover` with no flags, no token, no key."""
+    """The shipped demo: `prscout discover` with no flags, no token, no key."""
     import pytest
 
     if not (discover.DISCOVER_ROOT / "demo.json").exists():
@@ -160,18 +160,18 @@ def test_screening_needs_no_model():
 
 
 def test_the_merge_rate_floor_has_its_own_bucket():
-    from holt.agent.verdict import Rule
-    from holt.discover import CAT_LONG_ODDS, _categorise
-    from holt.report import Verdict
+    from prscout.agent.verdict import Rule
+    from prscout.discover import CAT_LONG_ODDS, _categorise
+    from prscout.report import Verdict
 
     trace = [Rule("2 merged.", code="merges"), Rule("Only 2 of 60.", code="long_odds")]
     assert _categorise(Verdict.NOT_VIABLE, trace) == CAT_LONG_ODDS
 
 
 def test_long_shots_and_personal_projects_have_their_own_buckets():
-    from holt.discover import CAT_LONG_SHOT, CAT_PERSONAL, _categorise
-    from holt.report import Verdict
-    from holt.agent.verdict import Rule
+    from prscout.discover import CAT_LONG_SHOT, CAT_PERSONAL, _categorise
+    from prscout.report import Verdict
+    from prscout.agent.verdict import Rule
 
     assert _categorise(Verdict.LONG_SHOT, [Rule("x", code="merges"),
                                            Rule("y", code="mostly_silent")]) == CAT_LONG_SHOT

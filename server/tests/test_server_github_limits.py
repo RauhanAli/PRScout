@@ -10,12 +10,12 @@ import json
 
 import httpx
 import pytest
-from holt_server import github
-from holt_server.errors import ApiError
-from holt_server.github import GitHubLookup, TokenPool
+from prscout_server import github
+from prscout_server.errors import ApiError
+from prscout_server.github import GitHubLookup, TokenPool
 
-from holt.evidence import github_graphql as gql
-from holt.evidence.errors import Forbidden, RateLimited, RepoNotFound, UpstreamError
+from prscout.evidence import github_graphql as gql
+from prscout.evidence.errors import Forbidden, RateLimited, RepoNotFound, UpstreamError
 
 SECONDARY = {"message": "You have exceeded a secondary rate limit. Please wait a few "
                         "minutes before you try again."}
@@ -115,7 +115,7 @@ def test_background_work_asks_twice_and_people_four_times(w):
 def test_a_secondary_limit_holds_every_reader_until_github_says(w, caplog):
     in_flight = w.pool.transport(w.http)  # a report already reading
     w.github.answers["octo/one"] = secondary_limit
-    with caplog.at_level("WARNING", logger="holt_server.github"), pytest.raises(RateLimited) as exc:
+    with caplog.at_level("WARNING", logger="prscout_server.github"), pytest.raises(RateLimited) as exc:
         w.ask("octo/one")
     assert (exc.value.retry_after, exc.value.secondary) == (300.0, True)
     assert "not the hourly points" in caplog.text and "300s" in caplog.text
@@ -167,7 +167,7 @@ def test_the_hourly_budget_running_out_waits_for_its_reset(w, monkeypatch, caplo
     w.github.answers["octo/one"] = lambda request: httpx.Response(
         403, headers={"x-ratelimit-remaining": "0", "x-ratelimit-reset": str(w.clock.now + 600)},
         json={"message": "API rate limit exceeded for installation."})
-    with caplog.at_level("WARNING", logger="holt_server.github"), pytest.raises(RateLimited) as exc:
+    with caplog.at_level("WARNING", logger="prscout_server.github"), pytest.raises(RateLimited) as exc:
         w.ask("octo/one")
     assert (exc.value.retry_after, exc.value.secondary) == (600.0, False)
     assert "hourly points" in caplog.text and "not the hourly points" not in caplog.text

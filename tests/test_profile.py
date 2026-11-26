@@ -3,9 +3,9 @@
 from argparse import Namespace
 from datetime import UTC, datetime
 
-from holt import profile as profile_mod
-from holt.discover import build_queries
-from holt.profile import Profile
+from prscout import profile as profile_mod
+from prscout.discover import build_queries
+from prscout.profile import Profile
 
 AS_OF = datetime(2026, 8, 1, tzinfo=UTC)
 

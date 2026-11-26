@@ -7,25 +7,25 @@
 # 1. Adds UMAMI_DB_PASSWORD, UMAMI_APP_SECRET and COMPOSE_PROFILES=analytics
 #    to .env (so every later deploy's `compose up` keeps Umami running).
 # 2. Creates the `umami` role and database in the running `db` (the role
-#    owns only that database; it can't read Holt's).
+#    owns only that database; it can't read PRScout's).
 # 3. Starts `umami` and waits for it.
 # 4. Replaces the default admin password (admin / umami) with a random one,
-#    saved to $STATE/umami-admin (chmod 600), and creates the githolt.com
+#    saved to $STATE/umami-admin (chmod 600), and creates the gitprscout.com
 #    site with the fixed id the web app sends (web/src/lib/analytics.ts).
 #
 # Needs a deployed stack (deploy.sh ran once). The dashboard is then at
-# http://127.0.0.1:${HOLT_UMAMI_PORT:-8311} on the server only; from the laptop:
-#   ssh -N -L 8311:127.0.0.1:8311 aahil-server   then open http://localhost:8311
+# http://127.0.0.1:${PRSCOUT_UMAMI_PORT:-8311} on the server only; from the laptop:
+#   ssh -N -L 8311:127.0.0.1:8311 rauhan-server   then open http://localhost:8311
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=env.sh
 . "$here/env.sh"   # STATE, PROJECT, load_prod_env
 WEBSITE_ID="2c77adc5-9260-4a3d-b240-fa6ffa8e8f10"   # = UMAMI_WEBSITE_ID in web/src/lib/analytics.ts
-DOMAIN="${HOLT_UMAMI_DOMAIN:-githolt.com}"
+DOMAIN="${PRSCOUT_UMAMI_DOMAIN:-gitprscout.com}"
 
 sha="$(cat "$STATE/current" 2>/dev/null || true)"
 [[ -n "$sha" ]] || die "nothing deployed yet (no $STATE/current): run deploy.sh first"
-export HOLT_SRC="$STATE/src" HOLT_TAG="$sha" HOLT_PROD_HOME="$STATE" HOLT_PROD_PROJECT="$PROJECT"
+export PRSCOUT_SRC="$STATE/src" PRSCOUT_TAG="$sha" PRSCOUT_PROD_HOME="$STATE" PRSCOUT_PROD_PROJECT="$PROJECT"
 compose() { docker compose -p "$PROJECT" -f "$here/compose.yml" --env-file "$STATE/.env" "$@"; }
 # compose interpolates the whole file, so it needs the same values as a deploy.
 load_prod_env
@@ -40,12 +40,12 @@ add_env UMAMI_APP_SECRET "$(hex)"
 add_env COMPOSE_PROFILES analytics
 envval() { sed -n "s/^$1=//p" "$env_file" | tail -1; }
 UMAMI_DB_PASSWORD="$(envval UMAMI_DB_PASSWORD)"
-port="${HOLT_UMAMI_PORT:-$(envval HOLT_UMAMI_PORT)}"; port="${port:-8311}"
+port="${PRSCOUT_UMAMI_PORT:-$(envval PRSCOUT_UMAMI_PORT)}"; port="${port:-8311}"
 
 # 2. Role and database, if missing.
 db="$(compose ps -q db)"
 [[ -n "$db" ]] || die "the $PROJECT db container is not running"
-psql() { docker exec -i "$db" psql -U holt -d postgres -v ON_ERROR_STOP=1 -qtA "$@"; }
+psql() { docker exec -i "$db" psql -U prscout -d postgres -v ON_ERROR_STOP=1 -qtA "$@"; }
 if [[ "$(psql -c "SELECT 1 FROM pg_roles WHERE rolname = 'umami'")" != 1 ]]; then
     # On stdin, not the command line, so the password never shows in `ps`.
     psql <<SQL
@@ -57,7 +57,7 @@ if [[ "$(psql -c "SELECT 1 FROM pg_database WHERE datname = 'umami'")" != 1 ]]; 
     psql -c 'CREATE DATABASE umami OWNER umami'
     log "created database umami"
 fi
-psql -c 'REVOKE CONNECT ON DATABASE holt, holt_web FROM PUBLIC' >/dev/null
+psql -c 'REVOKE CONNECT ON DATABASE PRScout, prscout_web FROM PUBLIC' >/dev/null
 
 # 3. Start it (its first start runs its own migrations). --no-deps: db is
 # already up, and nothing else in the stack is touched.
@@ -89,7 +89,7 @@ if [[ "$(curl -fsS "${auth[@]}" "$api/websites/$WEBSITE_ID" | jq -r '.id // empt
     log "site $DOMAIN ($WEBSITE_ID) already exists"
 else
     curl -fsS "${auth[@]}" -H 'Content-Type: application/json' \
-        -d "$(jq -n --arg id "$WEBSITE_ID" --arg d "$DOMAIN" '{id:$id,name:"Holt",domain:$d}')" "$api/websites" >/dev/null
+        -d "$(jq -n --arg id "$WEBSITE_ID" --arg d "$DOMAIN" '{id:$id,name:"PRScout",domain:$d}')" "$api/websites" >/dev/null
     log "created site $DOMAIN ($WEBSITE_ID)"
 fi
 log "Umami is up: dashboard on 127.0.0.1:$port (user admin, password in $pwfile)"

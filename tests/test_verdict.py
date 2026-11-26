@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from holt.agent.findings import Findings
-from holt.agent.signals import Signals
-from holt.agent.verdict import classify, contested_kind, rule_codes
-from holt.report import Verdict
+from prscout.agent.findings import Findings
+from prscout.agent.signals import Signals
+from prscout.agent.verdict import classify, contested_kind, rule_codes
+from prscout.report import Verdict
 
 
 def signals(**over) -> Signals:

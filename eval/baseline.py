@@ -20,12 +20,12 @@ from __future__ import annotations
 import argparse
 import sys
 
-from holt import model as model_mod
-from holt.evidence.fixtures import FixtureProvider
-from holt.evidence.provider import EvidenceProvider
-from holt.model import ModelClient
-from holt.report import Assessment, Claim, Verdict
-from holt.types import Window
+from prscout import model as model_mod
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.evidence.provider import EvidenceProvider
+from prscout.model import ModelClient
+from prscout.report import Assessment, Claim, Verdict
+from prscout.types import Window
 
 SYSTEM = """You assess whether a GitHub repository is a worthwhile place for an \
 outside developer -- someone with no prior connection to the project -- to spend \

@@ -8,8 +8,8 @@ from typing import get_args
 
 import pytest
 from conftest import canned_report
-from holt_server import schema
-from holt_server.db import Report
+from prscout_server import schema
+from prscout_server.db import Report
 
 
 def stats(attempts: int, merged: int, no_reply: int) -> dict:
@@ -155,7 +155,7 @@ def test_an_old_cached_report_is_served_with_derived_fields(h):
 
 
 def test_openapi_describes_the_derived_fields(make_harness):
-    h = make_harness(HOLT_ENV="dev")
+    h = make_harness(PRSCOUT_ENV="dev")
     spec = h.get("/openapi.json").json()
     report_schema = spec["components"]["schemas"]["Report"]
     for field in ("headline", "tone", "verdict_line", "odds", "rule_codes"):

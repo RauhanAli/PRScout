@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from holt.agent import timing
-from holt.agent.signals import build_threads
-from holt.agent.timing import Waited
-from holt.types import EvidenceRecord
+from prscout.agent import timing
+from prscout.agent.signals import build_threads
+from prscout.agent.timing import Waited
+from prscout.types import EvidenceRecord
 
 NOW = datetime(2026, 9, 25, 12, tzinfo=UTC)
 DAY = 24.0
@@ -304,8 +304,8 @@ def test_no_rhythm_when_the_sample_is_short():
 
 # --- the provider reads the cohort ---------------------------------------------------
 
-from holt.evidence import github_graphql as gql  # noqa: E402
-from holt.types import Window  # noqa: E402
+from prscout.evidence import github_graphql as gql  # noqa: E402
+from prscout.types import Window  # noqa: E402
 
 
 def _node(number: int, opened: datetime, merged_at: datetime | None = None) -> dict:

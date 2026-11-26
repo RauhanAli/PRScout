@@ -1,11 +1,11 @@
-# How Holt is evaluated
+# How PRScout is evaluated
 
 > **Historical:** this benchmark was the competition-era evaluation. It was
 > retired as a gate on 27 Sep 2026: it was expensive to run and shared the
 > engine's blind spot (its label counted maintainers as outsiders too). What
 > gates an engine change now is the golden set (`golden/README.md`): 52
 > recorded repositories, 10 of them hand-checked, replayed offline in CI.
-> The verdict rules are in `src/holt/agent/verdict.py`. This page is kept as the
+> The verdict rules are in `src/prscout/agent/verdict.py`. This page is kept as the
 > history and method of the competition result.
 
 ## Verdict tiers (engine 4, 29 Sep 2026)
@@ -25,23 +25,23 @@ shows each rule's own plain sentence.
 Only outside pull requests opened between 14 days and 12 months before the
 reading count.
 
-| # | Rule | Answer | code |
-|---|---|---|---|
-| 1 | Archived | Not worth | `archived` |
-| 1b | **Engine 6.** Pull requests switched off, or only collaborators may open them (GitHub's own settings) | Not worth | `prs_closed` |
-| 2 | A mirror or a fork | Not worth | `elsewhere` |
-| 3 | **New.** Someone's own or a small team's project (below) | Personal project | `personal` |
-| 4 | Nothing merged and nothing pushed in 90 days | Not worth | `inactive` |
-| 5 | A catalogue or list | Not worth | `catalogue_shape`, `non_software_kind` |
-| 6 | Nobody outside opened a PR we can count | Not enough | `no_attempts` |
-| 7 | None merged, over 70% of at least 8 unanswered | Not worth | `ignored` |
-| 8 | **Changed.** 20+ decided, under 5% merged, whatever the merge count | Not worth | `long_odds` |
-| 8b | **New.** …and none merged while at least half got a reply | Not worth | `replies_no_merges` |
-| 9 | 2+ merged from 2+ people, but merges go unreviewed (as before) | Not worth | `rubber_stamp` |
-| 10 | **New.** 2+ merged from 2+ people, and any of: under 1 in 10 merged; over half unanswered; typical first reply over 21 days (from 5+ replies) | Long shot | `few_merged`, `mostly_silent`, `slow_replies` |
-| 11 | 2+ merged from 2+ people | Worth (slow note if replies exceed the budget) | `merges` |
-| 12 | **New.** 20+ decided, but only 1 merge, or every merge from one person | Long shot | `one_merge`, `one_person` |
-| 13 | Otherwise | Not enough | `few_merges`, `few_people`, `too_few_attempts` |
+| #   | Rule                                                                                                                                          | Answer                                         | code                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| 1   | Archived                                                                                                                                      | Not worth                                      | `archived`                                     |
+| 1b  | **Engine 6.** Pull requests switched off, or only collaborators may open them (GitHub's own settings)                                         | Not worth                                      | `prs_closed`                                   |
+| 2   | A mirror or a fork                                                                                                                            | Not worth                                      | `elsewhere`                                    |
+| 3   | **New.** Someone's own or a small team's project (below)                                                                                      | Personal project                               | `personal`                                     |
+| 4   | Nothing merged and nothing pushed in 90 days                                                                                                  | Not worth                                      | `inactive`                                     |
+| 5   | A catalogue or list                                                                                                                           | Not worth                                      | `catalogue_shape`, `non_software_kind`         |
+| 6   | Nobody outside opened a PR we can count                                                                                                       | Not enough                                     | `no_attempts`                                  |
+| 7   | None merged, over 70% of at least 8 unanswered                                                                                                | Not worth                                      | `ignored`                                      |
+| 8   | **Changed.** 20+ decided, under 5% merged, whatever the merge count                                                                           | Not worth                                      | `long_odds`                                    |
+| 8b  | **New.** …and none merged while at least half got a reply                                                                                     | Not worth                                      | `replies_no_merges`                            |
+| 9   | 2+ merged from 2+ people, but merges go unreviewed (as before)                                                                                | Not worth                                      | `rubber_stamp`                                 |
+| 10  | **New.** 2+ merged from 2+ people, and any of: under 1 in 10 merged; over half unanswered; typical first reply over 21 days (from 5+ replies) | Long shot                                      | `few_merged`, `mostly_silent`, `slow_replies`  |
+| 11  | 2+ merged from 2+ people                                                                                                                      | Worth (slow note if replies exceed the budget) | `merges`                                       |
+| 12  | **New.** 20+ decided, but only 1 merge, or every merge from one person                                                                        | Long shot                                      | `one_merge`, `one_person`                      |
+| 13  | Otherwise                                                                                                                                     | Not enough                                     | `few_merges`, `few_people`, `too_few_attempts` |
 
 Rule 10's silence and reply-time tests are skipped where at least half of
 the outside merges landed off GitHub's button (Gerrit, a merge bot): the
@@ -153,7 +153,7 @@ shot, as the field testers found by hand) and 8 personal-project cases.
 
 ---
 
-Holt's product output is a recommendation, so its quality has to be inspectable.
+PRScout's product output is a recommendation, so its quality has to be inspectable.
 This document explains how the benchmark pool was built, how ground truth is
 computed, what the result is sensitive to, and what it does not cover. Exact
 commands are in [REPRODUCTION.md](REPRODUCTION.md).
@@ -165,12 +165,12 @@ commands are in [REPRODUCTION.md](REPRODUCTION.md).
 **Temporal holdout at T = 2026-06-01.** The agent sees only evidence dated at or
 before T. Labels are computed only from evidence after it. T sits just past the
 models' training cutoff so that the label window falls outside training data;
-moving T earlier would drag the label window *into* it, which is the leak that
+moving T earlier would drag the label window _into_ it, which is the leak that
 actually matters.
 
 **The pool is sampled from history, not from today.** GitHub search returns
 today's stars and today's activity whatever date filter you apply, so a pool
-drawn from it is pre-filtered for repositories that survived. Holt's pool is
+drawn from it is pre-filtered for repositories that survived. PRScout's pool is
 sampled from GH Archive events over three contiguous days before T — repositories
 as they appeared at the cutoff, with no knowledge of which lived. **Three of the
 thirty were deleted before the run**; a search-based sample would have silently
@@ -198,20 +198,20 @@ human-review requirement. Both are run; the gap between them is in the changelog
 
 ## Measured performance
 
-The frozen benchmark compares Holt with progressively stronger one-prompt
+The frozen benchmark compares PRScout with progressively stronger one-prompt
 baselines. Scores are mean Matthews correlation coefficient (MCC) across three
 recorded runs; higher is better and `0.00` is chance-level correlation.
 
-| Method | Pool 1 | Pool 2 |
-|---|---:|---:|
-| Repository name only | 0.16 | 0.10 |
-| README, one prompt | 0.09 | 0.21 |
-| Same evidence as Holt, one prompt | — | 0.32 |
-| **Holt** | **0.61** | **0.63** |
+| Method                               |   Pool 1 |   Pool 2 |
+| ------------------------------------ | -------: | -------: |
+| Repository name only                 |     0.16 |     0.10 |
+| README, one prompt                   |     0.09 |     0.21 |
+| Same evidence as PRScout, one prompt |        — |     0.32 |
+| **PRScout**                          | **0.61** | **0.63** |
 
-Holt returned the same verdict in all three runs for **22 of 22** repositories
+PRScout returned the same verdict in all three runs for **22 of 22** repositories
 in pool 1, compared with **17 of 22** for the README baseline. Across both
-pools, Holt was stable on **55 of 55** repositories; the baseline changed its answer on 16 of 55. These figures describe the committed benchmark, not a
+pools, PRScout was stable on **55 of 55** repositories; the baseline changed its answer on 16 of 55. These figures describe the committed benchmark, not a
 guarantee for every repository or model.
 
 ---
@@ -222,24 +222,24 @@ Two sensitivities a reader would otherwise have to find themselves. Both are
 reproducible with `PYTHONPATH=. uv run python eval/sensitivity.py`.
 
 **The ground truth is our own definition.** L1 keeps an outsider merge only if
-the diff is *substantive* and a human *reviewed* it — both filters chosen by
+the diff is _substantive_ and a human _reviewed_ it — both filters chosen by
 us, so the honest question is what happens when either is dropped. On the
 earlier recorded runs this was a real vulnerability: dropping `substantive`
 flipped the advantage to the baseline. On the frozen runs it no longer does —
-Holt leads under **every** variant, though the margin narrows to +0.11 at its
+PRScout leads under **every** variant, though the margin narrows to +0.11 at its
 thinnest. Mean MCC over the three frozen runs:
 
-| Ground truth | Positives | Holt | Baseline |
-|---|---|---|---|
-| L1 as shipped | 14/22 | **+0.61** | +0.09 |
-| drop the `reviewed` filter | 16/22 | **+0.60** | +0.01 |
-| drop the `substantive` filter | 16/22 | **+0.39** | +0.28 |
-| drop both (≈ the naive L0) | 18/22 | **+0.38** | +0.22 |
+| Ground truth                  | Positives | PRScout   | Baseline |
+| ----------------------------- | --------- | --------- | -------- |
+| L1 as shipped                 | 14/22     | **+0.61** | +0.09    |
+| drop the `reviewed` filter    | 16/22     | **+0.60** | +0.01    |
+| drop the `substantive` filter | 16/22     | **+0.39** | +0.28    |
+| drop both (≈ the naive L0)    | 18/22     | **+0.38** | +0.22    |
 
 **The lead survives every variant, and the diff-shape filter is where most of
-it lives.** Drop that filter and Holt still leads, +0.39 against +0.28, but the
-margin is a third of what it was: most of Holt's advantage is against a ground
-truth that counts *what a merged contribution changed*.
+it lives.** Drop that filter and PRScout still leads, +0.39 against +0.28, but the
+margin is a third of what it was: most of PRScout's advantage is against a ground
+truth that counts _what a merged contribution changed_.
 
 We think that is the right definition, and it is the first claim this project
 makes rather than one introduced afterwards: a merged pull request that appends a
@@ -262,7 +262,7 @@ are GirlScript Summer of Code '26 projects with a points leaderboard — grep
 `gssoc` in `fixtures/post_t/leonagoel__hybrid-recommender.json` and you will find
 1,605 mentions. Leaderboard-driven pull requests are substantive by our diff-shape
 filter and mentors do comment on them, so those repositories label as viable.
-"A stranger's patch lands here" is *true* of them. Whether a week spent there is
+"A stranger's patch lands here" is _true_ of them. Whether a week spent there is
 the opportunity this tool is meant to find is a separate question our ground truth
 does not ask, and we did not discover this until it broke a different experiment
 (`eval/mover_controls.py`). The labels are hash-committed and were not touched
@@ -272,7 +272,7 @@ after the fact.
   cutoff and the run; five had no post-cutoff outsider attempts to grade against.
 - **Three runs per pool, so the ±0.00 half-ranges measure run-to-run stability
   rather than sampling error.** Sampling error is measured separately, over
-  repositories: the Holt−baseline gap is large but not yet formally
+  repositories: the PRScout−baseline gap is large but not yet formally
   distinguishable at n=22 — see measured performance above.
 - **The memorisation probe reaches 0.71 precision knowing only repository
   names.** Some of every method's score here is recognition rather than reading.
@@ -284,7 +284,7 @@ after the fact.
 - **Absence of merged outsider code is not proof of hostility**, and a good
   project can have a quiet quarter. The three-month label window makes this
   sharper than a longer one would.
-- **`Homebrew/homebrew-cask` is a genuine disagreement**, not a bug: Holt calls
+- **`Homebrew/homebrew-cask` is a genuine disagreement**, not a bug: PRScout calls
   it a registry, the label counts eleven qualifying merges. Casks are Ruby files.
   Neither side was tuned to agree with the other.
 
@@ -297,8 +297,8 @@ are committed so the published numbers can be reproduced without an API key or
 GitHub token. Product development continues independently of this frozen
 evaluation boundary.
 
-The evaluation design responds to *The Benchmark Ceiling: Human Judgment,
-Evaluation Scarcity, and the Political Economy of AI Capability Measurement*
+The evaluation design responds to _The Benchmark Ceiling: Human Judgment,
+Evaluation Scarcity, and the Political Economy of AI Capability Measurement_
 ([arXiv:2607.01254](https://arxiv.org/abs/2607.01254)), which argues that
 discriminating signal concentrates in hard-tail items while fixed metrics
 degrade under strategic optimisation. L0 is such a metric and L1 is the hard-tail

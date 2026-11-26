@@ -17,7 +17,7 @@ was written:
   including the comparators scores identically zero there, so they contribute a
   constant and nothing else. The proportion is reported instead.
 
-This module must not import from holt.agent. `tests/test_label_isolation.py`
+This module must not import from prscout.agent. `tests/test_label_isolation.py`
 enforces that structurally.
 """
 
@@ -26,8 +26,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
-from holt.issues import issue_key, open_at_cutoff
-from holt.types import EvidenceRecord
+from prscout.issues import issue_key, open_at_cutoff
+from prscout.types import EvidenceRecord
 
 BOT_SUFFIX = "[bot]"
 KNOWN_BOT_WORDS = ("bot", "renovate", "dependabot", "imgbot", "greenkeeper", "codecov")
@@ -36,7 +36,7 @@ KNOWN_BOT_WORDS = ("bot", "renovate", "dependabot", "imgbot", "greenkeeper", "co
 def looks_like_bot(login: str) -> bool:
     """Read-time bot test, duplicated rather than imported.
 
-    `holt.agent.signals` has an equivalent. Importing it would let the graded
+    `prscout.agent.signals` has an equivalent. Importing it would let the graded
     agent decide who counts as a person in its own ground truth, which is the
     coupling this file exists to avoid.
     """

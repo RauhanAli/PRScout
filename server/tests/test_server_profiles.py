@@ -3,8 +3,8 @@ profile uses (`beginner`, `areas`)."""
 
 from __future__ import annotations
 
-from holt_server import schema
-from holt_server.db import GitHubConnection, Profile, now
+from prscout_server import schema
+from prscout_server.db import GitHubConnection, Profile, now
 
 PREFS = {"languages": ["Python", " rust ", "python"], "topics": ["Web Framework", "cli"],
          "days": 3, "contributions": ["docs", "tests", "docs"], "level": "experienced"}

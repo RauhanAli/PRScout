@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from conftest import STATS, canned_report
-from holt_server import saved
-from holt_server.db import RepoMeta, Report, SavedRepo
+from prscout_server import saved
+from prscout_server.db import RepoMeta, Report, SavedRepo
 
 
 def add(h, *items):
@@ -51,7 +51,7 @@ def test_signed_in_only(h):
 
 
 def test_needs_the_internal_key(h):
-    assert h.client.get("/v1/me/saved", headers={"X-Holt-User": "u1"}).status_code == 401
+    assert h.client.get("/v1/me/saved", headers={"X-prscout-User": "u1"}).status_code == 401
 
 
 def test_saving_twice_keeps_one_row_and_the_first_time(h):

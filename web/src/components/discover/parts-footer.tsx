@@ -29,7 +29,7 @@ export function PartsFooter<T>({ list, shown }: {
       {state.status === "error" && state.error ? (
         <div role="alert" className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <p className="text-orange">{state.error.message}</p>
-          <button type="button" onClick={more} className="btn-ghost">try again</button>
+          <button type="button" onClick={more} className="btn-ghost">Try again</button>
         </div>
       ) : state.next !== null ? (
         // Kept in place while a part loads, so a keyboard's focus stays on it.

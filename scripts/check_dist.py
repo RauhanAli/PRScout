@@ -12,7 +12,7 @@ from pathlib import Path
 MAX_ARCHIVE_BYTES = 5 * 1024 * 1024
 FORBIDDEN_PARTS = {
     ".claude",
-    ".holt",
+    ".prscout",
     "data",
     "eval",
     "fixtures",
@@ -22,7 +22,7 @@ FORBIDDEN_PARTS = {
 }
 # Benchmark code that moved to eval/. The package is the product; research
 # methods run from a clone.
-FORBIDDEN_MODULES = {"holt/baseline.py", "holt/baseline_matched.py"}
+FORBIDDEN_MODULES = {"prscout/baseline.py", "prscout/baseline_matched.py"}
 
 
 def _members(path: Path) -> list[str]:
@@ -64,8 +64,8 @@ def main() -> int:
     parser.add_argument("dist", type=Path, help="directory produced by `uv build`")
     args = parser.parse_args()
 
-    archives = sorted(args.dist.glob("holt_cli-*.tar.gz")) + sorted(
-        args.dist.glob("holt_cli-*.whl")
+    archives = sorted(args.dist.glob("prscout_cli-*.tar.gz")) + sorted(
+        args.dist.glob("prscout_cli-*.whl")
     )
     if len(archives) != 2:
         print(f"expected one sdist and one wheel in {args.dist}, found {len(archives)}")

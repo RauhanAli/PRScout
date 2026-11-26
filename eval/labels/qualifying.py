@@ -19,14 +19,14 @@ Two filters, `substantive` and `reviewed`, are separable on purpose: which one
 carries the discrimination is an empirical question, so both are measured
 independently before either is trusted.
 
-This module must not import from holt.agent. A test enforces that.
+This module must not import from prscout.agent. A test enforces that.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable
 
-from holt.types import EvidenceRecord
+from prscout.types import EvidenceRecord
 
 INSUFFICIENT_EVIDENCE = "insufficient_evidence"
 

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from holt.agent.personal import detect
-from holt.agent.signals import build_threads
-from holt.types import EvidenceRecord
+from prscout.agent.personal import detect
+from prscout.agent.signals import build_threads
+from prscout.types import EvidenceRecord
 
 NOW = datetime(2026, 9, 29, tzinfo=UTC)
 

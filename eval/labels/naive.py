@@ -8,7 +8,7 @@ exclusion, no requirement that a human reviewed anything.
 L0 is not dead code and not a straw man. It is the Baseline row of the changelog,
 and running it is what turns a claim about naive metrics into a number.
 
-This module must not import from holt.agent. A test enforces that: a label that
+This module must not import from prscout.agent. A test enforces that: a label that
 can see the agent is not a label.
 """
 
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from holt.types import EvidenceRecord
+from prscout.types import EvidenceRecord
 
 # A repository with no outsider attempts at all is not a failure, it is an
 # absence of evidence. Collapsing the two would let a silent repository score

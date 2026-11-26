@@ -4,15 +4,20 @@
 // Pure, so it runs under `node --test`.
 import { inFlight, waitPhrase, type Waiting } from "./home.ts";
 import { CONNECT_GITHUB } from "./settings.ts";
-import type { AlertAccess, AlertItem, AlertSettingsBody, ContributionPR } from "./types";
+import type {
+  AlertAccess,
+  AlertItem,
+  AlertSettingsBody,
+  ContributionPR,
+} from "./types";
 
 export type AlertKind = AlertItem["kind"];
 export type EmailMode = NonNullable<AlertSettingsBody["email_mode"]>;
 
 /** The bell and the settings tell each other what changed with this window event. */
-export const ALERTS_EVENT = "holt:alerts";
+export const ALERTS_EVENT = "prscout:alerts";
 
-/** How often the top bar asks for the unread count. Holt checks GitHub every 30 minutes. */
+/** How often the top bar asks for the unread count. PRScout checks GitHub every 30 minutes. */
 export const COUNT_EVERY_MS = 5 * 60_000;
 /** Coming back to the tab asks again, unless it just did. */
 export const COUNT_FRESH_MS = 60_000;
@@ -55,13 +60,31 @@ export function badge(unread: number): string {
   return unread > 9 ? "9+" : String(Math.floor(unread));
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 /** "14 Oct", in `tz` (an IANA name) or the reader's own zone. The same words in every browser and on the server. */
 export function dayMonth(iso: string | null | undefined, tz?: string): string {
   const t = iso ? Date.parse(iso) : NaN;
   if (!Number.isFinite(t)) return "";
-  const parts = (timeZone?: string) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "numeric", timeZone }).formatToParts(t);
+  const parts = (timeZone?: string) =>
+    new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "numeric",
+      timeZone,
+    }).formatToParts(t);
   let p: Intl.DateTimeFormatPart[];
   try {
     p = parts(tz);
@@ -81,17 +104,28 @@ export function accessNote(access: AlertAccess, tz?: string): string | null {
 }
 
 /** "Watching 3 PRs · until 14 Oct", under the bell's list. */
-export function watchingLine(watching: number, access: AlertAccess, tz?: string): string {
+export function watchingLine(
+  watching: number,
+  access: AlertAccess,
+  tz?: string,
+): string {
   const until = accessNote(access, tz);
   return `Watching ${watching} PR${watching === 1 ? "" : "s"}${until ? ` · ${until}` : ""}`;
 }
 
-/** An alert's two links, never off-site: the pull request on GitHub, and Holt's report on the repo. */
-export function alertLinks(a: Pick<AlertItem, "repo" | "number" | "pr_url" | "report_path">): { pr: string; report: string } {
+/** An alert's two links, never off-site: the pull request on GitHub, and PRScout's report on the repo. */
+export function alertLinks(
+  a: Pick<AlertItem, "repo" | "number" | "pr_url" | "report_path">,
+): { pr: string; report: string } {
   const repo = /^[\w.-]+\/[\w.-]+$/.test(a.repo) ? a.repo : "";
   return {
-    pr: a.pr_url.startsWith("https://github.com/") ? a.pr_url : `https://github.com/${repo}/pull/${a.number}`,
-    report: a.report_path.startsWith("/") && !/^\/[/\\]/.test(a.report_path) ? a.report_path : `/${repo}`,
+    pr: a.pr_url.startsWith("https://github.com/")
+      ? a.pr_url
+      : `https://github.com/${repo}/pull/${a.number}`,
+    report:
+      a.report_path.startsWith("/") && !/^\/[/\\]/.test(a.report_path)
+        ? a.report_path
+        : `/${repo}`,
   };
 }
 
@@ -116,7 +150,9 @@ export const EMAIL_MODES: { value: EmailMode; label: string }[] = [
 // --- the time zone -----------------------------------------------------------------
 
 /** The browser's IANA time zone ("Asia/Kolkata"), for the 8:00 email. Undefined when it won't say. */
-export function browserTz(intl: Pick<typeof Intl, "DateTimeFormat"> = Intl): string | undefined {
+export function browserTz(
+  intl: Pick<typeof Intl, "DateTimeFormat"> = Intl,
+): string | undefined {
   try {
     const tz = intl.DateTimeFormat().resolvedOptions().timeZone;
     return isTz(tz) ? tz : undefined;
@@ -126,11 +162,16 @@ export function browserTz(intl: Pick<typeof Intl, "DateTimeFormat"> = Intl): str
 }
 
 function isTz(v: unknown): v is string {
-  return typeof v === "string" && v.length <= 64 && /^[A-Za-z0-9_+\-/]+$/.test(v);
+  return (
+    typeof v === "string" && v.length <= 64 && /^[A-Za-z0-9_+\-/]+$/.test(v)
+  );
 }
 
 /** A settings change from the browser, with its time zone (`browserTz()`): every save carries it. */
-export function withTz<T extends object>(change: T, tz: string | undefined): T & { tz?: string } {
+export function withTz<T extends object>(
+  change: T,
+  tz: string | undefined,
+): T & { tz?: string } {
   return tz ? { ...change, tz } : change;
 }
 
@@ -140,13 +181,17 @@ export function withTz<T extends object>(change: T, tz: string | undefined): T &
  * the signed-in account's own (`accountEmail`, from the sign-in provider), and
  * it goes along whenever alerts or email are switched on.
  */
-export function settingsBody(input: unknown, accountEmail: string | null | undefined): AlertSettingsBody | null {
+export function settingsBody(
+  input: unknown,
+  accountEmail: string | null | undefined,
+): AlertSettingsBody | null {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   const i = input as Record<string, unknown>;
   const body: AlertSettingsBody = {};
   if (typeof i.enabled === "boolean") body.enabled = i.enabled;
   if (typeof i.email_on === "boolean") body.email_on = i.email_on;
-  if (EMAIL_MODES.some((m) => m.value === i.email_mode)) body.email_mode = i.email_mode as EmailMode;
+  if (EMAIL_MODES.some((m) => m.value === i.email_mode))
+    body.email_mode = i.email_mode as EmailMode;
   if (isTz(i.tz)) body.tz = i.tz;
   if (!Object.keys(body).length) return null;
   const email = accountEmail?.trim();
@@ -158,7 +203,9 @@ export function settingsBody(input: unknown, accountEmail: string | null | undef
 
 /** The token from an email's unsubscribe link, or null when it can't be one. */
 export function unsubscribeToken(raw: unknown): string | null {
-  return typeof raw === "string" && /^[A-Za-z0-9._~-]{16,200}$/.test(raw) ? raw : null;
+  return typeof raw === "string" && /^[A-Za-z0-9._~-]{16,200}$/.test(raw)
+    ? raw
+    : null;
 }
 
 /**
@@ -167,7 +214,10 @@ export function unsubscribeToken(raw: unknown): string | null {
  * anything off: only a POST does (the page's own, or a mail client's
  * one-click). Anything else is sent to the page.
  */
-export function unsubscribeStep(method: string, token: string | null): "unsubscribe" | "page" | "bad" {
+export function unsubscribeStep(
+  method: string,
+  token: string | null,
+): "unsubscribe" | "page" | "bad" {
   if (method.toUpperCase() !== "POST") return "page";
   return token ? "unsubscribe" : "bad";
 }
@@ -179,14 +229,25 @@ export function unsubscribeStep(method: string, token: string | null): "unsubscr
 export type EmailKind = "alerts" | "product";
 
 export function emailKind(answer: unknown): EmailKind {
-  return (answer as { emails?: unknown } | null)?.emails === "product" ? "product" : "alerts";
+  return (answer as { emails?: unknown } | null)?.emails === "product"
+    ? "product"
+    : "alerts";
 }
 
 /** The unsubscribe page, from "nothing sent yet" to "undone". */
-export type UnsubState = "idle" | "working" | "off" | "on" | "expired" | "failed";
+export type UnsubState =
+  | "idle"
+  | "working"
+  | "off"
+  | "on"
+  | "expired"
+  | "failed";
 
 /** The unsubscribe page's one sentence. Until the server answers, it doesn't know which emails the link is for. */
-export function unsubHeading(state: UnsubState, kind: EmailKind | null): string {
+export function unsubHeading(
+  state: UnsubState,
+  kind: EmailKind | null,
+): string {
   const emails = kind === "product" ? "Account emails" : "Alert emails";
   switch (state) {
     case "off":
@@ -203,9 +264,14 @@ export function unsubHeading(state: UnsubState, kind: EmailKind | null): string 
 }
 
 /** Under the sentence, once the emails are off: what still reaches the person. */
-export function unsubNote(state: UnsubState, kind: EmailKind | null): string | null {
+export function unsubNote(
+  state: UnsubState,
+  kind: EmailKind | null,
+): string | null {
   if (state !== "off") return null;
-  return kind === "product" ? "You'll still get a receipt when you buy a pass." : "The bell still has them.";
+  return kind === "product"
+    ? "You'll still get a receipt when you buy a pass."
+    : "The bell still has them.";
 }
 
 /** Where the page lands after the server answers: 404 is a link that isn't current any more. */
@@ -226,26 +292,53 @@ function sample(w: Waiting, now: number): SampleAlert | null {
   const p = w.pr;
   const pr = `${p.repo.split("/")[1]} #${p.number}`;
   const who = p.reply_by ? `@${p.reply_by}` : "A reviewer";
-  if (p.reply_kind === "changes") return { kind: "changes", text: `Your turn. ${who} asked for changes on ${pr}.` };
-  if (p.reply_kind === "reply") return { kind: "reply", text: `Your turn. ${who} replied on ${pr}.` };
-  if (p.reply_kind === "approved") return { kind: "approved", text: p.reply_by ? `Nice. ${who} approved ${pr}.` : `${pr} was approved.` };
+  if (p.reply_kind === "changes")
+    return {
+      kind: "changes",
+      text: `Your turn. ${who} asked for changes on ${pr}.`,
+    };
+  if (p.reply_kind === "reply")
+    return { kind: "reply", text: `Your turn. ${who} replied on ${pr}.` };
+  if (p.reply_kind === "approved")
+    return {
+      kind: "approved",
+      text: p.reply_by ? `Nice. ${who} approved ${pr}.` : `${pr} was approved.`,
+    };
   if (!w.late || p.draft) return null;
   const close = p.verdict?.timing?.stale_close_days;
   if (w.mark == null) {
     if (!close || !p.last_activity_at) return null;
-    const quiet = Math.floor(Math.max(0, now - Date.parse(p.last_activity_at)) / 86_400_000);
-    return { kind: "stale_soon", text: `It's been quiet for ${quiet} day${quiet === 1 ? "" : "s"} on ${pr}. The bot closes it at ${close}.` };
+    const quiet = Math.floor(
+      Math.max(0, now - Date.parse(p.last_activity_at)) / 86_400_000,
+    );
+    return {
+      kind: "stale_soon",
+      text: `It's been quiet for ${quiet} day${quiet === 1 ? "" : "s"} on ${pr}. The bot closes it at ${close}.`,
+    };
   }
   const day = `Day ${Math.floor(w.hours / 24) + 1}`;
   return p.first_reply_at
-    ? { kind: "late_merge", text: `${day} on ${pr}. Most merged PRs land within ${waitPhrase(w.mark)} here.` }
-    : { kind: "late_reply", text: `${day} and still no reply on ${pr}. Most get one within ${waitPhrase(w.mark)} here.` };
+    ? {
+        kind: "late_merge",
+        text: `${day} on ${pr}. Most merged PRs land within ${waitPhrase(w.mark)} here.`,
+      }
+    : {
+        kind: "late_reply",
+        text: `${day} and still no reply on ${pr}. Most get one within ${waitPhrase(w.mark)} here.`,
+      };
 }
 
 /** Up to two alerts this person's own open pull requests would get today, for the "turn on alerts" card. */
-export function sampleAlerts(pulls: ContributionPR[], now: number, max = 2): SampleAlert[] {
+export function sampleAlerts(
+  pulls: ContributionPR[],
+  now: number,
+  max = 2,
+): SampleAlert[] {
   const out: SampleAlert[] = [];
-  for (const w of inFlight(pulls.filter((p) => p.counted), now)) {
+  for (const w of inFlight(
+    pulls.filter((p) => p.counted),
+    now,
+  )) {
     const s = sample(w, now);
     if (s) out.push(s);
     if (out.length >= max) break;
@@ -254,6 +347,14 @@ export function sampleAlerts(pulls: ContributionPR[], now: number, max = 2): Sam
 }
 
 /** My PRs offers alerts once: never turned on, something open to watch, and not dismissed. */
-export function showFirstTime(s: { access: AlertAccess; pulls: ContributionPR[]; dismissed: string[] }): boolean {
-  return s.access.state === "off" && !s.dismissed.includes("alerts") && s.pulls.some((p) => p.counted && p.state === "open");
+export function showFirstTime(s: {
+  access: AlertAccess;
+  pulls: ContributionPR[];
+  dismissed: string[];
+}): boolean {
+  return (
+    s.access.state === "off" &&
+    !s.dismissed.includes("alerts") &&
+    s.pulls.some((p) => p.counted && p.state === "open")
+  );
 }

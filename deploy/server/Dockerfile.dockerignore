@@ -6,8 +6,8 @@
 !README.md
 !LICENSE
 !NOTICE
-!src/holt/**
+!src/prscout/**
 !server/pyproject.toml
-!server/holt_server/**
+!server/prscout_server/**
 **/__pycache__
 **/*.pyc

@@ -38,3 +38,12 @@ test("no fallback address in production", () => {
     assert.equal(clientIpFrom(new Headers()), null);
   });
 });
+
+test("on Vercel: the edge's own headers, never a client's cf-connecting-ip", () => {
+  withEnv({ VERCEL: "1", TRUST_PROXY_HEADERS: undefined, NODE_ENV: "production" }, () => {
+    assert.equal(clientIpFrom(new Headers({ "x-vercel-forwarded-for": "5.5.5.5", "x-real-ip": "6.6.6.6", "cf-connecting-ip": "9.9.9.9" })), "5.5.5.5");
+    assert.equal(clientIpFrom(new Headers({ "x-real-ip": "6.6.6.6", "cf-connecting-ip": "9.9.9.9" })), "6.6.6.6");
+    assert.equal(clientIpFrom(new Headers({ "x-forwarded-for": "7.7.7.7" })), "7.7.7.7");
+    assert.equal(clientIpFrom(new Headers({ "cf-connecting-ip": "9.9.9.9" })), null);
+  });
+});

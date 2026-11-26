@@ -13,13 +13,13 @@ from datetime import timedelta
 
 import httpx
 import pytest
-from holt_server import engine, github, warm
-from holt_server.db import WarmFailure, now, utc
-from holt_server.errors import ApiError, not_found_repo, upstream
+from prscout_server import engine, github, warm
+from prscout_server.db import WarmFailure, now, utc
+from prscout_server.errors import ApiError, not_found_repo, upstream
 from sqlalchemy import select, update
 
 from conftest import canned_report
-from holt.evidence import github_graphql as gql
+from prscout.evidence import github_graphql as gql
 from test_server_github_limits import (
     Clock,
     FakeGitHub,
@@ -208,7 +208,7 @@ def test_ten_failing_seeds_at_the_head_dont_keep_the_healthy_ones_waiting(h, pau
 
 
 def test_a_slow_down_pauses_the_pass_then_goes_one_at_a_time(make_harness, pauses):
-    h = make_harness(HOLT_BADGE_CONCURRENCY=3, HOLT_WARM_PARALLEL=3)
+    h = make_harness(PRSCOUT_BADGE_CONCURRENCY=3, PRSCOUT_WARM_PARALLEL=3)
     eng = Engine(h)
     eng.errors["octo/r0"] = [slow_down()]  # once; then GitHub answers again
     seeds = [f"octo/r{i}" for i in range(6)]
@@ -422,7 +422,7 @@ def details_lookup(h, monkeypatch, gh: DetailsGitHub) -> github.GitHubLookup:
 
 
 def meta_rows(h) -> dict:
-    from holt_server.db import RepoMeta
+    from prscout_server.db import RepoMeta
 
     async def q():
         async with h.svc.db.session() as s:
@@ -513,7 +513,7 @@ def test_a_details_pass_that_read_nothing_exits_non_zero(h, monkeypatch, capsys,
             self.http = type("HTTP", (), {"close": lambda self: None})()
 
     monkeypatch.setattr(warm, "warm_once", fake_warm_once)
-    monkeypatch.setattr("holt_server.services.Services", FakeServices)
+    monkeypatch.setattr("prscout_server.services.Services", FakeServices)
     (tmp_path / "seeds.txt").write_text("octo/one\nocto/two\n", encoding="utf-8")
     seeds = ["--seeds", str(tmp_path / "seeds.txt")]
     assert warm.main(["--no-reports", "--no-starter", "--no-find", *seeds]) == warm.META_FAILED
@@ -563,7 +563,7 @@ def test_a_pass_reads_details_for_at_most_its_time_and_leaves_the_rest_due(
     assert result.meta_run == github.DETAILS_BATCH * 2 and result.meta_failed is None
     assert result.meta_due == github.DETAILS_BATCH * 3
     assert f"{github.DETAILS_BATCH * 3} still due" in result.summary()
-    assert any("10 minutes used (HOLT_META_MAX_MINUTES)" in line for line in lines)
+    assert any("10 minutes used (PRSCOUT_META_MAX_MINUTES)" in line for line in lines)
     assert set(meta_rows(h)) == set(repos[:github.DETAILS_BATCH * 2])
 
     # Cut short by its time is not a failure: the run exits 0.
@@ -577,15 +577,15 @@ def test_a_pass_reads_details_for_at_most_its_time_and_leaves_the_rest_due(
             self.http = type("HTTP", (), {"close": lambda self: None})()
 
     monkeypatch.setattr(warm, "warm_once", fake_warm_once)
-    monkeypatch.setattr("holt_server.services.Services", FakeServices)
+    monkeypatch.setattr("prscout_server.services.Services", FakeServices)
     (tmp_path / "seeds.txt").write_text("octo/r00\n", encoding="utf-8")
     assert warm.main(["--no-reports", "--no-starter", "--no-find",
                       "--seeds", str(tmp_path / "seeds.txt")]) == 0
 
 
 def test_details_are_read_missing_first_then_oldest(h, monkeypatch):
-    from holt_server import discover
-    from holt_server.db import RepoMeta
+    from prscout_server import discover
+    from prscout_server.db import RepoMeta
     from sqlalchemy import null
 
     async def go():

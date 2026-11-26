@@ -15,7 +15,13 @@ import { TURN_ON_FAILED, useTurnOn } from "./use-turn-on";
 
 type Change = { enabled?: boolean; email_on?: boolean; email_mode?: EmailMode };
 
-export function AlertSettingsForm({ initial, accountEmail }: { initial: AlertSettings; accountEmail: string | null }) {
+export function AlertSettingsForm({
+  initial,
+  accountEmail,
+}: {
+  initial: AlertSettings;
+  accountEmail: string | null;
+}) {
   const [s, setS] = useState(initial);
   const [unsaved, setUnsaved] = useState(false);
   const { turnOn, busy, failed } = useTurnOn(setS);
@@ -57,16 +63,35 @@ export function AlertSettingsForm({ initial, accountEmail }: { initial: AlertSet
           <p className="font-sans text-[0.95rem]">Alerts</p>
           {view === "on" && (
             <p className="mt-0.5 text-[0.8rem] text-faint">
-              Watching {s.watching} pull request{s.watching === 1 ? "" : "s"} · <Link href="/me/contributions" className="text-blue hover:underline">see them</Link>
+              Watching {s.watching} pull request{s.watching === 1 ? "" : "s"} ·{" "}
+              <Link
+                href="/me/contributions"
+                className="text-blue hover:underline"
+              >
+                see them
+              </Link>
             </p>
           )}
         </div>
         {hasAccess ? (
-          <Switch on={s.enabled} onChange={(enabled) => void change({ enabled })} label="Alerts" />
+          <Switch
+            on={s.enabled}
+            onChange={(enabled) => void change({ enabled })}
+            label="Alerts"
+          />
         ) : view === "ended" ? (
-          <Link href="/pricing" className="text-link text-[0.84rem]">see plans</Link>
+          <Link href="/pricing" className="text-link text-[0.84rem]">
+            see plans
+          </Link>
         ) : (
-          <button type="button" onClick={turnOn} disabled={busy} className="btn-primary min-h-11 px-4 text-[0.84rem]">turn on alerts →</button>
+          <button
+            type="button"
+            onClick={turnOn}
+            disabled={busy}
+            className="btn-primary min-h-11 px-4 text-[0.84rem]"
+          >
+            Turn on alerts →
+          </button>
         )}
       </div>
 
@@ -74,19 +99,35 @@ export function AlertSettingsForm({ initial, accountEmail }: { initial: AlertSet
         <div className="app-row block sm:px-3">
           <div className="flex items-center justify-between gap-4">
             <p className="font-sans text-[0.95rem]">Email</p>
-            {email && <Switch on={s.email_on} onChange={(email_on) => void change({ email_on })} label="Email" />}
+            {email && (
+              <Switch
+                on={s.email_on}
+                onChange={(email_on) => void change({ email_on })}
+                label="Email"
+              />
+            )}
           </div>
           {!email ? (
-            <p className="text-[0.8rem] text-faint">Your account doesn&rsquo;t have an email address.</p>
+            <p className="text-[0.8rem] text-faint">
+              Your account doesn&rsquo;t have an email address.
+            </p>
           ) : (
             s.email_on && (
               <>
-                <p className="break-all font-sans text-[0.92rem] text-muted">{email}</p>
+                <p className="break-all font-sans text-[0.92rem] text-muted">
+                  {email}
+                </p>
                 <div className="mt-4">
-                  <EmailChoice value={s.email_mode} onChange={(email_mode) => void change({ email_mode })} name="email-mode" />
+                  <EmailChoice
+                    value={s.email_mode}
+                    onChange={(email_mode) => void change({ email_mode })}
+                    name="email-mode"
+                  />
                 </div>
                 <p className="mt-3 text-[0.8rem] text-faint">
-                  {s.email_available ? `No emails between 22:00 and 8:00 (${s.tz}).` : "Email isn't being sent from Holt yet."}
+                  {s.email_available
+                    ? `No emails between 22:00 and 8:00 (${s.tz}).`
+                    : "Email isn't being sent from PRScout yet."}
                 </p>
               </>
             )
@@ -95,7 +136,9 @@ export function AlertSettingsForm({ initial, accountEmail }: { initial: AlertSet
       )}
 
       {(failed || unsaved) && (
-        <p role="status" className="mt-4 text-[0.84rem] text-orange">{failed ? TURN_ON_FAILED : "That didn't save. Try again."}</p>
+        <p role="status" className="mt-4 text-[0.84rem] text-orange">
+          {failed ? TURN_ON_FAILED : "That didn't save. Try again."}
+        </p>
       )}
     </Block>
   );

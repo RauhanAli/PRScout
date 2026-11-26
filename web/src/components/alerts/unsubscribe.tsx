@@ -41,9 +41,9 @@ export function Unsubscribe({ token }: { token: string | null }) {
         {note && <p className="prose-sans mt-3">{note}</p>}
       </div>
       <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-        {state === "off" && <button type="button" onClick={() => void send(true)} className="btn-ghost">undo</button>}
-        {state === "on" && <button type="button" onClick={() => void send(false)} className="btn-ghost">stop these emails</button>}
-        {state === "failed" && <button type="button" onClick={() => void send(false)} className="btn-ghost">try again</button>}
+        {state === "off" && <button type="button" onClick={() => void send(true)} className="btn-ghost">Undo</button>}
+        {state === "on" && <button type="button" onClick={() => void send(false)} className="btn-ghost">Stop these emails</button>}
+        {state === "failed" && <button type="button" onClick={() => void send(false)} className="btn-ghost">Try again</button>}
         {state !== "idle" && state !== "working" && (
           <Link href={kind === "alerts" ? ALERT_SETTINGS : SETTINGS} className="text-link text-[0.9rem]">{kind === "alerts" ? "alert settings" : "settings"}</Link>
         )}

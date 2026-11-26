@@ -3,7 +3,7 @@ slow GitHub, jobs running and a crowd of page requests, all in this process.
 
     docker compose -f server/compose.yml up -d
     uv run python server/scripts/pool_load.py --seed \\
-        --database-url postgresql+asyncpg://holt:holt@127.0.0.1:20131/holt
+        --database-url postgresql+asyncpg://prscout:prscout@127.0.0.1:20131/prscout
 
 No network: the API is called in-process (ASGI) and the engine is a fake
 whose "GitHub" takes --github-seconds per job. While --jobs analyses run
@@ -31,15 +31,15 @@ from collections import Counter
 from typing import Any
 
 import httpx
-from holt_server.db import Job, RepoMeta, Report, Usage, now
-from holt_server.main import create_app
-from holt_server.services import Services
-from holt_server.settings import Settings
+from prscout_server.db import Job, RepoMeta, Report, Usage, now
+from prscout_server.main import create_app
+from prscout_server.services import Services
+from prscout_server.settings import Settings
 from sqlalchemy import delete, event
 from sqlalchemy.engine import make_url
 
 KEY = "pool-load"
-HEADERS = {"X-Holt-Internal-Key": KEY, "X-Holt-Client-Ip": "10.0.0.1"}
+HEADERS = {"X-prscout-Internal-Key": KEY, "X-prscout-Client-Ip": "10.0.0.1"}
 LANGUAGES = ["Python", "TypeScript", "Go", "Rust", "Java", "C++", "Ruby", "PHP", "Swift", "Kotlin"]
 TOPICS = 400
 STATS = {"outsider_attempts": 20, "outsider_merged": 8, "distinct_outsiders": 15,
@@ -120,11 +120,11 @@ def centile(values: list[float], pct: int) -> float:
 
 async def run(args: argparse.Namespace) -> int:
     svc = Services(Settings(
-        _env_file=None, DATABASE_URL=args.database_url, HOLT_INTERNAL_KEY=KEY,
-        HOLT_SECRET_KEY="pool-load", GITHUB_TOKENS="none", HOLT_ANON_RATE_PER_HOUR=10**6,
-        HOLT_JOB_CONCURRENCY=6, HOLT_BADGE_CONCURRENCY=3, HOLT_CONTRIBUTIONS_REFRESH_HOURS=0,
-        HOLT_DB_POOL_SIZE=args.pool_size, HOLT_DB_MAX_OVERFLOW=args.max_overflow,
-        HOLT_DB_POOL_TIMEOUT=args.pool_timeout))
+        _env_file=None, DATABASE_URL=args.database_url, PRSCOUT_INTERNAL_KEY=KEY,
+        PRSCOUT_SECRET_KEY="pool-load", GITHUB_TOKENS="none", PRSCOUT_ANON_RATE_PER_HOUR=10**6,
+        PRSCOUT_JOB_CONCURRENCY=6, PRSCOUT_BADGE_CONCURRENCY=3, PRSCOUT_CONTRIBUTIONS_REFRESH_HOURS=0,
+        PRSCOUT_DB_POOL_SIZE=args.pool_size, PRSCOUT_DB_MAX_OVERFLOW=args.max_overflow,
+        PRSCOUT_DB_POOL_TIMEOUT=args.pool_timeout))
 
     def slow_github(*, repo, mode, days, provider, model, emit, as_of):
         for step in range(1, 6):
@@ -150,7 +150,7 @@ async def run(args: argparse.Namespace) -> int:
         if args.seed:
             await seed(svc, args.repos, args.report_kb)
         transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
-        async with httpx.AsyncClient(transport=transport, base_url="http://holt",
+        async with httpx.AsyncClient(transport=transport, base_url="http://prscout",
                                      headers=HEADERS, timeout=120) as client:
             fresh = f"run{int(time.time())}"  # repos no earlier run has reported
             for n in range(args.jobs):

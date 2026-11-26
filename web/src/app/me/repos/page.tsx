@@ -21,12 +21,12 @@ const TABS: { show: Show; label: string }[] = [
   { show: "checked", label: "viewed" },
 ];
 
-const FIND = <Link href="/find" className="btn-primary">find a project →</Link>;
+const FIND = <Link href="/find" className="btn-primary">Find a project →</Link>;
 
 // One tab empty while the other has repos. With none at all, the head says so.
 const EMPTY: Record<Exclude<Show, "all">, { line: string; action: React.ReactNode }> = {
   saved: { line: "Nothing saved yet.", action: FIND },
-  checked: { line: "Nothing viewed yet.", action: <Link href={CHECK_HREF} className="btn-primary">check a repo →</Link> },
+  checked: { line: "Nothing viewed yet.", action: <Link href={CHECK_HREF} className="btn-primary">Check a repo →</Link> },
 };
 
 export default async function YourReposPage({ searchParams }: PageProps<"/me/repos">) {

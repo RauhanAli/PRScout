@@ -1,9 +1,9 @@
 # Issue tracker
 
-Holt has two trackers.
+PRScout has two trackers.
 
-- **Outside contributors:** GitHub Issues on holt-oss/holt (good first issues, bugs, feedback). Nothing below applies to you.
-- **Maintainer planning:** private local markdown files on the maintainer's server, at `~/.local/state/hq/orchestrators/holt/tickets/`, next to the orchestrator's ledger. They're outside the repo on purpose: the repo is public, and the plan covers unreleased and paid work. Workers receive their ticket's content in their brief. If that path doesn't exist on your machine, you're not a maintainer session; use GitHub Issues.
+- **Outside contributors:** GitHub Issues on RauhanAli/prscout (good first issues, bugs, feedback). Nothing below applies to you.
+- **Maintainer planning:** private local markdown files on the maintainer's server, at `~/.local/state/hq/orchestrators/prscout/tickets/`, next to the orchestrator's ledger. They're outside the repo on purpose: the repo is public, and the plan covers unreleased and paid work. Workers receive their ticket's content in their brief. If that path doesn't exist on your machine, you're not a maintainer session; use GitHub Issues.
 
 ## Conventions (maintainer tracker)
 
@@ -16,7 +16,7 @@ Holt has two trackers.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a new file under `~/.local/state/hq/orchestrators/holt/tickets/<feature-slug>/` (create the directory if needed). Never create GitHub issues for maintainer planning.
+Create a new file under `~/.local/state/hq/orchestrators/prscout/tickets/<feature-slug>/` (create the directory if needed). Never create GitHub issues for maintainer planning.
 
 ## When a skill says "fetch the relevant ticket"
 

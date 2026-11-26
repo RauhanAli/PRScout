@@ -21,12 +21,12 @@ import pathlib
 import statistics
 
 from eval.labels.qualifying import established_authors, is_substantive, pr_key
-from holt.agent.findings import Findings
-from holt.agent.signals import build_threads, compute
-from holt.evidence.fixtures import FixtureProvider
-from holt.report import Verdict
-from holt.types import Window
-import holt.agent.verdict as V
+from prscout.agent.findings import Findings
+from prscout.agent.signals import build_threads, compute
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.report import Verdict
+from prscout.types import Window
+import prscout.agent.verdict as V
 
 MIN_MERGES, MIN_PEOPLE = 2, 2
 

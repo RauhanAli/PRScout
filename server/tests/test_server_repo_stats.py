@@ -1,4 +1,4 @@
-"""Repository statistics from Holt users: the 5-person minimum, opt-outs,
+"""Repository statistics from PRScout users: the 5-person minimum, opt-outs,
 disconnects, and the field on the served report. GitHub is faked."""
 
 from __future__ import annotations
@@ -6,8 +6,8 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from holt_server import contributions, repo_stats
-from holt_server.db import Contribution, GitHubConnection, RepoUserStats, Report, now
+from prscout_server import contributions, repo_stats
+from prscout_server.db import Contribution, GitHubConnection, RepoUserStats, Report, now
 from sqlalchemy import select
 
 from conftest import canned_report
@@ -60,7 +60,7 @@ def served(h, repo=REPO):
     call(h, go)
     r = h.get(f"/v1/reports/{repo}")
     assert r.status_code == 200, r.text
-    return r.json()["holt_users"]
+    return r.json()["prscout_users"]
 
 
 def test_five_people_make_numbers_four_do_not(h):
@@ -116,7 +116,7 @@ def test_report_page_gets_the_numbers_only_over_the_threshold(h):
     assert served(h) is None
     person(h, 5, [(REPO, "open")])
     rebuild(h)
-    got = h.get(f"/v1/reports/{REPO}").json()["holt_users"]
+    got = h.get(f"/v1/reports/{REPO}").json()["prscout_users"]
     assert {k: v for k, v in got.items() if k != "computed_at"} == {
         "people": 5, "pull_requests": 9, "merged": 4, "closed": 4, "waiting": 1,
         "window_days": 365}
@@ -131,7 +131,7 @@ def test_a_report_never_stores_the_numbers(h):
     rebuild(h)
     assert served(h)["people"] == 5
     stored_report = call(h, lambda s: _report(s))
-    assert stored_report.get("holt_users") is None
+    assert stored_report.get("prscout_users") is None
 
 
 async def _report(s):
@@ -147,7 +147,7 @@ def test_opting_out_drops_them_at_once(gh):
                         headers=gh.headers("u3"))
     assert r.status_code == 200
     assert stored(gh) == {}
-    assert gh.get(f"/v1/reports/{REPO}").json()["holt_users"] is None
+    assert gh.get(f"/v1/reports/{REPO}").json()["prscout_users"] is None
     # And back in when they turn it off again.
     gh.client.patch("/v1/me/github", json={"stats_opt_out": False}, headers=gh.headers("u3"))
     assert stored(gh) == {"pallets/flask": (5, 5, 5, 0, 0)}

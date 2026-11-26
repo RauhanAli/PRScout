@@ -13,11 +13,11 @@ export interface Provider {
   action: (() => Promise<void>) | null;
 }
 
-const BASE = "flex min-h-13 w-full items-center justify-center gap-3 border px-4 text-[0.95rem] font-semibold";
-// GitHub is where Holt's audience already lives, so it gets the filled button.
+const BASE = "auth-provider flex min-h-12 w-full items-center justify-center gap-3 border px-4 text-[0.92rem] font-semibold";
+// Outlined, so the email form's submit stays the one filled button on the card.
 const LOOK: Record<string, string> = {
-  github: "border-ink bg-ink text-bg hover:not-disabled:bg-ink/85",
-  google: "border-line-strong bg-panel text-ink hover:not-disabled:border-blue",
+  github: "border-line-strong bg-panel text-ink",
+  google: "border-line-strong bg-panel text-ink",
 };
 const MOTION = "transition-[background-color,border-color,scale] duration-(--dur-fast) ease-(--ease-out) active:not-disabled:scale-[0.99] disabled:cursor-wait disabled:opacity-70";
 
@@ -68,3 +68,19 @@ function Spinner() {
     </svg>
   );
 }
+
+export const PROVIDER_ICONS: Record<string, React.ReactNode> = {
+  github: (
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0" fill="currentColor" aria-hidden="true">
+      <path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z" />
+    </svg>
+  ),
+  google: (
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0" aria-hidden="true">
+      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z" />
+      <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24Z" />
+      <path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8l4-3.1Z" />
+      <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9Z" />
+    </svg>
+  ),
+};

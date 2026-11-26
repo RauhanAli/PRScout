@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# follow.sh -- put origin/main on https://githolt.com once it has passed CI
+# follow.sh -- put origin/main on https://gitprscout.com once it has passed CI
 # and staging. The systemd --user timer from install-follow.sh runs one tick
 # every 2 minutes.
 #
@@ -17,7 +17,7 @@
 #   2. staging is live on that same commit (live.main.sha on staging's
 #      /__build), which also means it built and started there.
 # Then run deploy.sh <sha> (build, migrate, swap, health check, roll back on
-# failure), taken from that commit, and, when src/holt/engine_version.py
+# failure), taken from that commit, and, when src/prscout/engine_version.py
 # changed between the old and the new commit, restart the stale-only warm
 # pass (warm.sh --stale-only).
 #
@@ -36,25 +36,25 @@
 # Logs: $STATE/logs/follow.log (what changed, one line each), and
 # autodeploy-<stamp>-<short>.log per deploy (last 20), beside deploy.sh's.
 #
-# Rehearsal (README.md): HOLT_PROD_PROJECT, HOLT_PROD_HOME and HOLT_PROD_PORT
-# as for deploy.sh, plus HOLT_FOLLOW_REMOTE (a fake origin), HOLT_FOLLOW_GH
-# (a stand-in for gh) and HOLT_FOLLOW_STAGING_URL.
+# Rehearsal (README.md): PRSCOUT_PROD_PROJECT, PRSCOUT_PROD_HOME and PRSCOUT_PROD_PORT
+# as for deploy.sh, plus PRSCOUT_FOLLOW_REMOTE (a fake origin), PRSCOUT_FOLLOW_GH
+# (a stand-in for gh) and PRSCOUT_FOLLOW_STAGING_URL.
 set -euo pipefail
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
 
-STATE="${HOLT_PROD_HOME:-$HOME/.local/share/holt-prod}"
-PROJECT="${HOLT_PROD_PROJECT:-holt-prod}"
-REPO="${HOLT_REPO:-holt-oss/holt}"
-REMOTE="${HOLT_FOLLOW_REMOTE:-https://github.com/$REPO.git}"
-GH="${HOLT_FOLLOW_GH:-gh}"
-STAGING_URL="${HOLT_FOLLOW_STAGING_URL:-http://127.0.0.1:9110/__build}"
+STATE="${PRSCOUT_PROD_HOME:-$HOME/.local/share/prscout-prod}"
+PROJECT="${PRSCOUT_PROD_PROJECT:-prscout-prod}"
+REPO="${PRSCOUT_REPO:-RauhanAli/prscout}"
+REMOTE="${PRSCOUT_FOLLOW_REMOTE:-https://github.com/$REPO.git}"
+GH="${PRSCOUT_FOLLOW_GH:-gh}"
+STAGING_URL="${PRSCOUT_FOLLOW_STAGING_URL:-http://127.0.0.1:9110/__build}"
 FSRC="$STATE/follow/src"        # clone at the commit being deployed; its deploy.sh runs
 PAUSE="$STATE/AUTODEPLOY_PAUSED"
 FAILED="$STATE/follow/failed"   # "<sha> <at> <message>" per failed deploy
 LAST_LIVE="$STATE/follow/last-live"
 STATUS="$STATE/autodeploy.json"
 FLOG="$STATE/logs/follow.log"
-ENGINE_FILE=src/holt/engine_version.py
+ENGINE_FILE=src/prscout/engine_version.py
 
 mkdir -p "$STATE/logs" "$STATE/build" "$STATE/follow"
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
@@ -79,7 +79,7 @@ try:
     with open(env["BUILD"], encoding="utf-8") as f:
         doc = json.load(f)
 except (FileNotFoundError, ValueError):
-    doc = {"site": "https://githolt.com", "live": None, "last_attempt": None}
+    doc = {"site": "https://gitprscout.com", "live": None, "last_attempt": None}
 doc["autodeploy"] = auto
 put(env["BUILD"], doc)
 PY

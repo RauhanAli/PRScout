@@ -48,3 +48,36 @@ export const verificationTokens = pgTable(
   },
   (vt) => [primaryKey({ columns: [vt.identifier, vt.token] })],
 );
+
+// Email and password sign-in (lib/password.ts, lib/credentials-auth.ts). Kept
+// apart from "user" so the Auth.js adapter, which reads every column of
+// "user" into the session, never carries a password hash. One per user.
+export const passwords = pgTable("password", {
+  userId: text("userId")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  hash: text("hash").notNull(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});
+
+// "Forgot password" links. Only a SHA-256 of the token is stored, so a leaked
+// table can't be used to reset anyone's password. Each works once, for an hour.
+export const passwordResets = pgTable("password_reset", {
+  tokenHash: text("tokenHash").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: timestamp("expires", { mode: "date" }).notNull(),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+});
+
+// Rate limits shared by every instance of the app (lib/limits.ts). A
+// serverless host runs many short-lived copies, so a count kept in one
+// process's memory would let each copy allow the full limit. One row per key
+// per window: `hits` so far, and when the window ends. Expired rows are
+// overwritten on the next hit and swept now and then.
+export const rateLimits = pgTable("rate_limit", {
+  key: text("key").primaryKey(),
+  hits: integer("hits").notNull(),
+  resetAt: timestamp("resetAt", { mode: "date", withTimezone: true }).notNull(),
+});

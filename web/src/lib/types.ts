@@ -1,6 +1,6 @@
-// Types for the Holt HTTP API (API.md). The shapes come from the server's
+// Types for the PRScout HTTP API (API.md). The shapes come from the server's
 // pydantic models via ./api-schema.ts, which is generated: change the server
-// (server/holt_server/schema.py) and run server/scripts/api_types.sh.
+// (server/prscout_server/schema.py) and run server/scripts/api_types.sh.
 import type * as S from "./api-schema";
 
 export type Report = S.Report;
@@ -89,4 +89,6 @@ export type FindStart = S.FindDone | S.FindQueued;
 export type FindIndexPart = S.FindIndexPart;
 
 /** Result of a call: either data or a plain-English error. */
-export type Result<T> = { ok: true; data: T } | { ok: false; error: ApiError; status: number };
+export type Result<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: ApiError; status: number };

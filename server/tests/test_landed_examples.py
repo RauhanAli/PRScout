@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from golden import golden
-from holt.agent.signals import build_threads
-from holt_server.report import counted_examples
+from prscout.agent.signals import build_threads
+from prscout_server.report import counted_examples
 
 
 def test_examples_say_how_an_off_button_merge_landed():

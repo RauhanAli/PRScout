@@ -1,35 +1,35 @@
 # The commands, and what they tell you
 
-Installed from PyPI (`pipx install holt-cli`, `uv tool install holt-cli` or
-`pip install holt-cli`), every command reads GitHub live and needs only a GitHub
-token with no permissions — `holt token` saves one, or Holt uses
+Installed from PyPI (`pipx install prscout-cli`, `uv tool install prscout-cli` or
+`pip install prscout-cli`), every command reads GitHub live and needs only a GitHub
+token with no permissions — `prscout token` saves one, or PRScout uses
 `gh auth token`. No AI model is required: without one you get the free
 rules-only report.
 
-| Command | What it does | Model calls |
-|---|---|---|
-| `holt analyze <repo>` | the assessment for one repository | 5 stages with a model, else 0 |
-| `holt analyze <repo> --no-model` | the verdict from the rules alone, even if a model is set up | 0 |
-| `holt analyze <repo> --json` | the same report as JSON (see `API.md` for the shape) | as above |
-| `holt compare <repo>…` | a shortlist side by side; `--json` too | as above, per repo |
-| `holt discover --live` | source candidates, screen them free, analyse survivors | survivors only |
-| `holt next <repo> --as <login>` | rank open issues for someone who has landed work | 0 |
-| `holt profile` | say once what you want to work on; `discover` reads it | 0 |
-| `holt token` | save a GitHub token, readable only by you | 0 |
-| `holt models` | optional: choose the model that writes the explanation | 0 |
-| `holt tui` / `holt` | open the terminal interface (`?` for help on any screen) | as above |
+| Command                             | What it does                                                | Model calls                   |
+| ----------------------------------- | ----------------------------------------------------------- | ----------------------------- |
+| `prscout analyze <repo>`            | the assessment for one repository                           | 5 stages with a model, else 0 |
+| `prscout analyze <repo> --no-model` | the verdict from the rules alone, even if a model is set up | 0                             |
+| `prscout analyze <repo> --json`     | the same report as JSON (see `API.md` for the shape)        | as above                      |
+| `prscout compare <repo>…`           | a shortlist side by side; `--json` too                      | as above, per repo            |
+| `prscout discover --live`           | source candidates, screen them free, analyse survivors      | survivors only                |
+| `prscout next <repo> --as <login>`  | rank open issues for someone who has landed work            | 0                             |
+| `prscout profile`                   | say once what you want to work on; `discover` reads it      | 0                             |
+| `prscout token`                     | save a GitHub token, readable only by you                   | 0                             |
+| `prscout models`                    | optional: choose the model that writes the explanation      | 0                             |
+| `prscout tui` / `PRScout`           | open the terminal interface (`?` for help on any screen)    | as above                      |
 
 Flags worth knowing on `analyze`: `--days N` (how many days you actually have —
 everything time-shaped scales from it, and re-running with a different budget
 makes **zero** model calls), `--json`, `--live` (read GitHub now; the default
-outside a clone of Holt), `--as-of YYYY-MM-DD`, `--entry-points` (an
+outside a clone of PRScout), `--as-of YYYY-MM-DD`, `--entry-points` (an
 experimental issue ranking, off by default because it does not beat GitHub's
 `good first issue` label).
 
-Where Holt keeps things: config (model choice, profile, saved token) in
-`~/.config/holt` (`%APPDATA%\holt` on Windows); past assessments and any model
-recordings in `~/.local/share/holt` (`~/Library/Application Support/holt` on
-macOS, `%LOCALAPPDATA%\holt` on Windows). Nothing is written to the current
+Where PRScout keeps things: config (model choice, profile, saved token) in
+`~/.config/prscout` (`%APPDATA%\PRScout` on Windows); past assessments and any model
+recordings in `~/.local/share/prscout` (`~/Library/Application Support/prscout` on
+macOS, `%LOCALAPPDATA%\PRScout` on Windows). Nothing is written to the current
 directory.
 
 ## For contributors: running from a clone
@@ -40,7 +40,7 @@ reproduces with **no API key, no GitHub token and no spend** — see
 
 ```sh
 uv sync
-PYTHONPATH=. uv run holt analyze NixOS/nixpkgs --replay
+PYTHONPATH=. uv run prscout analyze NixOS/nixpkgs --replay
 ```
 
 In a clone, a repository with committed evidence is answered from that snapshot
@@ -50,14 +50,14 @@ docs/research/REPRODUCTION.md, along with the benchmark's one-prompt baseline
 (`python -m eval.baseline <repo>`, from a clone).
 
 ---|---|---|
-| `holt analyze <repo>` | the full assessment for one repository | 5 stages |
-| `holt analyze <repo> --no-model` | the verdict from the rules alone | 0 |
-| `holt compare <repo>…` | a shortlist side by side | 5 per repo |
-| `holt discover` | source candidates, screen them free, analyse survivors | survivors only |
-| `holt next <repo> --as <login>` | rank open issues for someone who has landed work | 0 |
-| `holt profile` | say once what you want to work on; `discover` reads it | 0 |
-| `holt models` | choose a provider for the *product* (never for a reported number) | 0 |
-| `holt tui` | open the terminal interface | as above |
+| `prscout analyze <repo>` | the full assessment for one repository | 5 stages |
+| `prscout analyze <repo> --no-model` | the verdict from the rules alone | 0 |
+| `prscout compare <repo>…` | a shortlist side by side | 5 per repo |
+| `prscout discover` | source candidates, screen them free, analyse survivors | survivors only |
+| `prscout next <repo> --as <login>` | rank open issues for someone who has landed work | 0 |
+| `prscout profile` | say once what you want to work on; `discover` reads it | 0 |
+| `prscout models` | choose a provider for the _product_ (never for a reported number) | 0 |
+| `prscout tui` | open the terminal interface | as above |
 
 Flags worth knowing on `analyze`: `--days N` (how many days you actually have —
 everything time-shaped scales from it, and re-running with a different budget
@@ -70,7 +70,7 @@ because it does not beat GitHub's `good first issue` label).
 
 ## What the report tells you that GitHub does not
 
-**Where outsider work actually landed.** Every pull request Holt reads carries its
+**Where outsider work actually landed.** Every pull request PRScout reads carries its
 file list. That list decided whether a diff counted as substantive and was then
 thrown away; now it is counted. For `NixOS/nixpkgs`:
 
@@ -94,7 +94,7 @@ is named as "never landed" only when at least two people tried.
 Nobody is deciding about a single project.
 
 ```
-$ holt compare runelite/plugin-hub NixOS/nixpkgs is-a-dev/register stablyai/orca --replay
+$ prscout compare runelite/plugin-hub NixOS/nixpkgs is-a-dev/register stablyai/orca --replay
 
 | repository          | answer              | outsiders in | first reply | why
 | runelite/plugin-hub | Not worth your time | 70/101       | 4.2h        | repo_kind=registry: merged work here is…
@@ -113,15 +113,15 @@ with the reason in the same row.
 
 ## If you have no shortlist yet
 
-`holt discover` builds one from a stated profile — languages, topics, what you
+`prscout discover` builds one from a stated profile — languages, topics, what you
 want to contribute, how many days you actually have. Ask once with
-`holt profile`, or pass flags. Candidates come from GitHub repository search;
-Holt claims the *screening*, not the sourcing or the ordering, and the screening
+`prscout profile`, or pass flags. Candidates come from GitHub repository search;
+PRScout claims the _screening_, not the sourcing or the ordering, and the screening
 is free: `verdict.py` needs exactly one model-derived input, so every rejection
 rule runs as arithmetic at $0.00.
 
 ```
-$ holt discover        # in a clone: replays the recorded demo session
+$ prscout discover        # in a clone: replays the recorded demo session
 
 Screened 25 candidates … Rejected 9:
 - 3 nobody outside has landed work in
@@ -144,7 +144,7 @@ for the whole session: $0.08, all of it on the five survivors.
 
 ## Once you have landed work somewhere
 
-`holt next <repo> --as <your-login>` ranks the open issues by one deterministic
+`prscout next <repo> --as <your-login>` ranks the open issues by one deterministic
 rule: issues naming a file or directory you have already touched come first,
 newest first, then the rest by recency. No model call. The rule ships because it
 is the best of five methods we measured, and the output prints how well it

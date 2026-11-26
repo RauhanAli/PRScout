@@ -11,7 +11,15 @@ import type { CatMood } from "@/lib/cat";
 import { ReactiveCat } from "../reactive-cat";
 import { useReducedMotion, useSeen } from "../motion/use-seen";
 
-const ANSWERS: { key: string; word: string; mood: CatMood; tone: string; bar: string; means: string; next: React.ReactNode }[] = [
+const ANSWERS: {
+  key: string;
+  word: string;
+  mood: CatMood;
+  tone: string;
+  bar: string;
+  means: string;
+  next: React.ReactNode;
+}[] = [
   {
     key: "good",
     word: "Worth your time",
@@ -39,7 +47,10 @@ const ANSWERS: { key: string; word: string; mood: CatMood; tone: string; bar: st
     means: "Outside PRs mostly go unanswered or unmerged.",
     next: (
       <>
-        Save your week. <Link href="/find" className="text-link">Find a project that answers →</Link>
+        Save your week.{" "}
+        <Link href="/find" className="text-link">
+          Find a project that answers →
+        </Link>
       </>
     ),
   },
@@ -49,7 +60,7 @@ const ANSWERS: { key: string; word: string; mood: CatMood; tone: string; bar: st
     mood: "ready",
     tone: "text-blue",
     bar: "bg-blue",
-    means: "Too few people tried recently to say. Holt won't guess.",
+    means: "Too few people tried recently to say. PRScout won't guess.",
     next: "Ask the maintainers in an issue before you start, or check back later.",
   },
 ];
@@ -66,7 +77,10 @@ export function Answers() {
           className="ls-answer relative"
           style={{ ["--i" as string]: i }}
         >
-          <span aria-hidden="true" className={`ls-answer-bar absolute inset-y-0 left-0 w-1 ${a.bar}`} />
+          <span
+            aria-hidden="true"
+            className={`ls-answer-bar absolute inset-y-0 left-0 w-1 ${a.bar}`}
+          />
           <ReactiveCat mood={a.mood} className="ls-answer-cat" />
           <div className="min-w-0">
             <p className={`display ls-answer-word ${a.tone}`}>
@@ -74,9 +88,13 @@ export function Answers() {
               <span className="text-ink">.</span>
             </p>
             <dl className="ls-answer-text mt-2 grid gap-x-5 gap-y-1 font-sans sm:grid-cols-[7.5rem_minmax(0,1fr)]">
-              <dt className="font-mono text-[0.8em] text-faint sm:pt-[0.15em]">what it means</dt>
+              <dt className="font-mono text-[0.8em] text-faint sm:pt-[0.15em]">
+                what it means
+              </dt>
               <dd className="text-muted">{a.means}</dd>
-              <dt className="font-mono text-[0.8em] text-faint sm:pt-[0.15em]">what to do</dt>
+              <dt className="font-mono text-[0.8em] text-faint sm:pt-[0.15em]">
+                what to do
+              </dt>
               <dd className="text-ink">{a.next}</dd>
             </dl>
           </div>

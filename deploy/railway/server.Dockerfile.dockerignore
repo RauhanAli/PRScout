@@ -1,0 +1,13 @@
+# The context is the repo root, which carries large research material.
+# Send only what the server image needs (same list as deploy/server/).
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!NOTICE
+!src/prscout/**
+!server/pyproject.toml
+!server/prscout_server/**
+**/__pycache__
+**/*.pyc

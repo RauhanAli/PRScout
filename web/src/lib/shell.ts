@@ -5,14 +5,26 @@
 
 export type ShellKind = "marketing" | "app";
 
-/** Pages that explain or sell Holt. Everything else is the app, once you're signed in. */
-const MARKETING = ["/", "/how-it-works", "/pricing", "/privacy", "/terms", "/refunds", "/contact", "/badge", "/signin"];
+/** Pages that explain or sell PRScout. Everything else is the app, once you're signed in. */
+const MARKETING = [
+  "/",
+  "/how-it-works",
+  "/pricing",
+  "/privacy",
+  "/terms",
+  "/refunds",
+  "/contact",
+  "/badge",
+  "/signin",
+];
 
-/** Signed out, every page wears the marketing shell. Signed in, only the pages that explain or sell Holt do. */
+/** Signed out, every page wears the marketing shell. Signed in, only the pages that explain or sell PRScout do. */
 export function shellFor(pathname: string, signedIn: boolean): ShellKind {
   if (!signedIn) return "marketing";
   const p = pathname.replace(/\/+$/, "") || "/";
-  return MARKETING.some((m) => p === m || (m !== "/" && p.startsWith(`${m}/`))) ? "marketing" : "app";
+  return MARKETING.some((m) => p === m || (m !== "/" && p.startsWith(`${m}/`)))
+    ? "marketing"
+    : "app";
 }
 
 /** The header logo: signed in it goes to your home on every page, the landing included; signed out, to the landing page. */
@@ -43,14 +55,29 @@ export function jumpHref(pathname: string, id: LandingSection): string {
  * landing page, it glides back to the hero (a link to the page you're on
  * does nothing).
  */
-export function logoAction(pathname: string, signedIn: boolean): { hero: true } | { href: string } {
-  if (!signedIn && (pathname.replace(/\/+$/, "") || "/") === "/") return { hero: true };
+export function logoAction(
+  pathname: string,
+  signedIn: boolean,
+): { hero: true } | { href: string } {
+  if (!signedIn && (pathname.replace(/\/+$/, "") || "/") === "/")
+    return { hero: true };
   return { href: logoHref(signedIn) };
 }
 
 export type IconName =
-  | "home" | "check" | "find" | "browse" | "compare" | "leaf" | "pr" | "pr-check"
-  | "saved" | "history" | "settings" | "help" | "signout";
+  | "home"
+  | "check"
+  | "find"
+  | "browse"
+  | "compare"
+  | "leaf"
+  | "pr"
+  | "pr-check"
+  | "saved"
+  | "history"
+  | "settings"
+  | "help"
+  | "signout";
 
 export interface NavItem {
   id: string;
@@ -81,29 +108,55 @@ export const CHECK_HREF = "/me#check";
 export function sidebarGroups(season = false): NavGroup[] {
   const items: NavItem[] = [
     { id: "home", label: "Home", href: "/me", icon: "home" },
-    { id: "find", label: "Find a project", href: "/find", icon: "find", also: ["/discover"] },
-    { id: "prs", label: "Your pull requests", href: "/me/contributions", icon: "pr" },
+    {
+      id: "find",
+      label: "Find a project",
+      href: "/find",
+      icon: "find",
+      also: ["/discover"],
+    },
+    {
+      id: "prs",
+      label: "Your pull requests",
+      href: "/me/contributions",
+      icon: "pr",
+    },
     { id: "repos", label: "Your repos", href: "/me/repos", icon: "saved" },
     { id: "compare", label: "Compare", href: "/compare", icon: "compare" },
   ];
-  if (season) items.push({ id: "hacktoberfest", label: "Hacktoberfest", href: "/hacktoberfest", icon: "leaf" });
+  if (season)
+    items.push({
+      id: "hacktoberfest",
+      label: "Hacktoberfest",
+      href: "/hacktoberfest",
+      icon: "leaf",
+    });
   return [{ label: null, items }];
 }
 
 const clean = (p: string) => p.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
 
 /** The one sidebar item for this page, if any: the longest matching href wins, so /me/saved isn't also Home. */
-export function activeItem(groups: NavGroup[], pathname: string): string | null {
+export function activeItem(
+  groups: NavGroup[],
+  pathname: string,
+): string | null {
   const p = clean(pathname);
   let best: { id: string; len: number } | null = null;
   for (const item of groups.flatMap((g) => g.items)) {
     if (item.href.includes("#")) continue; // an action, never a place
-    const bases = [clean(item.href), ...(item.children ?? []).map((c) => c.href), ...(item.also ?? [])];
+    const bases = [
+      clean(item.href),
+      ...(item.children ?? []).map((c) => c.href),
+      ...(item.also ?? []),
+    ];
     // Settings lights up for all of /settings, not only its first section.
-    if (item.children) bases.push(item.children[0].href.replace(/\/[^/]+$/, ""));
+    if (item.children)
+      bases.push(item.children[0].href.replace(/\/[^/]+$/, ""));
     for (const b of bases) {
       const hit = p === b || (b !== "/" && p.startsWith(`${b}/`));
-      if (hit && (!best || b.length > best.len)) best = { id: item.id, len: b.length };
+      if (hit && (!best || b.length > best.len))
+        best = { id: item.id, len: b.length };
     }
   }
   return best?.id ?? null;
@@ -130,7 +183,7 @@ export function retiredRedirect(pathname: string): string | null {
  * renders <html data-rail="collapsed"> and the first paint is already right.
  * Phones keep the drawer.
  */
-export const RAIL_COOKIE = "holt-rail";
+export const RAIL_COOKIE = "prscout-rail";
 
 /** "[" toggles the rail, like the button in the top bar. */
 export const RAIL_KEY = "[";
@@ -141,10 +194,28 @@ export function railCollapsed(v: string | null | undefined): boolean {
 
 /** The Set-Cookie value for document.cookie; expanded (the default) clears it. */
 export function railCookie(collapsed: boolean): string {
-  return collapsed ? `${RAIL_COOKIE}=collapsed; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax` : `${RAIL_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  return collapsed
+    ? `${RAIL_COOKIE}=collapsed; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`
+    : `${RAIL_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 /** Whether a keypress is the rail shortcut: a bare "[", outside anything you type in. */
-export function isRailKey(e: { key: string; metaKey: boolean; ctrlKey: boolean; altKey: boolean; isComposing?: boolean }, typing: boolean): boolean {
-  return e.key === RAIL_KEY && !e.metaKey && !e.ctrlKey && !e.altKey && !e.isComposing && !typing;
+export function isRailKey(
+  e: {
+    key: string;
+    metaKey: boolean;
+    ctrlKey: boolean;
+    altKey: boolean;
+    isComposing?: boolean;
+  },
+  typing: boolean,
+): boolean {
+  return (
+    e.key === RAIL_KEY &&
+    !e.metaKey &&
+    !e.ctrlKey &&
+    !e.altKey &&
+    !e.isComposing &&
+    !typing
+  );
 }

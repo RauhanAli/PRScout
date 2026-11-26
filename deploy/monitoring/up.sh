@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# up.sh -- start or update Holt's monitoring stack (compose.yml). Safe to run
+# up.sh -- start or update PRScout's monitoring stack (compose.yml). Safe to run
 # again: every step checks first, and a config that doesn't pass its check
 # never replaces the one in use.
 #
@@ -10,37 +10,37 @@
 #   deploy/monitoring/up.sh --down        stop it (the data on /home stays)
 #
 # What it does:
-# 1. Makes $HOLT_MON_HOME (~/.local/share/holt-monitoring, on /home): data/
+# 1. Makes $PRSCOUT_MON_HOME (~/.local/share/prscout-monitoring, on /home): data/
 #    (Prometheus, Grafana, Alertmanager), config/ (rendered) and secrets/.
 # 2. Makes Grafana's admin password once (secrets/grafana-admin, chmod 600).
-# 3. Makes the `holt_monitor` role in the Holt database, if missing: a
+# 3. Makes the `prscout_monitor` role in the PRScout database, if missing: a
 #    member of Postgres's pg_monitor and nothing else, at most 3 connections.
 # 4. Renders prometheus.yml and alertmanager.yml, checks them (promtool,
 #    amtool), and copies them with the rules, dashboards and probes to config/.
 # 5. `compose up -d`, tells a running Prometheus and Alertmanager to read
 #    their configs again, waits for Grafana and says how to reach it.
 #
-# Settings, each read from the environment, then $HOLT_MON_HOME/monitoring.env,
-# then ~/.config/holt/secrets.env (KEY=value lines):
-#   HOLT_ALERT_EMAIL_TO       where alert emails go; unset = no email
-#   HOLT_ALERT_EMAIL_FROM     default "Holt monitoring <alerts@githolt.com>"
+# Settings, each read from the environment, then $PRSCOUT_MON_HOME/monitoring.env,
+# then ~/.config/prscout/secrets.env (KEY=value lines):
+#   PRSCOUT_ALERT_EMAIL_TO       where alert emails go; unset = no email
+#   PRSCOUT_ALERT_EMAIL_FROM     default "PRScout monitoring <alerts@gitprscout.com>"
 #   RESEND_API_KEY            the email provider's key (already in secrets.env)
-#   HOLT_ALERT_SMTP_HOST / _USER / _PASSWORD   another SMTP server instead of
+#   PRSCOUT_ALERT_SMTP_HOST / _USER / _PASSWORD   another SMTP server instead of
 #                             Resend's (smtp.resend.com:587, user "resend")
-#   HOLT_ALERT_WEBHOOK_URL    also POST every alert here (Alertmanager's JSON)
-#   HOLT_WATCHDOG_URL         a healthchecks ping URL, hit every 5 minutes
+#   PRSCOUT_ALERT_WEBHOOK_URL    also POST every alert here (Alertmanager's JSON)
+#   PRSCOUT_WATCHDOG_URL         a healthchecks ping URL, hit every 5 minutes
 #                             while monitoring works (README.md)
-#   HOLT_GRAFANA_PORT         8320, on 127.0.0.1
-#   HOLT_MON_SITE_URL         https://githolt.com
-#   HOLT_MON_TARGET           holt-prod: the compose project to watch
-# For a trial run beside the real one: HOLT_MON_PROJECT, HOLT_MON_HOME,
-# HOLT_MON_NETWORK (README.md, "Trying a change").
+#   PRSCOUT_GRAFANA_PORT         8320, on 127.0.0.1
+#   PRSCOUT_MON_SITE_URL         https://gitprscout.com
+#   PRSCOUT_MON_TARGET           prscout-prod: the compose project to watch
+# For a trial run beside the real one: PRSCOUT_MON_PROJECT, PRSCOUT_MON_HOME,
+# PRSCOUT_MON_NETWORK (README.md, "Trying a change").
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 
-MON_HOME="${HOLT_MON_HOME:-$HOME/.local/share/holt-monitoring}"
-PROJECT="${HOLT_MON_PROJECT:-holt-monitoring}"
-SECRETS="${HOLT_SECRETS_FILE:-$HOME/.config/holt/secrets.env}"
+MON_HOME="${PRSCOUT_MON_HOME:-$HOME/.local/share/prscout-monitoring}"
+PROJECT="${PRSCOUT_MON_PROJECT:-prscout-monitoring}"
+SECRETS="${PRSCOUT_SECRETS_FILE:-$HOME/.config/prscout/secrets.env}"
 
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 die() { log "ERROR: $*"; exit 1; }
@@ -59,20 +59,20 @@ setting() {
     printf '%s' "${2:-}"
 }
 
-TARGET="$(setting HOLT_MON_TARGET holt-prod)"
-NETWORK="$(setting HOLT_MON_NETWORK "${TARGET}_default")"
-SITE_URL="$(setting HOLT_MON_SITE_URL https://githolt.com)"; SITE_URL="${SITE_URL%/}"
-PORT="$(setting HOLT_GRAFANA_PORT 8320)"
-EMAIL_TO="$(setting HOLT_ALERT_EMAIL_TO)"
-EMAIL_FROM="$(setting HOLT_ALERT_EMAIL_FROM 'Holt monitoring <alerts@githolt.com>')"
-SMTP_HOST="$(setting HOLT_ALERT_SMTP_HOST smtp.resend.com:587)"
-SMTP_USER="$(setting HOLT_ALERT_SMTP_USER resend)"
-SMTP_PASSWORD="$(setting HOLT_ALERT_SMTP_PASSWORD)"; SMTP_PASSWORD="${SMTP_PASSWORD:-$(setting RESEND_API_KEY)}"
-WEBHOOK_URL="$(setting HOLT_ALERT_WEBHOOK_URL)"
-WATCHDOG_URL="$(setting HOLT_WATCHDOG_URL)"
+TARGET="$(setting PRSCOUT_MON_TARGET prscout-prod)"
+NETWORK="$(setting PRSCOUT_MON_NETWORK "${TARGET}_default")"
+SITE_URL="$(setting PRSCOUT_MON_SITE_URL https://gitprscout.com)"; SITE_URL="${SITE_URL%/}"
+PORT="$(setting PRSCOUT_GRAFANA_PORT 8320)"
+EMAIL_TO="$(setting PRSCOUT_ALERT_EMAIL_TO)"
+EMAIL_FROM="$(setting PRSCOUT_ALERT_EMAIL_FROM 'PRScout monitoring <alerts@gitprscout.com>')"
+SMTP_HOST="$(setting PRSCOUT_ALERT_SMTP_HOST smtp.resend.com:587)"
+SMTP_USER="$(setting PRSCOUT_ALERT_SMTP_USER resend)"
+SMTP_PASSWORD="$(setting PRSCOUT_ALERT_SMTP_PASSWORD)"; SMTP_PASSWORD="${SMTP_PASSWORD:-$(setting RESEND_API_KEY)}"
+WEBHOOK_URL="$(setting PRSCOUT_ALERT_WEBHOOK_URL)"
+WATCHDOG_URL="$(setting PRSCOUT_WATCHDOG_URL)"
 
-export HOLT_MON_HOME="$MON_HOME" HOLT_MON_NETWORK="$NETWORK" HOLT_GRAFANA_PORT="$PORT"
-HOLT_MON_UID="$(id -u)"; HOLT_MON_GID="$(id -g)"; export HOLT_MON_UID HOLT_MON_GID
+export PRSCOUT_MON_HOME="$MON_HOME" PRSCOUT_MON_NETWORK="$NETWORK" PRSCOUT_GRAFANA_PORT="$PORT"
+PRSCOUT_MON_UID="$(id -u)"; PRSCOUT_MON_GID="$(id -g)"; export PRSCOUT_MON_UID PRSCOUT_MON_GID
 compose() { docker compose -p "$PROJECT" -f "$here/compose.yml" "$@"; }
 image_of() { compose config --images | grep -m1 "$1"; }
 
@@ -151,7 +151,7 @@ if not rows:
     print("  none")'
         exit 0 ;;
     --test-alert)
-        compose exec -T alertmanager amtool alert add HoltTestAlert severity=warning \
+        compose exec -T alertmanager amtool alert add PRScoutTestAlert severity=warning \
             --annotation='summary="Test alert from up.sh --test-alert"' \
             --annotation='description="Nothing is wrong. This checks that alerts reach you."' \
             --end="$(date -u -d '+5 minutes' +%FT%TZ)" --alertmanager.url=http://localhost:9093
@@ -172,9 +172,9 @@ if not rows:
 esac
 
 docker network inspect "$NETWORK" >/dev/null 2>&1 \
-    || die "no Docker network $NETWORK: deploy Holt first (deploy/prod/deploy.sh)"
+    || die "no Docker network $NETWORK: deploy PRScout first (deploy/prod/deploy.sh)"
 if ! compose ps -q grafana 2>/dev/null | grep -q . && ss -ltn | grep -q "127.0.0.1:$PORT "; then
-    die "port $PORT is taken: set HOLT_GRAFANA_PORT"
+    die "port $PORT is taken: set PRSCOUT_GRAFANA_PORT"
 fi
 
 # 1. Directories. Data is on /home and owned by this user; the containers
@@ -200,17 +200,17 @@ db="$(docker ps -q --filter "label=com.docker.compose.project=$TARGET" \
         --filter "label=com.docker.compose.service=db" \
         --filter "label=com.docker.compose.oneoff=False" | head -1)"
 [[ -n "$db" ]] || die "the $TARGET db container is not running"
-psql() { docker exec -i "$db" psql -U holt -d postgres -v ON_ERROR_STOP=1 -qtA "$@"; }
-exists="$(psql -c "SELECT 1 FROM pg_roles WHERE rolname = 'holt_monitor'")"
+psql() { docker exec -i "$db" psql -U prscout -d postgres -v ON_ERROR_STOP=1 -qtA "$@"; }
+exists="$(psql -c "SELECT 1 FROM pg_roles WHERE rolname = 'prscout_monitor'")"
 # On stdin, not the command line, so the password never shows in `ps`.
 psql <<SQL
 SET client_min_messages = warning;
-$( [[ "$exists" == 1 ]] || echo "CREATE ROLE holt_monitor LOGIN CONNECTION LIMIT 3;" )
-ALTER ROLE holt_monitor PASSWORD '$(cat "$MON_HOME/secrets/db-password")';
-GRANT pg_monitor TO holt_monitor;
-GRANT CONNECT ON DATABASE holt TO holt_monitor;
+$( [[ "$exists" == 1 ]] || echo "CREATE ROLE prscout_monitor LOGIN CONNECTION LIMIT 3;" )
+ALTER ROLE prscout_monitor PASSWORD '$(cat "$MON_HOME/secrets/db-password")';
+GRANT pg_monitor TO prscout_monitor;
+GRANT CONNECT ON DATABASE PRScout TO prscout_monitor;
 SQL
-[[ "$exists" == 1 ]] || log "created the database role holt_monitor (statistics only)"
+[[ "$exists" == 1 ]] || log "created the database role prscout_monitor (statistics only)"
 
 # 4. Configs: rendered and checked aside, then copied over the ones in use.
 # Copied into the same directories, not swapped: a container keeps the
@@ -246,9 +246,9 @@ cat <<MSG
                 ssh -N -L $PORT:127.0.0.1:$PORT $(hostname)    then open http://localhost:$PORT
               user admin, password in $MON_HOME/secrets/grafana-admin
   Alerts go   through: $(channels)
-  Watchdog    $( [[ -n "$WATCHDOG_URL" ]] && echo "pinged every 5 minutes" || echo "not set up (HOLT_WATCHDOG_URL)" )
+  Watchdog    $( [[ -n "$WATCHDOG_URL" ]] && echo "pinged every 5 minutes" || echo "not set up (PRSCOUT_WATCHDOG_URL)" )
   Check       $0 --status    (targets take a minute to turn up)
 MSG
 if [[ "$(channels)" == none ]]; then
-    log "WARNING: no alert channel is set up, so alerts only show in Grafana. Set HOLT_ALERT_EMAIL_TO (see the top of this script)"
+    log "WARNING: no alert channel is set up, so alerts only show in Grafana. Set PRSCOUT_ALERT_EMAIL_TO (see the top of this script)"
 fi

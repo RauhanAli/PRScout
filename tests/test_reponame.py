@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from holt import cli
-from holt.reponame import normalise
+from prscout import cli
+from prscout.reponame import normalise
 
 
 @pytest.mark.parametrize("text", [

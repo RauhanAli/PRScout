@@ -1,4 +1,4 @@
-// Fetches Holt's public endpoints for the content script. Only GETs, no
+// Fetches PRScout's public endpoints for the content script. Only GETs, no
 // cookies, and only the owner/repo of the page being viewed is sent.
 import { publicApiUrl } from "./config";
 import { parseRepo } from "./repo";
@@ -42,9 +42,11 @@ async function cachedLookup(url: string): Promise<Lookup<unknown>> {
 function isLookupMessage(m: unknown): m is LookupMessage {
   const x = m as LookupMessage;
   return (
-    !!x && x.type === "holt:lookup" &&
+    !!x &&
+    x.type === "prscout:lookup" &&
     (x.kind === "report" || x.kind === "starter-issues") &&
-    typeof x.owner === "string" && typeof x.repo === "string"
+    typeof x.owner === "string" &&
+    typeof x.repo === "string"
   );
 }
 

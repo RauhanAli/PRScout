@@ -14,21 +14,51 @@ export interface PlanItem {
 export const FREE_MERGE_PLANS = 3;
 
 export const FREE: PlanItem[] = [
-  { id: "reports", title: "Unlimited reports", line: "Does this repo merge outsiders' pull requests? A verdict, and the PRs behind it." },
-  { id: "starter", title: "Starter issues", line: "Open issues in that repo you could pick up first." },
-  { id: "find", title: "Find, Discover and Compare", line: "Search by language, browse repos ranked by how they treat outsiders, or put up to four side by side." },
-  { id: "badge", title: "Badges and share images", line: "A verdict you can put in a README or post." },
-  { id: "normal", title: "“Normal here” on My PRs", line: "Next to each open PR: how long a reply and a merge usually take in that repo." },
-  { id: "plans", title: `${FREE_MERGE_PLANS} merge plans`, line: `The same written plans as Pro. You get ${FREE_MERGE_PLANS} in total.` },
+  {
+    id: "reports",
+    title: "Unlimited reports",
+    line: "Does this repo merge outsiders' pull requests? A verdict, and the PRs behind it.",
+  },
+  {
+    id: "starter",
+    title: "Starter issues",
+    line: "Open issues in that repo you could pick up first.",
+  },
+  {
+    id: "find",
+    title: "Find, Discover and Compare",
+    line: "Search by language, browse repos ranked by how they treat outsiders, or put up to four side by side.",
+  },
+  {
+    id: "badge",
+    title: "Badges and share images",
+    line: "A verdict you can put in a README or post.",
+  },
+  {
+    id: "normal",
+    title: "“Normal here” on My PRs",
+    line: "Next to each open PR: how long a reply and a merge usually take in that repo.",
+  },
+  {
+    id: "plans",
+    title: `${FREE_MERGE_PLANS} merge plans`,
+    line: `The same written plans as Pro. You get ${FREE_MERGE_PLANS} in total.`,
+  },
 ];
 
 const PRO: Record<string, Omit<PlanItem, "id">> = {
   pr_watch: {
     title: "PR watch",
-    line: "Holt tells you when a maintainer replies and it's your turn, and when a PR has gone quiet for longer than is normal in that repo.",
+    line: "PRScout tells you when a maintainer replies and it's your turn, and when a PR has gone quiet for longer than is normal in that repo.",
   },
-  repo_watch: { title: "Repo watch", line: "Watch a repo and Holt tells you when its verdict changes." },
-  issue_watch: { title: "Issue watch", line: "Holt tells you when a new starter issue opens in a repo you watch, so you get there early." },
+  repo_watch: {
+    title: "Repo watch",
+    line: "Watch a repo and PRScout tells you when its verdict changes.",
+  },
+  issue_watch: {
+    title: "Issue watch",
+    line: "PRScout tells you when a new starter issue opens in a repo you watch, so you get there early.",
+  },
   merge_plan: {
     title: "Merge plans",
     line: "A written plan for getting a PR merged in one repo: the steps, what merged PRs there share, and why outside ones get closed. Each claim links to the PRs behind it.",
@@ -44,7 +74,8 @@ const ORDER = ["pr_watch", "repo_watch", "issue_watch", "merge_plan"];
  */
 export function proItems(features: PassFeature[]): PlanItem[] {
   if (features.length === 0) return ORDER.map((id) => ({ id, ...PRO[id] }));
-  const rank = (id: string) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
+  const rank = (id: string) =>
+    ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length;
   return [...features]
     .sort((a, b) => rank(a.id) - rank(b.id))
     .map((f) => {
@@ -52,7 +83,10 @@ export function proItems(features: PassFeature[]): PlanItem[] {
       const title = known?.title ?? f.name;
       return {
         id: f.id,
-        title: !f.unlimited && f.per_month ? `${title}, ${f.per_month} a month` : title,
+        title:
+          !f.unlimited && f.per_month
+            ? `${title}, ${f.per_month} a month`
+            : title,
         line: known?.line ?? "",
       };
     });

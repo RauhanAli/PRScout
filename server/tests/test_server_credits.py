@@ -5,8 +5,8 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
-from holt_server.db import CreditEvent, Job, User, now, utc
-from holt_server.errors import ApiError
+from prscout_server.db import CreditEvent, Job, User, now, utc
+from prscout_server.errors import ApiError
 from sqlalchemy import select, update
 
 AI = {"mode": "ai"}
@@ -85,7 +85,7 @@ def test_concurrent_first_visits_grant_once(h):
 def test_credits_need_a_signed_in_user_and_the_internal_key(h):
     assert h.get("/v1/me/credits").status_code == 401
     assert h.post("/v1/me/credits/claim").status_code == 401
-    r = h.client.post("/v1/me/credits/claim", headers={"X-Holt-User": "u1"})
+    r = h.client.post("/v1/me/credits/claim", headers={"X-prscout-User": "u1"})
     assert r.status_code == 401
 
 

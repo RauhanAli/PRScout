@@ -1,4 +1,4 @@
-"""What someone who installed Holt from PyPI meets on their first run.
+"""What someone who installed PRScout from PyPI meets on their first run.
 
 No clone, no fixtures, no API key, maybe no GitHub token. Every path here has to
 end in either an answer or one plain sentence with the command that fixes it.
@@ -15,16 +15,16 @@ import sys
 import httpx
 import pytest
 
-from holt import cli, credentials, model, paths
-from holt.report import Assessment, Claim, Verdict
+from prscout import cli, credentials, model, paths
+from prscout.report import Assessment, Claim, Verdict
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    monkeypatch.setenv("HOLT_CONFIG_DIR", str(tmp_path / "config"))
-    monkeypatch.setenv("HOLT_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("PRSCOUT_CONFIG_DIR", str(tmp_path / "config"))
+    monkeypatch.setenv("PRSCOUT_DATA_DIR", str(tmp_path / "data"))
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    monkeypatch.setenv("HOLT_DISABLE_GH", "1")
+    monkeypatch.setenv("PRSCOUT_DISABLE_GH", "1")
     return tmp_path
 
 
@@ -32,8 +32,8 @@ def home(tmp_path, monkeypatch):
 
 
 def test_nothing_is_relative_to_the_current_directory(home):
-    from holt.tui import store
-    from holt.tui.session import RunOptions
+    from prscout.tui import store
+    from prscout.tui.session import RunOptions
 
     for path in (paths.config_dir(), paths.data_dir(), store.Store().root,
                  RunOptions(repo="a/b", replay=False).run_root,
@@ -42,22 +42,22 @@ def test_nothing_is_relative_to_the_current_directory(home):
 
 
 def test_platform_defaults(monkeypatch, tmp_path):
-    for name in ("HOLT_CONFIG_DIR", "HOLT_DATA_DIR", "XDG_CONFIG_HOME", "XDG_DATA_HOME"):
+    for name in ("PRSCOUT_CONFIG_DIR", "PRSCOUT_DATA_DIR", "XDG_CONFIG_HOME", "XDG_DATA_HOME"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(paths.Path, "home", lambda: tmp_path)
 
     monkeypatch.setattr(sys, "platform", "linux")
-    assert paths.data_dir() == tmp_path / ".local" / "share" / "holt"
-    assert paths.config_dir() == tmp_path / ".config" / "holt"
+    assert paths.data_dir() == tmp_path / ".local" / "share" / "prscout"
+    assert paths.config_dir() == tmp_path / ".config" / "prscout"
 
     monkeypatch.setattr(sys, "platform", "darwin")
-    assert paths.data_dir() == tmp_path / "Library" / "Application Support" / "holt"
+    assert paths.data_dir() == tmp_path / "Library" / "Application Support" / "prscout"
 
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setenv("APPDATA", str(tmp_path / "Roaming"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
-    assert paths.config_dir() == tmp_path / "Roaming" / "holt"
-    assert paths.data_dir() == tmp_path / "Local" / "holt"
+    assert paths.config_dir() == tmp_path / "Roaming" / "prscout"
+    assert paths.data_dir() == tmp_path / "Local" / "prscout"
 
 
 # ─── the GitHub token ───────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ def test_the_environment_wins_over_a_saved_token(home, monkeypatch):
 
 
 def test_gh_is_the_last_resort(home, monkeypatch):
-    monkeypatch.delenv("HOLT_DISABLE_GH")
+    monkeypatch.delenv("PRSCOUT_DISABLE_GH")
     monkeypatch.setattr(credentials, "gh_token", lambda: "from-gh")
     assert credentials.find_token() == ("from-gh", "gh auth token")
 
@@ -97,7 +97,7 @@ def test_no_token_is_a_sentence_with_the_link(home, capsys):
     err = capsys.readouterr().err
     assert code == 2
     assert credentials.TOKEN_URL in err
-    assert "holt token" in err
+    assert "prscout token" in err
     assert "Traceback" not in err
 
 
@@ -163,7 +163,7 @@ def _status(code: int) -> httpx.HTTPStatusError:
 @pytest.mark.parametrize(
     "exc,expected",
     [
-        (_status(401), "holt token"),
+        (_status(401), "prscout token"),
         (_status(403), "rate limit"),
         (_status(502), "Try again"),
         (httpx.ConnectError("boom"), "internet connection"),
@@ -180,24 +180,24 @@ def test_errors_are_plain_english(exc, expected):
 
 
 def test_typed_github_errors_are_reworded():
-    from holt.evidence import errors
+    from prscout.evidence import errors
 
-    assert "holt token" in cli.friendly_error(errors.AuthError(), "a/b")
+    assert "prscout token" in cli.friendly_error(errors.AuthError(), "a/b")
     assert "could not find a/b" in cli.friendly_error(errors.RepoNotFound("a/b"), "a/b").lower()
-    assert "holt analyze a/b" in cli.friendly_error(errors.RateLimited(120), "a/b")
-    assert "holt analyze a/b" in cli.friendly_error(errors.UpstreamError(), "a/b")
+    assert "prscout analyze a/b" in cli.friendly_error(errors.RateLimited(120), "a/b")
+    assert "prscout analyze a/b" in cli.friendly_error(errors.UpstreamError(), "a/b")
 
 
 def test_retry_hints_name_the_command_that_failed():
-    from holt.evidence import errors
+    from prscout.evidence import errors
 
-    assert "holt start a/b" in cli.friendly_error(errors.RateLimited(60), "a/b", "start")
-    assert "holt start --lang python" in cli.friendly_error(errors.UpstreamError(), None, "start")
-    assert "holt analyze a/b" in cli.friendly_error(errors.UpstreamError(), "a/b", "models")
+    assert "prscout start a/b" in cli.friendly_error(errors.RateLimited(60), "a/b", "start")
+    assert "prscout start --lang python" in cli.friendly_error(errors.UpstreamError(), None, "start")
+    assert "prscout analyze a/b" in cli.friendly_error(errors.UpstreamError(), "a/b", "models")
 
 
 def test_start_uses_a_saved_token(home, monkeypatch, capsys):
-    from holt import starter
+    from prscout import starter
 
     credentials.save_token("saved-token")
     monkeypatch.delenv("GITHUB_TOKEN")
@@ -211,7 +211,7 @@ def test_start_uses_a_saved_token(home, monkeypatch, capsys):
     assert cli.main(["start", "--lang", "python"]) == 1
     assert seen["token"] == "saved-token"
     err = capsys.readouterr().err
-    assert "holt start --lang python" in err and "Traceback" not in err
+    assert "prscout start --lang python" in err and "Traceback" not in err
 
 
 def test_a_bad_repository_name_says_what_to_type(capsys):
@@ -265,19 +265,19 @@ def test_start_help_shows_examples(capsys):
         cli.main(["start", "--help"])
     text = capsys.readouterr().out
     for example in (
-        "holt start --lang python",
-        "holt start --topic cli,web --hacktoberfest",
-        "holt start pallets/flask",
+        "prscout start --lang python",
+        "prscout start --topic cli,web --hacktoberfest",
+        "prscout start pallets/flask",
     ):
         assert example in text
 
 
-def test_version_prints_holt_and_exits_zero(capsys):
+def test_version_prints_prscout_and_exits_zero(capsys):
     with pytest.raises(SystemExit) as exc:
         cli.main(["--version"])
     assert exc.value.code == 0
     out = capsys.readouterr().out
-    assert "holt" in out
+    assert "prscout" in out
 
 
 def test_version_installed_package(monkeypatch, capsys):
@@ -287,7 +287,7 @@ def test_version_installed_package(monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc:
         cli.main(["--version"])
     assert exc.value.code == 0
-    assert capsys.readouterr().out.strip() == "holt 0.2.0"
+    assert capsys.readouterr().out.strip() == "prscout 0.2.0"
 
 
 def test_version_fallback_when_metadata_missing(monkeypatch, capsys):
@@ -300,7 +300,7 @@ def test_version_fallback_when_metadata_missing(monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc:
         cli.main(["--version"])
     assert exc.value.code == 0
-    assert capsys.readouterr().out.strip() == "holt dev"
+    assert capsys.readouterr().out.strip() == "prscout dev"
 
 
 # ─── the report ─────────────────────────────────────────────────────────────

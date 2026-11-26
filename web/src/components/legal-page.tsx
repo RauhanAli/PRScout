@@ -24,10 +24,17 @@ export function LegalPage({
     <PageTransition>
       <>
         <PageHead>
-          <p className="rail mb-4 flex gap-2"><strong className="m-0">{rail}</strong><span>Holt · githolt.com</span></p>
-          <h1 className="display max-w-3xl text-[clamp(1.8rem,4.2vw,2.6rem)]">{title}</h1>
+          <p className="rail mb-4 flex gap-2">
+            <strong className="m-0">{rail}</strong>
+            <span>PRScout · gitprscout.com</span>
+          </p>
+          <h1 className="display max-w-3xl text-[clamp(1.8rem,4.2vw,2.6rem)]">
+            {title}
+          </h1>
           <p className="prose-sans mt-4 max-w-2xl text-[0.98rem]">{lede}</p>
-          <p className="mt-5 text-[0.8rem] text-faint">Last updated: <time>{LEGAL_UPDATED}</time></p>
+          <p className="mt-5 text-[0.8rem] text-faint">
+            Last updated: <time>{LEGAL_UPDATED}</time>
+          </p>
         </PageHead>
 
         <div className="wrap grid gap-12 py-8 sm:py-10 lg:grid-cols-[minmax(0,46rem)_13rem] lg:justify-between">
@@ -37,11 +44,20 @@ export function LegalPage({
           </aside>
         </div>
 
-        <nav aria-label="Policies" className="wrap border-t border-line py-6 text-[0.84rem] text-faint">
+        <nav
+          aria-label="Policies"
+          className="wrap border-t border-line py-6 text-[0.84rem] text-faint"
+        >
           <p className="flex flex-wrap items-center gap-x-5">
             <span>See also:</span>
             {others.map((p) => (
-              <Link key={p.href} href={p.href} className="inline-flex min-h-11 items-center hover:text-ink">{p.label}</Link>
+              <Link
+                key={p.href}
+                href={p.href}
+                className="inline-flex min-h-11 items-center hover:text-ink"
+              >
+                {p.label}
+              </Link>
             ))}
           </p>
         </nav>
@@ -50,7 +66,12 @@ export function LegalPage({
   );
 }
 
-const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const escapeHtml = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 /**
  * The contact address as a mailto link. Renders the placeholder verbatim until
@@ -64,7 +85,14 @@ const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;")
  * as raw HTML. The address comes from the build env, not from a user.
  */
 export function ContactEmail() {
-  if (CONTACT_EMAIL === "CONTACT_EMAIL") return <span className="text-ink">{CONTACT_EMAIL}</span>;
+  if (CONTACT_EMAIL === "CONTACT_EMAIL")
+    return <span className="text-ink">{CONTACT_EMAIL}</span>;
   const addr = escapeHtml(CONTACT_EMAIL);
-  return <span dangerouslySetInnerHTML={{ __html: `<!--email_off--><a href="mailto:${addr}" class="text-link">${addr}</a><!--email_on-->` }} />;
+  return (
+    <span
+      dangerouslySetInnerHTML={{
+        __html: `<!--email_off--><a href="mailto:${addr}" class="text-link">${addr}</a><!--email_on-->`,
+      }}
+    />
+  );
 }

@@ -32,41 +32,59 @@ describe("markStarterIssues", () => {
       { number: 102 },
     ]);
     expect(n).toBe(2);
-    const badges = document.querySelectorAll(".holt-starter");
+    const badges = document.querySelectorAll(".prscout-starter");
     expect(badges).toHaveLength(2);
-    expect(badges[0].previousElementSibling!.textContent).toBe("Fix typo in docs");
-    expect(badges[1].previousElementSibling!.textContent).toBe("Add type hints");
+    expect(badges[0].previousElementSibling!.textContent).toBe(
+      "Fix typo in docs",
+    );
+    expect(badges[1].previousElementSibling!.textContent).toBe(
+      "Add type hints",
+    );
     expect((badges[0] as HTMLElement).title).toBe(
       "Good for a first contribution: Labelled good first issue; Touches docs/",
     );
   });
 
   it("says who is already on the issue", () => {
-    markStarterIssues(document, flask, [{ number: 101, why: ["Labelled good first issue"], on_it: "1 open pull request" }]);
-    expect((document.querySelector(".holt-starter") as HTMLElement).title).toBe(
+    markStarterIssues(document, flask, [
+      {
+        number: 101,
+        why: ["Labelled good first issue"],
+        on_it: "1 open pull request",
+      },
+    ]);
+    expect(
+      (document.querySelector(".prscout-starter") as HTMLElement).title,
+    ).toBe(
       "Good for a first contribution: Labelled good first issue. 1 open pull request",
     );
   });
 
   it("matches the repo case-insensitively", () => {
-    expect(markStarterIssues(document, { owner: "Pallets", repo: "Flask" }, [{ number: 103 }])).toBe(1);
+    expect(
+      markStarterIssues(document, { owner: "Pallets", repo: "Flask" }, [
+        { number: 103 },
+      ]),
+    ).toBe(1);
   });
 
   it("is idempotent across re-syncs", () => {
     markStarterIssues(document, flask, [{ number: 101 }]);
     expect(markStarterIssues(document, flask, [{ number: 101 }])).toBe(0);
-    expect(document.querySelectorAll(".holt-starter")).toHaveLength(1);
+    expect(document.querySelectorAll(".prscout-starter")).toHaveLength(1);
   });
 
   it("ignores an empty or malformed list", () => {
     expect(markStarterIssues(document, flask, [])).toBe(0);
-    expect(markStarterIssues(document, flask, [{ number: "101" as never }])).toBe(0);
+    expect(
+      markStarterIssues(document, flask, [{ number: "101" as never }]),
+    ).toBe(0);
   });
 
   it("removeStarterMarks undoes marking so rows can be re-marked", () => {
     markStarterIssues(document, flask, [{ number: 101 }]);
     removeStarterMarks(document);
-    expect(document.querySelector(".holt-starter")).toBeNull();
+    expect(document.querySelector(".prscout-starter")).toBeNull();
     expect(markStarterIssues(document, flask, [{ number: 101 }])).toBe(1);
   });
 });

@@ -11,12 +11,12 @@ from __future__ import annotations
 import json
 import sys
 
-from holt_server.main import create_app
-from holt_server.settings import Settings
+from prscout_server.main import create_app
+from prscout_server.settings import Settings
 
 
 def main() -> None:
-    settings = Settings(_env_file=None, DATABASE_URL="sqlite+aiosqlite://", HOLT_ENV="dev")
+    settings = Settings(_env_file=None, DATABASE_URL="sqlite+aiosqlite://", PRSCOUT_ENV="dev")
     app = create_app(settings, run_jobs=False)
     app.version = "v0"
     spec = app.openapi()

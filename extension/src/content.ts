@@ -6,7 +6,12 @@ import type { LookupMessage } from "./types";
 
 const lookup: LookupFn = (kind, r) =>
   new Promise((resolve) => {
-    const msg: LookupMessage = { type: "holt:lookup", kind, owner: r.owner, repo: r.repo };
+    const msg: LookupMessage = {
+      type: "prscout:lookup",
+      kind,
+      owner: r.owner,
+      repo: r.repo,
+    };
     try {
       chrome.runtime.sendMessage(msg, (res) => {
         // Reading lastError marks it handled (e.g. the extension was reloaded).
@@ -35,5 +40,8 @@ function schedule(): void {
 for (const ev of ["turbo:load", "turbo:render", "pjax:end", "popstate"]) {
   addEventListener(ev, schedule);
 }
-new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
+new MutationObserver(schedule).observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
 schedule();

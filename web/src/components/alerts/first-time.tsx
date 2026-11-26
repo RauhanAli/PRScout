@@ -42,7 +42,7 @@ export function FirstTime({ samples, dismiss }: { samples: SampleAlert[]; dismis
           {on.email && <p className="font-sans text-[0.92rem] text-muted">{on.email}</p>}
           <EmailChoice value={mode} onChange={setMode} name="first-mode" />
         </div>
-        <button type="button" onClick={save} disabled={saving} className="btn-primary mt-5">save</button>
+        <button type="button" onClick={save} disabled={saving} className="btn-primary mt-5">Save</button>
         {unsaved && <p role="status" className="mt-3 text-[0.82rem] text-orange">That didn&rsquo;t save. Try again.</p>}
       </section>
     );
@@ -63,7 +63,7 @@ export function FirstTime({ samples, dismiss }: { samples: SampleAlert[]; dismis
           ))}
         </ul>
       )}
-      <button type="button" onClick={turnOn} disabled={busy} className="btn-primary mt-5">turn on alerts →</button>
+      <button type="button" onClick={turnOn} disabled={busy} className="btn-primary mt-5">Turn on alerts →</button>
       {failed && <p role="status" className="mt-3 text-[0.82rem] text-orange">{TURN_ON_FAILED}</p>}
     </section>
   );

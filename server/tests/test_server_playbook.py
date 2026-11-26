@@ -1,4 +1,4 @@
-"""The paid playbook (holt_server/playbook.py) against a fake paid-features service.
+"""The paid playbook (prscout_server/playbook.py) against a fake paid-features service.
 
 The service is an httpx.MockTransport: nothing touches the network.
 """
@@ -13,8 +13,8 @@ from datetime import timedelta
 
 import httpx
 import pytest
-from holt_server import credits, playbook, pro
-from holt_server.db import CreditEvent, Job, Playbook, PlaybookUnlock, now
+from prscout_server import credits, playbook, pro
+from prscout_server.db import CreditEvent, Job, Playbook, PlaybookUnlock, now
 from sqlalchemy import select, update
 
 KEY = "pro-secret-key-value"
@@ -86,7 +86,7 @@ def fake() -> FakePro:
 
 @pytest.fixture
 def hp(make_harness, fake):
-    h = make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY)
+    h = make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY)
     asyncio.run(h.svc.pro.aclose())
     h.svc.pro = pro.ProClient(URL, KEY, transport=httpx.MockTransport(fake), retry_delay=0)
     return h
@@ -212,7 +212,7 @@ def test_unlocking_writes_the_playbook_and_charges_once(hp, fake):
     (req,) = fake.requests
     assert str(req.url) == f"{URL}/v1/playbook"
     assert json.loads(req.content) == {"repo": "pallets/flask", "days": 365, "refresh": False}
-    assert req.headers["X-Holt-Pro-Key"] == KEY and req.headers["X-Holt-User"] == "u"
+    assert req.headers["X-prscout-Pro-Key"] == KEY and req.headers["X-prscout-User"] == "u"
     assert req.headers["X-Request-Id"] == r.json()["job_id"]
 
     assert balance(hp, "u")["purchased"] == 0
@@ -332,7 +332,7 @@ def test_an_answer_that_isnt_a_playbook_is_refunded(hp, fake):
 
 
 def test_a_playbook_that_takes_too_long_is_stopped_and_refunded(make_harness, fake):
-    h = make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY, HOLT_JOB_TIMEOUT_AI=0.3)
+    h = make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY, PRSCOUT_JOB_TIMEOUT_AI=0.3)
     asyncio.run(h.svc.pro.aclose())
     h.svc.pro = pro.ProClient(URL, KEY, transport=httpx.MockTransport(fake), retry_delay=0)
     fake.gate.clear()
@@ -378,7 +378,7 @@ def test_events_end_with_the_playbook(hp):
 @pytest.mark.parametrize("status, code, held", [
     (503, "unavailable", 0), (404, "not_found", 0), (502, "upstream", 50_000)])
 def test_the_ai_budget_hold_comes_back_only_before_a_model_call(hp, fake, status, code, held):
-    from holt_server.db import AiBudget
+    from prscout_server.db import AiBudget
 
     fake.answer = httpx.Response(status, json={"error": {"code": code, "message": "m"}})
     gift(hp, "u")

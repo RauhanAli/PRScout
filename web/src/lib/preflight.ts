@@ -1,7 +1,12 @@
 // PR pre-flight: the words and small rules the /preflight page uses. Pure, so
 // it can be tested without React. The checks and their verdicts come from the
 // server (API.md, PR pre-flight); nothing here decides one.
-import type { Access, Preflight, PreflightState, PreflightVerdict } from "./types";
+import type {
+  Access,
+  Preflight,
+  PreflightState,
+  PreflightVerdict,
+} from "./types";
 
 export const VERDICT_WORDS: Record<PreflightVerdict, string> = {
   ok: "Looks fine",
@@ -13,28 +18,41 @@ export const VERDICT_WORDS: Record<PreflightVerdict, string> = {
  * Whether to link to pre-flight (the sidebar, report pages). Hidden while it
  * isn't on sale, unless this person can run a check anyway.
  */
-export function showPreflight(s: Pick<PreflightState, "available" | "on_sale" | "access"> | null | undefined): boolean {
+export function showPreflight(
+  s:
+    | Pick<PreflightState, "available" | "on_sale" | "access">
+    | null
+    | undefined,
+): boolean {
   if (!s?.available) return false;
   return s.on_sale || s.access?.allowed === true;
 }
 
 /** Worth fixing first, then can't tell, then fine: the order a contributor acts in. */
-export const VERDICT_ORDER: PreflightVerdict[] = ["worth_fixing", "unknown", "ok"];
+export const VERDICT_ORDER: PreflightVerdict[] = [
+  "worth_fixing",
+  "unknown",
+  "ok",
+];
 
 /** "2 worth fixing · 1 can't tell yet · 4 look fine", leaving out zeros. */
 export function countsLine(counts: Preflight["counts"]): string {
   const parts: string[] = [];
   if (counts.worth_fixing) parts.push(`${counts.worth_fixing} worth fixing`);
   if (counts.unknown) parts.push(`${counts.unknown} can't tell yet`);
-  if (counts.ok) parts.push(`${counts.ok} ${counts.ok === 1 ? "looks" : "look"} fine`);
+  if (counts.ok)
+    parts.push(`${counts.ok} ${counts.ok === 1 ? "looks" : "look"} fine`);
   return parts.join(" · ");
 }
 
-const PR_URL = /^(?:https?:\/\/)?(?:www\.)?(?:github\.com|githolt\.com)\/([A-Za-z0-9-]{1,39})\/([A-Za-z0-9._-]{1,100})\/pulls?\/(\d{1,9})(?:[/?#].*)?$/i;
+const PR_URL =
+  /^(?:https?:\/\/)?(?:www\.)?(?:github\.com|gitprscout\.com)\/([A-Za-z0-9-]{1,39})\/([A-Za-z0-9._-]{1,100})\/pulls?\/(\d{1,9})(?:[/?#].*)?$/i;
 const PR_SHORT = /^([A-Za-z0-9-]{1,39})\/([A-Za-z0-9._-]{1,100})#(\d{1,9})$/;
 
 /** `{repo, number}` for a pull request link or `owner/repo#12`, else null. The server checks again. */
-export function parsePrLink(raw: string): { repo: string; number: number } | null {
+export function parsePrLink(
+  raw: string,
+): { repo: string; number: number } | null {
   const text = raw.trim();
   const m = PR_URL.exec(text) ?? PR_SHORT.exec(text);
   if (!m || Number(m[3]) < 1) return null;
@@ -42,7 +60,12 @@ export function parsePrLink(raw: string): { repo: string; number: number } | nul
 }
 
 /** The page URL for a target, so a reload (or a shared link) shows the same check. */
-export function preflightHref(t: { pr?: string | null; repo?: string | null; branch?: string | null; base?: string | null }): string {
+export function preflightHref(t: {
+  pr?: string | null;
+  repo?: string | null;
+  branch?: string | null;
+  base?: string | null;
+}): string {
   const q = new URLSearchParams();
   if (t.pr) q.set("pr", t.pr);
   else {
@@ -77,7 +100,8 @@ export function codeSpans(text: string): [string, boolean][] {
   const out: [string, boolean][] = [];
   text.split(/(`[^`\n]+`)/).forEach((piece) => {
     if (!piece) return;
-    const code = piece.length > 2 && piece.startsWith("`") && piece.endsWith("`");
+    const code =
+      piece.length > 2 && piece.startsWith("`") && piece.endsWith("`");
     out.push(code ? [piece.slice(1, -1), true] : [piece, false]);
   });
   return out;
@@ -89,7 +113,8 @@ export type CheckOffer =
   | { kind: "coming-soon"; note: string }
   | { kind: "blocked"; note: string; buy: boolean };
 
-const SAFE = "A check that fails costs nothing, and checking the same commit again is free.";
+const SAFE =
+  "A check that fails costs nothing, and checking the same commit again is free.";
 
 /**
  * What the check button can promise, from the server's entitlement answer.
@@ -100,20 +125,36 @@ export function checkOffer(access: Access | null, onSale: boolean): CheckOffer {
   if (!access) return { kind: "sign-in" };
   if (access.allowed) {
     if (access.via === "plan") {
-      const left = access.left_this_month == null ? "" : ` (${access.left_this_month} left this month)`;
-      return { kind: "can-check", note: `Included in your plan${left}. ${SAFE}` };
+      const left =
+        access.left_this_month == null
+          ? ""
+          : ` (${access.left_this_month} left this month)`;
+      return {
+        kind: "can-check",
+        note: `Included in your plan${left}. ${SAFE}`,
+      };
     }
     return { kind: "can-check", note: SAFE };
   }
-  if (!onSale) return { kind: "coming-soon", note: "Coming soon: pre-flight checks aren't on sale yet." };
-  return { kind: "blocked", note: access.message ?? "You can't run a check right now.", buy: true };
+  if (!onSale)
+    return {
+      kind: "coming-soon",
+      note: "Coming soon: pre-flight checks aren't on sale yet.",
+    };
+  return {
+    kind: "blocked",
+    note: access.message ?? "You can't run a check right now.",
+    buy: true,
+  };
 }
 
 /** "+54 −1 · 4 files", or "" when GitHub didn't say. */
 export function sizeLine(t: Preflight["target"]): string {
   const parts: string[] = [];
-  if (t.additions != null && t.deletions != null) parts.push(`+${t.additions} −${t.deletions}`);
+  if (t.additions != null && t.deletions != null)
+    parts.push(`+${t.additions} −${t.deletions}`);
   else if (t.lines != null) parts.push(`${t.lines} lines`);
-  if (t.files != null) parts.push(`${t.files} ${t.files === 1 ? "file" : "files"}`);
+  if (t.files != null)
+    parts.push(`${t.files} ${t.files === 1 ? "file" : "files"}`);
   return parts.join(" · ");
 }

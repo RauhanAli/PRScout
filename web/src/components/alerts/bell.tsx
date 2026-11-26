@@ -7,7 +7,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { CatFace } from "@/components/cat-face";
-import { ALERT_RULE, ALERTS_EVENT, alertLinks, alertView, badge, COUNT_EVERY_MS, COUNT_FRESH_MS, dayMonth, watchingLine } from "@/lib/alerts";
+import {
+  ALERT_RULE,
+  ALERTS_EVENT,
+  alertLinks,
+  alertView,
+  badge,
+  COUNT_EVERY_MS,
+  COUNT_FRESH_MS,
+  dayMonth,
+  watchingLine,
+} from "@/lib/alerts";
 import { fetchCount, fetchList, markRead } from "@/lib/alerts-client";
 import { timeAgo } from "@/lib/format";
 import { ALERT_SETTINGS } from "@/lib/settings";
@@ -64,9 +74,16 @@ export function AlertBell({ initial }: { initial: AlertList }) {
       if (!gone && n != null && n !== shown.current) void reload();
     };
     const back = () => {
-      if (document.visibilityState === "visible" && Date.now() - asked > COUNT_FRESH_MS) void ask();
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - asked > COUNT_FRESH_MS
+      )
+        void ask();
     };
-    const timer = setInterval(() => document.visibilityState === "visible" && void ask(), COUNT_EVERY_MS);
+    const timer = setInterval(
+      () => document.visibilityState === "visible" && void ask(),
+      COUNT_EVERY_MS,
+    );
     document.addEventListener("visibilitychange", back);
     window.addEventListener("focus", back);
     return () => {
@@ -80,7 +97,8 @@ export function AlertBell({ initial }: { initial: AlertList }) {
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+      if (box.current && !box.current.contains(e.target as Node))
+        setOpen(false);
     };
     const esc = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -106,7 +124,11 @@ export function AlertBell({ initial }: { initial: AlertList }) {
     setList((l) => {
       if (!l.items.some((a) => a.id === id && !a.read_at)) return l;
       const at = new Date().toISOString();
-      return { ...l, unread: Math.max(0, l.unread - 1), items: l.items.map((a) => (a.id === id ? { ...a, read_at: at } : a)) };
+      return {
+        ...l,
+        unread: Math.max(0, l.unread - 1),
+        items: l.items.map((a) => (a.id === id ? { ...a, read_at: at } : a)),
+      };
     });
     return markRead({ ids: [id] });
   }
@@ -118,7 +140,11 @@ export function AlertBell({ initial }: { initial: AlertList }) {
 
   async function readAll() {
     const at = new Date().toISOString();
-    setList((l) => ({ ...l, unread: 0, items: l.items.map((a) => (a.read_at ? a : { ...a, read_at: at })) }));
+    setList((l) => ({
+      ...l,
+      unread: 0,
+      items: l.items.map((a) => (a.read_at ? a : { ...a, read_at: at })),
+    }));
     if (!(await markRead({ all: true }))) await reload();
     router.refresh();
   }
@@ -136,26 +162,46 @@ export function AlertBell({ initial }: { initial: AlertList }) {
         aria-controls={panelId}
         aria-label={unread ? `Alerts, ${unread} unread` : "Alerts"}
         className={`relative grid size-11 place-items-center border transition-colors ${
-          open ? "border-line-strong bg-panel text-ink" : "border-transparent text-muted hover:border-line hover:bg-panel hover:text-ink"
+          open
+            ? "border-line-strong bg-panel text-ink"
+            : "border-transparent text-muted hover:border-line hover:bg-panel hover:text-ink"
         }`}
       >
         <BellIcon />
         {count && (
-          <span className="side-badge absolute -right-1 -top-1" data-tone="needs" aria-hidden="true">
+          <span
+            className="side-badge absolute -right-1 -top-1"
+            data-tone="needs"
+            aria-hidden="true"
+          >
             {count}
           </span>
         )}
       </button>
 
       {open && (
-        <div id={panelId} role="region" aria-label="Alerts" className="alerts-panel" data-lenis-prevent>
+        <div
+          id={panelId}
+          role="region"
+          aria-label="Alerts"
+          className="alerts-panel"
+          data-lenis-prevent
+        >
           <div className="flex min-h-11 items-center justify-between gap-4 border-b border-line bg-panel-2 px-4">
             <h2 className="flex items-center gap-2 text-[0.76rem] uppercase tracking-[0.08em] text-faint">
               Alerts
-              {unread > 0 && <span className="tabular-nums normal-case tracking-normal text-ink">{unread} new</span>}
+              {unread > 0 && (
+                <span className="tabular-nums normal-case tracking-normal text-ink">
+                  {unread} new
+                </span>
+              )}
             </h2>
             {unread > 0 && (
-              <button type="button" onClick={readAll} className="min-h-11 text-[0.8rem] text-blue hover:underline">
+              <button
+                type="button"
+                onClick={readAll}
+                className="min-h-11 text-[0.8rem] text-blue hover:underline"
+              >
                 mark all read
               </button>
             )}
@@ -168,31 +214,56 @@ export function AlertBell({ initial }: { initial: AlertList }) {
                   <BellIcon className="size-[18px]" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[0.95rem] font-semibold tracking-tight text-ink">Know when it&rsquo;s your turn.</p>
+                  <p className="text-[0.95rem] font-semibold tracking-tight text-ink">
+                    Know when it&rsquo;s your turn.
+                  </p>
                   <p className="mt-1 font-sans text-[0.88rem] leading-snug text-muted">
-                    Holt watches your open pull requests and lets you know when a maintainer replies, asks for changes, approves, or merges.
+                    PRScout watches your open pull requests and lets you know
+                    when a maintainer replies, asks for changes, approves, or
+                    merges.
                   </p>
                 </div>
               </div>
-              <button type="button" onClick={turnOn} disabled={busy} className="btn-primary mt-4 min-h-10 w-full bg-blue text-[0.86rem]">
+              <button
+                type="button"
+                onClick={turnOn}
+                disabled={busy}
+                className="btn-primary mt-4 min-h-10 w-full bg-blue text-[0.86rem]"
+              >
                 {busy ? "turning on…" : "turn on alerts"}
               </button>
-              {failed && <p role="status" className="mt-3 text-[0.82rem] text-orange">{TURN_ON_FAILED}</p>}
+              {failed && (
+                <p role="status" className="mt-3 text-[0.82rem] text-orange">
+                  {TURN_ON_FAILED}
+                </p>
+              )}
             </div>
           )}
 
           {view === "ended" && (
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-4 py-3">
-              <p className="font-sans text-[0.9rem]">Your alerts ended on {dayMonth(list.access.until)}.</p>
-              <Link href="/pricing" onClick={close} className="text-link text-[0.82rem]">see plans</Link>
+              <p className="font-sans text-[0.9rem]">
+                Your alerts ended on {dayMonth(list.access.until)}.
+              </p>
+              <Link
+                href="/pricing"
+                onClick={close}
+                className="text-link text-[0.82rem]"
+              >
+                see plans
+              </Link>
             </div>
           )}
 
           {live && list.items.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
               <CatFace mood="ready" className="text-[1.1rem] text-faint" />
-              <p className="font-sans text-[0.92rem] text-muted">You&rsquo;re all caught up.</p>
-              <p className="font-sans text-[0.8rem] text-faint">New replies on your pull requests will show up here.</p>
+              <p className="font-sans text-[0.92rem] text-muted">
+                You&rsquo;re all caught up.
+              </p>
+              <p className="font-sans text-[0.8rem] text-faint">
+                New replies on your pull requests will show up here.
+              </p>
             </div>
           )}
 
@@ -202,8 +273,18 @@ export function AlertBell({ initial }: { initial: AlertList }) {
                 const isUnread = live && !a.read_at;
                 const to = alertLinks(a);
                 return (
-                  <li key={a.id} className="alert-row" style={{ "--rule": ALERT_RULE[a.kind] } as React.CSSProperties}>
-                    <span className="alert-dot" data-on={isUnread || undefined} aria-hidden="true" />
+                  <li
+                    key={a.id}
+                    className="alert-row"
+                    style={
+                      { "--rule": ALERT_RULE[a.kind] } as React.CSSProperties
+                    }
+                  >
+                    <span
+                      className="alert-dot"
+                      data-on={isUnread || undefined}
+                      aria-hidden="true"
+                    />
                     <div className="min-w-0">
                       <a
                         href={to.pr}
@@ -214,7 +295,9 @@ export function AlertBell({ initial }: { initial: AlertList }) {
                         {a.text}
                       </a>
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[0.76rem] text-faint">
-                        <time dateTime={a.created_at}>{timeAgo(a.created_at)}</time>
+                        <time dateTime={a.created_at}>
+                          {timeAgo(a.created_at)}
+                        </time>
                         <Link
                           href={to.report}
                           onClick={() => {
@@ -226,7 +309,11 @@ export function AlertBell({ initial }: { initial: AlertList }) {
                           report
                         </Link>
                         {isUnread && (
-                          <button type="button" onClick={() => void readOne(a.id)} className="min-h-8 hover:text-blue hover:underline">
+                          <button
+                            type="button"
+                            onClick={() => void readOne(a.id)}
+                            className="min-h-8 hover:text-blue hover:underline"
+                          >
                             mark read
                           </button>
                         )}
@@ -240,8 +327,16 @@ export function AlertBell({ initial }: { initial: AlertList }) {
 
           {live && (
             <div className="flex min-h-11 items-center justify-between gap-4 border-t border-line bg-panel-2 px-4 text-[0.8rem]">
-              <span className="text-faint">{watchingLine(list.watching, list.access)}</span>
-              <Link href={ALERT_SETTINGS} onClick={close} className="inline-flex min-h-11 items-center text-blue hover:underline">settings</Link>
+              <span className="text-faint">
+                {watchingLine(list.watching, list.access)}
+              </span>
+              <Link
+                href={ALERT_SETTINGS}
+                onClick={close}
+                className="inline-flex min-h-11 items-center text-blue hover:underline"
+              >
+                settings
+              </Link>
             </div>
           )}
         </div>

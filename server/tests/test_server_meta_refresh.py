@@ -9,9 +9,9 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 
-from holt_server.db import RepoMeta, now
-from holt_server.errors import ApiError
-from holt_server.meta_refresh import MetaRefresher
+from prscout_server.db import RepoMeta, now
+from prscout_server.errors import ApiError
+from prscout_server.meta_refresh import MetaRefresher
 
 
 def details(repo, **kw):
@@ -132,8 +132,8 @@ def test_refresher_can_be_stopped_mid_read(h):
 
 
 def test_the_daily_details_pass_says_how_many_points_it_used(h):
-    from holt_server import warm
-    from holt_server.db import Report
+    from prscout_server import warm
+    from prscout_server.db import Report
     from conftest import canned_report
 
     fake = h.svc.lookup.details

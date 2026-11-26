@@ -1,0 +1,673 @@
+"""My Contributions: a connected user's public pull requests, seen through PRScout.
+
+    GET  /v1/me/contributions             the list and its summary (API.md)
+    POST /v1/me/contributions/refresh     read GitHub again (at most every 15 minutes)
+    GET  /v1/metrics/contributions        the product metric: counts only
+    python -m prscout_server.contributions metric [--since YYYY-MM-DD] [--json]
+    python -m prscout_server.contributions stats   recount repo statistics now
+
+The pull requests come from GitHub's public search (`is:pr is:public
+author:<login>`), read with the server's token pool, never the user's token:
+the last `WINDOW_DAYS`, at most `MAX_PRS`, leaving out the user's own
+repositories and the projects they help run (`own_projects`). They are
+fetched when GitHub is connected, again once a day in the background
+(PRSCOUT_CONTRIBUTIONS_REFRESH_HOURS), and when the user presses refresh. Each
+fetch replaces the user's rows; disconnecting deletes them.
+
+Each pull request carries PRScout's latest rules verdict for its repository when
+the report cache has one. Nothing here starts an analysis.
+
+"Found via PRScout": the user opened the pull request within `AFTER_PRSCOUT_DAYS`
+of opening that repository's report page on PRScout. `repo_views` keeps the first
+and the last view of each repository, so only a pull request within 30 days
+after one of those two counts: it can miss one after a view in between, but it
+never counts one it can't show.
+
+PR watch (alerts.py): every fetch compares each pull request with the row it
+replaces and, for someone with alerts on, stores an alert for what changed.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import logging
+import sys
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy import and_, delete, func, select
+
+from prscout_server import alerts, pr_state, repo_stats, repos, schema
+from prscout_server.db import (
+    Contribution,
+    ContributionChoice,
+    ContributionSync,
+    GitHubConnection,
+    Report,
+    RepoView,
+    current_engine,
+    iso,
+    now,
+    utc,
+)
+from prscout_server.deps import Caller, caller, services, signed_in
+from prscout_server.errors import ApiError
+from prscout_server.ratelimit import RateLimiter
+from prscout_server.services import Services
+
+log = logging.getLogger("prscout_server.contributions")
+
+router = APIRouter(prefix="/v1", responses={"default": {"model": schema.ErrorBody}})
+
+WINDOW_DAYS = 365
+MAX_PRS = 200
+PAGE = 100
+AFTER_PRSCOUT_DAYS = 30
+COOLDOWN = timedelta(minutes=15)
+# Refreshes that reach GitHub, per user per hour. The cooldown already allows
+# only four that succeed; this also bounds retries after GitHub trouble.
+REFRESH_PER_HOUR = 6
+SEARCH_TIMEOUT_S = 20.0
+# The background pass checks GitHub points every this many users.
+BUDGET_EVERY = 10
+LOCK_ID = 7_406_112
+
+SEARCH = """
+query($q:String!, $n:Int!, $cursor:String) {
+  rateLimit { remaining resetAt }
+  search(query:$q, type:ISSUE, first:$n, after:$cursor) {
+    issueCount
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      ... on PullRequest {
+        id number title url state isDraft createdAt closedAt mergedAt
+        authorAssociation mergedBy { login }
+        repository { nameWithOwner isPrivate owner { login } }
+      }
+    }
+  }
+}
+"""
+
+_refresh_limiter = RateLimiter()
+# Background fetches started on connect, kept so they are not collected mid-run.
+_background: set[asyncio.Task] = set()
+
+
+# --- reading GitHub --------------------------------------------------------------------
+
+
+def search_query(login: str, today: datetime) -> str:
+    since = (today - timedelta(days=WINDOW_DAYS)).date().isoformat()
+    return (f"is:pr is:public author:{login} -user:{login} created:>={since} "
+            "sort:created-desc")
+
+
+def _state(node: dict[str, Any]) -> str:
+    if node.get("mergedAt") or node.get("state") == "MERGED":
+        return "merged"
+    return "closed" if node.get("state") == "CLOSED" else "open"
+
+
+def _when(value: Any) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+
+
+# GitHub's word for someone with a say in the repository. A private org
+# membership reads as CONTRIBUTOR to our tokens, so self-merges count too.
+_TEAM = {"OWNER", "MEMBER", "COLLABORATOR"}
+
+
+def own_projects(nodes: Iterable[dict[str, Any] | None], login: str) -> set[str]:
+    """Repository keys the user helps run, so their pull requests there aren't
+    outside contributions: GitHub calls them an owner, member or collaborator
+    on one of them, or they merged one of their own (only people with write
+    access can). One such pull request marks the whole repository."""
+    me = login.lower()
+    own = set()
+    for node in nodes:
+        name = ((node or {}).get("repository") or {}).get("nameWithOwner")
+        if not name:
+            continue
+        merger = ((node.get("mergedBy") or {}).get("login") or "").lower()
+        if node.get("authorAssociation") in _TEAM or merger == me:
+            own.add(repos.key(name))
+    return own
+
+
+def parse(nodes: Iterable[dict[str, Any] | None], login: str) -> list[dict[str, Any]]:
+    """Search nodes -> row values. Private repositories, the user's own and the
+    ones they help run are left out even if a token could see them."""
+    nodes = list(nodes)
+    own = own_projects(nodes, login)
+    out, seen = [], set()
+    for node in nodes:
+        repo = (node or {}).get("repository") or {}
+        name = repo.get("nameWithOwner")
+        if not name or repo.get("isPrivate") or not node.get("number"):
+            continue
+        if ((repo.get("owner") or {}).get("login") or "").lower() == login.lower():
+            continue
+        if repos.key(name) in own:
+            continue
+        key = (repos.key(name), int(node["number"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({
+            "repo": name, "repo_key": key[0], "number": key[1],
+            "title": str(node.get("title") or "")[:1000],
+            "url": str(node.get("url") or f"https://github.com/{name}/pull/{key[1]}")[:500],
+            "state": _state(node), "draft": bool(node.get("isDraft")),
+            "created_at": _when(node.get("createdAt")) or now(),
+            "closed_at": _when(node.get("closedAt")), "merged_at": _when(node.get("mergedAt")),
+            "node_id": str(node.get("id") or "")[:100] or None,
+        })
+    return out
+
+
+# The per-pull-request state columns (pr_state.py).
+STATE_FIELDS = ("turn", "turn_at", "first_reply_at", "last_activity_at", "review_decision",
+                "reply_by", "reply_kind")
+
+
+def add_state(gql, rows: list[dict[str, Any]]) -> None:
+    """Read where each open pull request stands and put it on its row. A
+    failure is only logged: those rows keep their last known state."""
+    open_ = [r for r in rows if r["state"] == "open" and r.get("node_id")]
+    if not open_:
+        return
+    try:
+        nodes = pr_state.read(gql, [r["node_id"] for r in open_], SEARCH_TIMEOUT_S)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("reading pull request state failed: %s",
+                    getattr(exc, "code", type(exc).__name__))
+        return
+    for r in open_:
+        if (node := nodes.get(r["node_id"])) is not None:
+            r.update(pr_state.derive(node, r["created_at"]).__dict__)
+
+
+def search(svc: Services, login: str) -> tuple[list[dict[str, Any]], bool]:
+    """(pull requests, whether GitHub had more). Blocking; at most two search
+    queries, then the open ones' state (usually one more, 1 point)."""
+    from prscout_server.engine import translate
+
+    q = search_query(login, now())
+    rows: list[dict[str, Any]] = []
+    cursor, more = None, False
+    try:
+        gql = svc.pool.transport(svc.http)
+        while len(rows) < MAX_PRS:
+            data = gql.query(SEARCH, timeout=SEARCH_TIMEOUT_S, q=q,
+                             n=min(PAGE, MAX_PRS - len(rows)), cursor=cursor)
+            found = data.get("search") or {}
+            rows.extend(found.get("nodes") or [])
+            page = found.get("pageInfo") or {}
+            more = bool(page.get("hasNextPage"))
+            if not more:
+                break
+            cursor = page.get("endCursor")
+    except ApiError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise translate(exc, login) from exc
+    out = parse(rows, login)
+    add_state(gql, out)
+    return out, more
+
+
+# --- storing -----------------------------------------------------------------------
+
+
+async def fetch(svc: Services, user_id: str, login: str) -> bool:
+    """Read GitHub for `user_id` and replace their rows. Concurrent calls for
+    one user share one fetch. False when they disconnected meanwhile."""
+    key = f"contributions:{user_id}"
+    if (pending := svc.inflight.get(key)) is not None:
+        return await asyncio.shield(pending)
+    task = asyncio.ensure_future(_fetch_and_store(svc, user_id, login))
+    svc.inflight[key] = task
+    try:
+        return await asyncio.shield(task)
+    finally:
+        if task.done():
+            svc.inflight.pop(key, None)
+        else:
+            task.add_done_callback(lambda _: svc.inflight.pop(key, None))
+
+
+async def _fetch_and_store(svc: Services, user_id: str, login: str) -> bool:
+    rows, truncated = await asyncio.to_thread(search, svc, login)
+    async with svc.db.session() as s:
+        # Locks the connection row, so a disconnect in the middle either runs
+        # first (and we store nothing) or waits and then deletes what we wrote.
+        conn = (await s.execute(select(GitHubConnection).where(
+            GitHubConnection.user_id == user_id).with_for_update())).scalar_one_or_none()
+        if conn is None or conn.login != login:
+            return False
+        before = {(c.repo_key, c.number): c for c in (await s.execute(
+            select(Contribution).where(Contribution.user_id == user_id))).scalars()}
+        for r in rows:
+            old = before.get((r["repo_key"], r["number"]))
+            if "turn" not in r and r["state"] == "open" and old is not None:
+                r.update({f: getattr(old, f) for f in STATE_FIELDS})
+        await _alert(s, svc, user_id, before, rows)
+        await s.execute(delete(Contribution).where(Contribution.user_id == user_id))
+        s.add_all(Contribution(user_id=user_id, **r) for r in rows)
+        sync = await s.get(ContributionSync, user_id)
+        if sync is None:
+            sync = ContributionSync(user_id=user_id)
+            s.add(sync)
+        sync.login, sync.fetched_at, sync.truncated = login, now(), truncated
+        await s.commit()
+    return True
+
+
+async def _alert(s, svc: Services, user_id: str, before: dict[tuple[str, int], Contribution],
+                 rows: list[dict[str, Any]]) -> None:
+    """Alerts for what this fetch saw change on the pull requests PR watch
+    covers (alerts.py): your turn, approved, merged, closed. Waits are the
+    checker's (watch.py). A failure is only logged: the list still refreshes."""
+    try:
+        async with s.begin_nested():
+            if not before or not await alerts.watching(s, svc, user_id):
+                return
+            skip = await alerts.muted(s, user_id)
+            out = await left_out(s, user_id, {r["repo_key"] for r in rows})
+            for r in rows:
+                key = (r["repo_key"], r["number"])
+                old = before.get(key)
+                if old is None or key in skip or r["repo_key"] in out:
+                    continue
+                new = alerts.Pr.of(r)
+                await alerts.record(s, user_id, new, alerts.events(alerts.Pr.of(old), new))
+    except Exception:  # noqa: BLE001
+        log.exception("making alerts from a contributions fetch failed")
+
+
+async def forget(s, user_id: str) -> None:
+    """Delete a user's fetched pull requests, their counting choices and
+    everything PR watch kept for them (disconnect). Caller commits."""
+    await s.execute(delete(Contribution).where(Contribution.user_id == user_id))
+    await s.execute(delete(ContributionSync).where(ContributionSync.user_id == user_id))
+    await s.execute(delete(ContributionChoice).where(ContributionChoice.user_id == user_id))
+    await alerts.forget(s, user_id)
+
+
+def fetch_soon(svc: Services, user_id: str, login: str) -> None:
+    """Start a fetch in the background (on connect); failures are only logged,
+    the page fetches again when it is opened."""
+    async def run() -> None:
+        try:
+            await fetch(svc, user_id, login)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("fetching pull requests after connect failed: %s",
+                        getattr(exc, "code", type(exc).__name__))
+
+    task = asyncio.ensure_future(run())
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+
+
+# --- "found via PRScout" -------------------------------------------------------------------
+
+
+def after_PRScout(created: datetime, first_view: datetime | None,
+               last_view: datetime | None) -> bool:
+    window = timedelta(days=AFTER_PRSCOUT_DAYS)
+    created = utc(created)
+    return any(v is not None and utc(v) <= created <= utc(v) + window
+               for v in (first_view, last_view))
+
+
+# --- the page ---------------------------------------------------------------------------
+
+
+async def verdicts(s, keys: set[str]) -> dict[str, schema.RepoVerdict]:
+    """The latest 7-day rules verdict per repository, where one is cached by
+    the current engine."""
+    if not keys:
+        return {}
+    rules = and_(Report.mode == "rules", Report.days == 7, current_engine())
+    latest = (select(Report.repo_key, func.max(Report.created_at).label("at"))
+              .where(Report.repo_key.in_(keys), rules)
+              .group_by(Report.repo_key).subquery())
+    got = await s.execute(
+        select(Report.repo_key, Report.created_at, Report.report["verdict"].as_string(),
+               Report.report["stats"]["median_first_response_hours"].as_float(),
+               Report.report["stats"]["timing"])
+        .join(latest, and_(Report.repo_key == latest.c.repo_key,
+                           Report.created_at == latest.c.at))
+        .where(rules))
+    out = {}
+    for key, at, verdict, reply, timing in got:
+        if verdict in schema.TONES:
+            out[key] = schema.RepoVerdict(
+                verdict=verdict, checked_at=iso(at), first_reply_hours=reply,
+                timing=schema.Timing.model_validate(timing) if isinstance(timing, dict) else None)
+    return out
+
+
+# --- what counts ------------------------------------------------------------------------
+
+# Verdicts that mean a repository is the person's own or their team's project,
+# so their pull requests there aren't outside contributions. "personal" comes
+# with engine 4; until then no report carries it. The person can always override.
+NOT_OUTSIDE: frozenset[str] = frozenset({"personal"})
+
+
+def not_counted_because(verdict: schema.RepoVerdict | None,
+                        choice: bool | None) -> str | None:
+    """Why a repository's pull requests are left out of the numbers, or None
+    when they count. The person's own choice wins over the default."""
+    if choice is not None:
+        return None if choice else "you"
+    if verdict is not None and verdict.verdict in NOT_OUTSIDE:
+        return "own_project"
+    return None
+
+
+async def left_out(s, user_id: str, keys: set[str]) -> set[str]:
+    """The repositories among `keys` whose pull requests don't count for this
+    user (their choice, or their own project), so PR watch leaves them alone."""
+    known = await verdicts(s, keys)
+    chosen = {c.repo_key: c.counted for c in (await s.execute(
+        select(ContributionChoice).where(ContributionChoice.user_id == user_id))).scalars()}
+    return {k for k in keys if not_counted_because(known.get(k), chosen.get(k)) is not None}
+
+
+async def page(svc: Services, user_id: str, conn: GitHubConnection) -> schema.Contributions:
+    async with svc.db.session() as s:
+        sync = await s.get(ContributionSync, user_id)
+        prs = (await s.execute(select(Contribution).where(Contribution.user_id == user_id)
+                               .order_by(Contribution.created_at.desc()))).scalars().all()
+        seen = {v.repo_key: v for v in (await s.execute(
+            select(RepoView).where(RepoView.user_id == user_id))).scalars()}
+        known = await verdicts(s, {p.repo_key for p in prs})
+        chosen = {c.repo_key: c.counted for c in (await s.execute(
+            select(ContributionChoice).where(ContributionChoice.user_id == user_id))).scalars()}
+        # PR watch: only for someone who gets alerts now.
+        watching = await alerts.watching(s, svc, user_id)
+        muted = await alerts.muted(s, user_id) if watching else set()
+        unread = await alerts.unread_prs(s, user_id) if watching else set()
+    if sync is None:  # disconnected while the first fetch ran
+        raise ApiError("not_found", "Connect your GitHub account to see your contributions.")
+    items = []
+    for p in prs:
+        view = seen.get(p.repo_key)
+        verdict = known.get(p.repo_key)
+        why = not_counted_because(verdict, chosen.get(p.repo_key))
+        key = (p.repo_key, p.number)
+        watch = None
+        if watching and p.state == "open" and why is None:
+            watch = "muted" if key in muted else "on"
+        items.append(schema.ContributionPullRequest(
+            repo=p.repo, number=p.number, title=p.title, url=p.url, state=p.state,
+            draft=p.draft, created_at=iso(p.created_at), closed_at=iso(p.closed_at),
+            merged_at=iso(p.merged_at), verdict=verdict,
+            found_via_PRScout=view is not None and after_PRScout(
+                p.created_at, view.first_viewed_at, view.last_viewed_at),
+            counted=why is None, not_counted_because=why,
+            watch=watch, unread_alert=key in unread,
+            **(dict(turn=p.turn, turn_at=iso(p.turn_at), first_reply_at=iso(p.first_reply_at),
+                    last_activity_at=iso(p.last_activity_at),
+                    review_decision=p.review_decision, reply_by=p.reply_by,
+                    reply_kind=p.reply_kind) if p.state == "open" else {})))
+    counted = [i for i in items if i.counted]
+    merged = sum(i.state == "merged" for i in counted)
+    closed = sum(i.state == "closed" for i in counted)
+    ready = utc(sync.fetched_at) + COOLDOWN
+    return schema.Contributions(
+        login=conn.login, fetched_at=iso(sync.fetched_at),
+        next_refresh_at=iso(ready) if ready > now() else None,
+        window_days=WINDOW_DAYS, truncated=sync.truncated,
+        summary=schema.ContributionSummary(
+            opened=len(counted), merged=merged, closed=closed,
+            waiting=sum(i.state == "open" for i in counted),
+            landed_share=round(merged / (merged + closed), 4) if merged + closed else None,
+            found_via_PRScout=sum(i.found_via_PRScout for i in counted),
+            not_counted=len(items) - len(counted)),
+        pull_requests=items)
+
+
+async def _connection(svc: Services, user_id: str,
+                      ) -> tuple[GitHubConnection, ContributionSync | None]:
+    async with svc.db.session() as s:
+        conn = await s.get(GitHubConnection, user_id)
+        sync = await s.get(ContributionSync, user_id)
+    if conn is None:
+        raise ApiError("not_found", "Connect your GitHub account to see your contributions.")
+    return conn, sync
+
+
+@router.get("/me/contributions")
+async def get_contributions(request: Request,
+                            who: Caller = Depends(caller)) -> schema.Contributions:
+    """The stored list. The first time (or after a rename) it reads GitHub."""
+    svc = services(request)
+    user_id = signed_in(who)
+    conn, sync = await _connection(svc, user_id)
+    if sync is None or sync.login != conn.login:
+        await fetch(svc, user_id, conn.login)
+    return await page(svc, user_id, conn)
+
+
+@router.post("/me/contributions/refresh")
+async def refresh_contributions(request: Request,
+                                who: Caller = Depends(caller)) -> schema.Contributions:
+    """Read GitHub again, unless the last read is under 15 minutes old: then
+    the stored list comes back unchanged, with `next_refresh_at`."""
+    svc = services(request)
+    user_id = signed_in(who)
+    conn, sync = await _connection(svc, user_id)
+    fresh = (sync is not None and sync.login == conn.login
+             and utc(sync.fetched_at) + COOLDOWN > now())
+    if not fresh:
+        _refresh_limiter.hit(f"user:{user_id}", REFRESH_PER_HOUR)
+        await fetch(svc, user_id, conn.login)
+    return await page(svc, user_id, conn)
+
+
+async def _choose(svc: Services, user_id: str, owner: str, name: str,
+                  counted: bool | None) -> schema.Contributions:
+    """Store (or, with None, clear) whether a repository's pull requests count.
+    Only repositories in the person's list; anything else is 404."""
+    conn, sync = await _connection(svc, user_id)
+    if sync is None:
+        await fetch(svc, user_id, conn.login)
+    key = repos.key(repos.normalize(f"{owner}/{name}"))
+    async with svc.db.session() as s:
+        pr = (await s.execute(select(Contribution).where(
+            Contribution.user_id == user_id, Contribution.repo_key == key).limit(1))).scalar()
+        if pr is None:
+            raise ApiError("not_found", "None of your pull requests are to that repository.")
+        row = await s.get(ContributionChoice, (user_id, key))
+        if counted is None:
+            if row is not None:
+                await s.delete(row)
+        elif row is None:
+            s.add(ContributionChoice(user_id=user_id, repo_key=key, repo=pr.repo, counted=counted))
+        else:
+            row.counted, row.chosen_at = counted, now()
+        await s.commit()
+    return await page(svc, user_id, conn)
+
+
+@router.put("/me/contributions/repos/{owner}/{name}")
+async def put_contribution_choice(owner: str, name: str, body: schema.ContributionChoiceBody,
+                                  request: Request, who: Caller = Depends(caller),
+                                  ) -> schema.Contributions:
+    """Count this repository's pull requests in the numbers, or leave them out."""
+    return await _choose(services(request), signed_in(who), owner, name, body.counted)
+
+
+@router.delete("/me/contributions/repos/{owner}/{name}")
+async def delete_contribution_choice(owner: str, name: str, request: Request,
+                                     who: Caller = Depends(caller)) -> schema.Contributions:
+    """Forget the choice: the repository goes back to PRScout's default."""
+    return await _choose(services(request), signed_in(who), owner, name, None)
+
+
+# --- the product metric -----------------------------------------------------------------
+
+
+@dataclass
+class Metric:
+    connected_users: int = 0
+    users_with_pull_requests: int = 0
+    users_with_pr_after_PRScout: int = 0
+    prs_after_PRScout: int = 0
+    prs_after_prscout_merged: int = 0
+
+
+async def metric(svc: Services, since: datetime | None = None) -> Metric:
+    """Counts over connected users who didn't opt out of statistics; pull
+    requests opened on or after `since` (all stored ones by default)."""
+    counted = GitHubConnection.stats_opt_out.is_(False)
+    m = Metric()
+    after = [Contribution.created_at >= since] if since else []
+    async with svc.db.session() as s:
+        m.connected_users = (await s.execute(
+            select(func.count()).select_from(GitHubConnection).where(counted))).scalar_one()
+        m.users_with_pull_requests = (await s.execute(
+            select(func.count(func.distinct(Contribution.user_id)))
+            .join(GitHubConnection, GitHubConnection.user_id == Contribution.user_id)
+            .where(counted, *after))).scalar_one()
+        rows = await s.execute(
+            select(Contribution.user_id, Contribution.state, Contribution.created_at,
+                   RepoView.first_viewed_at, RepoView.last_viewed_at)
+            .join(RepoView, and_(RepoView.user_id == Contribution.user_id,
+                                 RepoView.repo_key == Contribution.repo_key))
+            .join(GitHubConnection, GitHubConnection.user_id == Contribution.user_id)
+            .where(counted, *after))
+        users = set()
+        for user_id, state, created, first, last in rows:
+            if after_PRScout(created, first, last):
+                users.add(user_id)
+                m.prs_after_PRScout += 1
+                m.prs_after_prscout_merged += state == "merged"
+        m.users_with_pr_after_PRScout = len(users)
+    return m
+
+
+def _since(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value).replace(tzinfo=UTC)
+    except ValueError:
+        raise ApiError("invalid_request", "`since` must be a date like 2026-10-01.") from None
+
+
+@router.get("/metrics/contributions")
+async def get_metric(request: Request, since: str | None = None,
+                     _: Caller = Depends(caller)) -> schema.ContributionMetric:
+    """Internal (the internal key, like every /v1 route): no user needed."""
+    svc = services(request)
+    start = _since(since)
+    m = await metric(svc, start)
+    return schema.ContributionMetric(since=start.date().isoformat() if start else "",
+                                     window_days=AFTER_PRSCOUT_DAYS, **m.__dict__)
+
+
+# --- the daily background refresh -------------------------------------------------------
+
+
+async def refresh_all(svc: Services, max_age: timedelta) -> int:
+    """Fetch every connected user whose list is older than `max_age`, oldest
+    first, one at a time. Stops when GitHub points run low. Then recounts the
+    repository statistics (repo_stats.py). Returns how many users."""
+    async with svc.db.session() as s:
+        due = (await s.execute(
+            select(GitHubConnection.user_id, GitHubConnection.login)
+            .outerjoin(ContributionSync, ContributionSync.user_id == GitHubConnection.user_id)
+            .where((ContributionSync.fetched_at.is_(None))
+                   | (ContributionSync.fetched_at < now() - max_age))
+            .order_by(ContributionSync.fetched_at.asc().nulls_first()))).all()
+    done = 0
+    for i, (user_id, login) in enumerate(due):
+        if i % BUDGET_EVERY == 0:
+            left = await svc.lookup.remaining()
+            if left < svc.settings.warm_min_points:
+                log.info("contributions refresh: stopping, GitHub points left %d", left)
+                break
+        try:
+            done += await fetch(svc, user_id, login)
+        except ApiError as err:
+            log.warning("contributions refresh: a user failed (%s)", err.code)
+            if err.code == "rate_limited":
+                break
+    # Repository statistics from PRScout users are recounted from the fresh lists.
+    await repo_stats.rebuild_all(svc)
+    return done
+
+
+async def refresh_once(svc: Services, max_age: timedelta) -> int | None:
+    """One pass; on Postgres only one process runs it (None if another does)."""
+    async with svc.db.advisory_lock(LOCK_ID) as got:
+        return await refresh_all(svc, max_age) if got else None
+
+
+async def schedule(svc: Services, first_delay_s: float = 300.0) -> None:
+    """Every PRSCOUT_CONTRIBUTIONS_REFRESH_HOURS, in the API process, until cancelled."""
+    hours = svc.settings.contributions_refresh_hours
+    await asyncio.sleep(first_delay_s)
+    while True:
+        try:
+            n = await refresh_once(svc, timedelta(hours=hours * 0.8))
+            if n is not None:
+                log.info("contributions refresh: %d users", n)
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001 -- try again next time
+            log.exception("contributions refresh failed")
+        await asyncio.sleep(hours * 3600)
+
+
+# --- CLI ---------------------------------------------------------------------------------
+
+
+def main(argv: list[str] | None = None) -> int:
+    from prscout_server.settings import get_settings
+
+    p = argparse.ArgumentParser(prog="python -m prscout_server.contributions",
+                                description="My Contributions: the product metric.")
+    sub = p.add_subparsers(dest="command", required=True)
+    m = sub.add_parser("metric", help="pull requests opened after checking a repo on PRScout")
+    m.add_argument("--since", help="only pull requests opened on or after YYYY-MM-DD")
+    m.add_argument("--json", action="store_true")
+    sub.add_parser("stats", help="recount repository statistics from PRScout users now")
+    args = p.parse_args(argv)
+
+    async def run() -> Metric | int:
+        svc = Services(get_settings())
+        try:
+            if args.command == "stats":
+                return await repo_stats.rebuild_all(svc)
+            return await metric(svc, _since(args.since))
+        finally:
+            svc.http.close()
+            await svc.db.dispose()
+
+    result = asyncio.run(run())
+    if isinstance(result, int):
+        print(f"repositories with statistics: {result}")
+        return 0
+    if args.json:
+        print(json.dumps(result.__dict__))
+    else:
+        for name, value in result.__dict__.items():
+            print(f"{name.replace('_', ' ')}: {value}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

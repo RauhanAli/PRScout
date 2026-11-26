@@ -1,8 +1,8 @@
-# Holt production: https://githolt.com
+# PRScout production: https://gitprscout.com
 
 The production stack on this box (until it moves to Hetzner): Postgres, the
 API server, the web app in [several containers](#web-containers) and a small
-nginx `edge`, compose project **`holt-prod`**, published only on
+nginx `edge`, compose project **`prscout-prod`**, published only on
 **127.0.0.1:8310**. Cloudflare's tunnel
 is the public route ([TUNNEL.md](TUNNEL.md)). It is built **only from
 `origin/main`**, and it **deploys itself**: every new commit on main goes
@@ -10,29 +10,29 @@ live once its CI is green and staging is running it
 ([Auto-deploy](#auto-deploy)). Merging to main is shipping. The owner can
 pause it, and `deploy.sh` still works by hand.
 
-| File | What |
-|---|---|
-| `compose.yml` | The stack. Images are tagged with the deployed commit (`holt-prod-web:<sha>`), everything is labelled `holt.stack=holt-prod`, memory limits web 768m each / server 1536m / db 256m / edge 32m ([Web containers](#web-containers)). |
-| `follow.sh` | The auto-deploy: one tick checks origin/main against CI and staging and runs `deploy.sh` for it. `--status`, `--pause`, `--resume`, `--retry`. See [Auto-deploy](#auto-deploy). |
-| `install-follow.sh` | One-time: the timer that runs `follow.sh` every 2 minutes (`--remove` takes it out). |
-| `deploy.sh` | One deploy: build main's images, migrate, swap, health-check (every web container), roll back on failure, set the CPU shares, prune only this stack's images, stop the builder container. |
-| `env.sh` | Sourced by `deploy.sh` and `warm.sh`: state paths, `secrets.env`, the GitHub App's settings and the GitHub token fallback (`load_prod_env`); makes the evidence directory. |
-| `github-app.sh` | Who production reads GitHub as (the GitHub App or `GITHUB_TOKENS`), its points left, and a test read of a public repository. Prints no secret. Setup is in the maintainers' ops notes. |
-| `make-env.sh` | Writes `~/.local/share/holt-prod/.env` once: fresh `AUTH_SECRET`, `HOLT_INTERNAL_KEY`, `HOLT_SECRET_KEY`, db password. Nothing shared with staging. |
-| `install.sh` | One-time: the env file plus the nightly backup timer and the daily repo-details timer; writes the report refresh timer, off until `--refresh-on`. The deploy timer is `install-follow.sh`. |
-| `backup.sh` | `pg_dump` of both databases to `~/backups/holt/<stamp>/`, keeps 14 days. |
-| `warm.sh` | Runs `python -m holt_server.warm` detached in the server image (fills the caches), with the same secrets and token as a deploy. |
-| `warm-refresh.sh` | The report refresh: weekly tier (saved or recently viewed repos), then monthly tier (the other seeds), in the foreground. Off until switched on. See [Report refresh](#report-refresh). |
-| `warm-meta.sh` | The daily details-only warm pass (language, stars, topics for Discover), in the foreground, holding the deploy lock. See [Repository details](#repository-details). |
-| `edge.conf` | nginx: keeps the port across deploys, spreads requests over the web containers, `/__build`, `www` → apex redirect, SSE-friendly proxy, the Umami paths. A deploy puts changes live with a reload ([Edge config](#edge-config)). |
-| `../swap.sh` | Sourced by `deploy.sh` (and staging's `preview.sh`): `swap_service` starts a service's new containers beside the old ones (as many as `deploy.replicas` asks for) and retires the old ones once every new one is healthy. |
-| `../edge.sh` | Sourced by `deploy.sh` (and staging's `preview.sh`): checks a changed `edge.conf` with `nginx -t` in the running edge and reloads it. |
-| `migrate-web.sh`, `initdb/` | Auth.js tables migration (one-shot `migrate-web` service) and the `holt_web` database. The API's own migrations run in the one-shot `migrate-server` service. |
-| `TUNNEL.md` | Steps for the user to route githolt.com here. |
-| `umami.sh` | One-time: the analytics service (Umami): its database and role, `.env` keys, first start, admin password. See [Analytics](#analytics). |
-| `stats.sh` | The product numbers from Holt's own database, per day. Read-only, no personal data. |
+| File                        | What                                                                                                                                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `compose.yml`               | The stack. Images are tagged with the deployed commit (`prscout-prod-web:<sha>`), everything is labelled `prscout.stack=prscout-prod`, memory limits web 768m each / server 1536m / db 256m / edge 32m ([Web containers](#web-containers)). |
+| `follow.sh`                 | The auto-deploy: one tick checks origin/main against CI and staging and runs `deploy.sh` for it. `--status`, `--pause`, `--resume`, `--retry`. See [Auto-deploy](#auto-deploy).                                                             |
+| `install-follow.sh`         | One-time: the timer that runs `follow.sh` every 2 minutes (`--remove` takes it out).                                                                                                                                                        |
+| `deploy.sh`                 | One deploy: build main's images, migrate, swap, health-check (every web container), roll back on failure, set the CPU shares, prune only this stack's images, stop the builder container.                                                   |
+| `env.sh`                    | Sourced by `deploy.sh` and `warm.sh`: state paths, `secrets.env`, the GitHub App's settings and the GitHub token fallback (`load_prod_env`); makes the evidence directory.                                                                  |
+| `github-app.sh`             | Who production reads GitHub as (the GitHub App or `GITHUB_TOKENS`), its points left, and a test read of a public repository. Prints no secret. Setup is in the maintainers' ops notes.                                                      |
+| `make-env.sh`               | Writes `~/.local/share/prscout-prod/.env` once: fresh `AUTH_SECRET`, `PRSCOUT_INTERNAL_KEY`, `PRSCOUT_SECRET_KEY`, db password. Nothing shared with staging.                                                                                |
+| `install.sh`                | One-time: the env file plus the nightly backup timer and the daily repo-details timer; writes the report refresh timer, off until `--refresh-on`. The deploy timer is `install-follow.sh`.                                                  |
+| `backup.sh`                 | `pg_dump` of both databases to `~/backups/prscout/<stamp>/`, keeps 14 days.                                                                                                                                                                 |
+| `warm.sh`                   | Runs `python -m prscout_server.warm` detached in the server image (fills the caches), with the same secrets and token as a deploy.                                                                                                          |
+| `warm-refresh.sh`           | The report refresh: weekly tier (saved or recently viewed repos), then monthly tier (the other seeds), in the foreground. Off until switched on. See [Report refresh](#report-refresh).                                                     |
+| `warm-meta.sh`              | The daily details-only warm pass (language, stars, topics for Discover), in the foreground, holding the deploy lock. See [Repository details](#repository-details).                                                                         |
+| `edge.conf`                 | nginx: keeps the port across deploys, spreads requests over the web containers, `/__build`, `www` → apex redirect, SSE-friendly proxy, the Umami paths. A deploy puts changes live with a reload ([Edge config](#edge-config)).             |
+| `../swap.sh`                | Sourced by `deploy.sh` (and staging's `preview.sh`): `swap_service` starts a service's new containers beside the old ones (as many as `deploy.replicas` asks for) and retires the old ones once every new one is healthy.                   |
+| `../edge.sh`                | Sourced by `deploy.sh` (and staging's `preview.sh`): checks a changed `edge.conf` with `nginx -t` in the running edge and reloads it.                                                                                                       |
+| `migrate-web.sh`, `initdb/` | Auth.js tables migration (one-shot `migrate-web` service) and the `prscout_web` database. The API's own migrations run in the one-shot `migrate-server` service.                                                                            |
+| `TUNNEL.md`                 | Steps for the user to route gitprscout.com here.                                                                                                                                                                                            |
+| `umami.sh`                  | One-time: the analytics service (Umami): its database and role, `.env` keys, first start, admin password. See [Analytics](#analytics).                                                                                                      |
+| `stats.sh`                  | The product numbers from PRScout's own database, per day. Read-only, no personal data.                                                                                                                                                      |
 
-State lives in `~/.local/share/holt-prod/` (outside every checkout, so
+State lives in `~/.local/share/prscout-prod/` (outside every checkout, so
 removing a worktree can't delete secrets): `.env`, `src/` (a clone at the
 deployed commit), `current` and `previous` (image tags), `build/build.json`
 (served at `/__build`), `releases/<sha>/compose.yml` (the compose file
@@ -42,26 +42,26 @@ plus `default.conf.prev`), `logs/`.
 
 ## Environment
 
-Fixed in `compose.yml`: `HOLT_ENV=production`, `NEXT_PUBLIC_SITE_HOST=githolt.com`
-(build and run time), `HOLT_WEB_URL` and `AUTH_URL=https://githolt.com`,
+Fixed in `compose.yml`: `PRSCOUT_ENV=production`, `NEXT_PUBLIC_SITE_HOST=gitprscout.com`
+(build and run time), `PRSCOUT_WEB_URL` and `AUTH_URL=https://gitprscout.com`,
 `TRUST_PROXY_HEADERS=1`, no `ROBOTS_NOINDEX` (production is indexed), no
-`MOCK_API`. From `.env`: the generated secrets, `HOLT_STARTER_CACHE_HOURS=24`,
-`HOLT_JOB_CONCURRENCY=6`, `HOLT_PROD_PORT=8310`, and optionally
-`HOLT_WEB_REPLICAS` (2) and `HOLT_PROD_CPU_SHARES` (8192): see
+`MOCK_API`. From `.env`: the generated secrets, `PRSCOUT_STARTER_CACHE_HOURS=24`,
+`PRSCOUT_JOB_CONCURRENCY=6`, `PRSCOUT_PROD_PORT=8310`, and optionally
+`PRSCOUT_WEB_REPLICAS` (2) and `PRSCOUT_PROD_CPU_SHARES` (8192): see
 [Web containers](#web-containers).
 
-Keys the user owns come from **`~/.config/holt/secrets.env`** (`KEY=value`
+Keys the user owns come from **`~/.config/prscout/secrets.env`** (`KEY=value`
 lines, `chmod 600`), read by `deploy.sh` and `warm.sh` on every run (`env.sh`) and mapped:
 
-| In `secrets.env` | Becomes | When missing |
-|---|---|---|
-| `GITHUB_OAUTH_ID`, `GITHUB_OAUTH_SECRET` | `AUTH_GITHUB_ID/SECRET` | GitHub sign-in shows "isn't set up here" |
-| `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET` | `AUTH_GOOGLE_ID/SECRET` | Google sign-in shows "isn't set up here" |
-| `OPENROUTER_API_KEY` | the same | AI reports answer `needs_key`; BYOK still works |
-| `HOLT_PROD_AI_BUDGET_USD`, `HOLT_PROD_AI_BUDGET_OWNER_OK` | `HOLT_AI_BUDGET_USD`, `HOLT_AI_BUDGET_OWNER_OK` | AI is off (budget 0), whatever key is set. A budget without `HOLT_PROD_AI_BUDGET_OWNER_OK=1` stops the deploy, and the server ignores one without `HOLT_AI_BUDGET_OWNER_OK`. `HOLT_AI_BUDGET_USD` itself (staging's) is never read here. See `server/README.md`, "AI budget" |
-| `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY_FILE` | the same; the key file (a host path, `chmod 640`) is mounted read-only at `/run/secrets/github_app_key` | the server reads with `GITHUB_TOKENS`. With all three set, it reads as the GitHub App and `GITHUB_TOKENS` is not used; with only some, the run stops. Setup and rollback are in the maintainers' ops notes. |
-| `GITHUB_TOKENS` | the same | falls back to `gh auth token`; with neither (and no GitHub App), the run stops (the server would have no API budget and a warm pass would end at "points left 0") |
-| `CONTACT_EMAIL`, `CONTACT_CITY` | `NEXT_PUBLIC_CONTACT_EMAIL/CITY` (build arg and env) | **the deploy stops**: the policy pages must not show placeholders |
+| In `secrets.env`                                                             | Becomes                                                                                                 | When missing                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GITHUB_OAUTH_ID`, `GITHUB_OAUTH_SECRET`                                     | `AUTH_GITHUB_ID/SECRET`                                                                                 | GitHub sign-in shows "isn't set up here"                                                                                                                                                                                                                                              |
+| `GOOGLE_OAUTH_ID`, `GOOGLE_OAUTH_SECRET`                                     | `AUTH_GOOGLE_ID/SECRET`                                                                                 | Google sign-in shows "isn't set up here"                                                                                                                                                                                                                                              |
+| `OPENROUTER_API_KEY`                                                         | the same                                                                                                | AI reports answer `needs_key`; BYOK still works                                                                                                                                                                                                                                       |
+| `PRSCOUT_PROD_AI_BUDGET_USD`, `PRSCOUT_PROD_AI_BUDGET_OWNER_OK`              | `PRSCOUT_AI_BUDGET_USD`, `PRSCOUT_AI_BUDGET_OWNER_OK`                                                   | AI is off (budget 0), whatever key is set. A budget without `PRSCOUT_PROD_AI_BUDGET_OWNER_OK=1` stops the deploy, and the server ignores one without `PRSCOUT_AI_BUDGET_OWNER_OK`. `PRSCOUT_AI_BUDGET_USD` itself (staging's) is never read here. See `server/README.md`, "AI budget" |
+| `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY_FILE` | the same; the key file (a host path, `chmod 640`) is mounted read-only at `/run/secrets/github_app_key` | the server reads with `GITHUB_TOKENS`. With all three set, it reads as the GitHub App and `GITHUB_TOKENS` is not used; with only some, the run stops. Setup and rollback are in the maintainers' ops notes.                                                                           |
+| `GITHUB_TOKENS`                                                              | the same                                                                                                | falls back to `gh auth token`; with neither (and no GitHub App), the run stops (the server would have no API budget and a warm pass would end at "points left 0")                                                                                                                     |
+| `CONTACT_EMAIL`, `CONTACT_CITY`                                              | `NEXT_PUBLIC_CONTACT_EMAIL/CITY` (build arg and env)                                                    | **the deploy stops**: the policy pages must not show placeholders                                                                                                                                                                                                                     |
 
 There is never a dev sign-in in production: it exists only with
 `NODE_ENV=development`, and the image runs with `NODE_ENV=production`.
@@ -79,18 +79,18 @@ deploy/prod/warm.sh           # fill the empty cache (detached; --status / --log
 Then the tunnel: [TUNNEL.md](TUNNEL.md), and the auto-deploy:
 
 ```sh
-deploy/prod/install-follow.sh # the 2-minute timer (holt-prod-follow.timer)
+deploy/prod/install-follow.sh # the 2-minute timer (prscout-prod-follow.timer)
 ```
 
 ## Web containers
 
 One Next.js process renders on one core: about 23 pages a second, and it
 reached 503 MB under 200 concurrent readers. So the site runs
-`HOLT_WEB_REPLICAS` web containers, **2 by default**, each with a 768 MB
+`PRSCOUT_WEB_REPLICAS` web containers, **2 by default**, each with a 768 MB
 limit (512 MB of it heap). The API server and the database stay one each.
 
 ```sh
-echo HOLT_WEB_REPLICAS=3 >> ~/.local/share/holt-prod/.env   # 1, 2 or 3
+echo PRSCOUT_WEB_REPLICAS=3 >> ~/.local/share/prscout-prod/.env   # 1, 2 or 3
 FORCE=1 deploy/prod/deploy.sh    # three new ones start, then the old ones go; no rebuild
 ```
 
@@ -104,7 +104,7 @@ every container's address, and starts each request at a random one.
 
 **Health.**
 
-- A deploy waits for the health check of *every* new web container before
+- A deploy waits for the health check of _every_ new web container before
   any old one is retired, then asks each one for the home page and a report
   from inside the container (`healthy()` in `deploy.sh`). One that fails
   either sends the whole release back.
@@ -119,7 +119,7 @@ every container's address, and starts each request at a random one.
 
 **What each container keeps to itself** (all in `web/src/lib/`): the per-IP
 limit on the public endpoints (`rate-limit.ts`: an IP can make up to
-`HOLT_WEB_REPLICAS` times the limit; the API server's own limits are
+`PRSCOUT_WEB_REPLICAS` times the limit; the API server's own limits are
 unchanged), the 10-minute Find cache (`find-cache.ts`: at most one search
 per query per container), and the short caches for the landing page's
 report, recent checks and "does this repo exist". Sign-in sessions are in
@@ -131,7 +131,7 @@ is a ceiling, not what is used. During the web swap of a deploy the new set
 runs beside the old one for a few seconds.
 
 **CPU priority.** Every deploy gives the db, server, web and edge containers
-`HOLT_PROD_CPU_SHARES` CPU shares (default 8192; `docker update`, no
+`PRSCOUT_PROD_CPU_SHARES` CPU shares (default 8192; `docker update`, no
 restart). It is a priority, not a cap: when the box is busy each gets about
 five times the CPU time of a container with the default 1024 (staging, a
 build), and when it isn't nothing changes. It is not in `compose.yml`
@@ -143,14 +143,14 @@ run; that split is a host setting (`CPUWeight` on `user.slice`), not this
 stack's.
 
 ```sh
-docker ps --filter label=com.docker.compose.project=holt-prod --filter label=com.docker.compose.service=web
-docker inspect -f '{{.Name}} {{.HostConfig.CpuShares}}' $(docker ps -q --filter label=holt.stack=holt-prod)
+docker ps --filter label=com.docker.compose.project=prscout-prod --filter label=com.docker.compose.service=web
+docker inspect -f '{{.Name}} {{.HostConfig.CpuShares}}' $(docker ps -q --filter label=prscout.stack=prscout-prod)
 ```
 
 ## Auto-deploy
 
-`holt-prod-follow.timer` runs `follow.sh` every 2 minutes (the copy in
-`~/.local/share/holt-prod/bin/`, installed by `install-follow.sh`; re-run
+`prscout-prod-follow.timer` runs `follow.sh` every 2 minutes (the copy in
+`~/.local/share/prscout-prod/bin/`, installed by `install-follow.sh`; re-run
 that after changing `follow.sh`). It pulls: nothing on GitHub can reach
 the box, and there is no self-hosted runner (the repository is public).
 
@@ -159,7 +159,7 @@ the box, and there is no self-hosted runner (the repository is public).
 1. Fetch `origin/main`. Same as the live commit (`current`)? Nothing to do.
 2. **CI gate.** On that exact commit, GitHub must have at least one check
    run, and every check run and every workflow run must be completed with
-   *success* or *skipped* (`gh api repos/holt-oss/holt/commits/<sha>/check-runs`
+   _success_ or _skipped_ (`gh api repos/RauhanAli/prscout/commits/<sha>/check-runs`
    and `.../actions/runs?head_sha=<sha>`, with the box's `gh` login).
    Still running: wait. Anything else (failure, cancelled, timed out): wait
    for a newer commit; a re-run that goes green counts.
@@ -172,7 +172,7 @@ the box, and there is no self-hosted runner (the repository is public).
    usual build, migrate, swap, health check, roll back on failure. A
    manual deploy holding the lock, or a box too busy for 30 minutes, isn't
    a failure: the next tick tries again.
-5. When `src/holt/engine_version.py` differs between the old and the new
+5. When `src/prscout/engine_version.py` differs between the old and the new
    commit, stop a running warm pass and start `warm.sh --stale-only`.
 
 It only ever deploys the tip of main, never a PR or an older commit.
@@ -186,12 +186,12 @@ half-way counts as failed too.
 **Where to look:**
 
 ```sh
-curl -s https://githolt.com/__build | jq .autodeploy      # {state, sha, at, message}
-~/.local/share/holt-prod/bin/follow.sh --status             # the same, plus failed commits and recent changes
-systemctl --user list-timers holt-prod-follow.timer
-journalctl --user -u holt-prod-follow -n 50                 # every tick
-less ~/.local/share/holt-prod/logs/follow.log               # one line per change of state
-ls -t ~/.local/share/holt-prod/logs/autodeploy-*.log        # one per deploy (last 20), next to deploy.sh's own
+curl -s https://gitprscout.com/__build | jq .autodeploy      # {state, sha, at, message}
+~/.local/share/prscout-prod/bin/follow.sh --status             # the same, plus failed commits and recent changes
+systemctl --user list-timers prscout-prod-follow.timer
+journalctl --user -u prscout-prod-follow -n 50                 # every tick
+less ~/.local/share/prscout-prod/logs/follow.log               # one line per change of state
+ls -t ~/.local/share/prscout-prod/logs/autodeploy-*.log        # one per deploy (last 20), next to deploy.sh's own
 ```
 
 `state` is `up_to_date`, `waiting` (CI running, or staging not on it
@@ -202,8 +202,8 @@ failed commit, not retried), `busy` (another deploy or a busy box),
 **Pause and resume** (the timer keeps running and does nothing):
 
 ```sh
-F=~/.local/share/holt-prod/bin/follow.sh
-$F --pause "launch day, hands off"     # or: touch ~/.local/share/holt-prod/AUTODEPLOY_PAUSED
+F=~/.local/share/prscout-prod/bin/follow.sh
+$F --pause "launch day, hands off"     # or: touch ~/.local/share/prscout-prod/AUTODEPLOY_PAUSED
 $F --resume                            # or: rm that file
 ```
 
@@ -228,13 +228,13 @@ REBUILD=1 deploy/prod/deploy.sh       # rebuild the images for the tag
 
 What one run does, in order:
 
-1. Takes a lock (`~/.local/share/holt-prod/lock`); a second run exits
+1. Takes a lock (`~/.local/share/prscout-prod/lock`); a second run exits
    (status 75, like a box that stays too busy: nothing was changed).
 2. Reads `secrets.env`, fetches `origin/main`, checks the commit is on it.
 3. Waits until the 1-minute load is under 6 and MemAvailable over 3 GB
    (up to 30 min; `FORCE=1` skips this).
-4. Builds `holt-prod-server:<sha>` then `holt-prod-web:<sha>` (never both at
-   once) on its own buildx builder `holt-prod` (3 GB cap).
+4. Builds `prscout-prod-server:<sha>` then `prscout-prod-web:<sha>` (never both at
+   once) on its own buildx builder `prscout-prod` (3 GB cap).
 5. Starts `db` if needed and runs the one-shot `migrate-web` (Auth.js SQL,
    each file once), then `migrate-server` (the API's Alembic migrations, with
    the new server image; see `server/README.md`). Either failing stops the
@@ -242,7 +242,7 @@ What one run does, in order:
    which is why migrations must keep working with the previous release.
 6. The swap, with no gap ([`../swap.sh`](../swap.sh)): server, then web.
    The new containers start next to the old ones (`compose up --scale
-   <old + new> --no-recreate`: one server, `HOLT_WEB_REPLICAS` web); once
+<old + new> --no-recreate`: one server, `PRSCOUT_WEB_REPLICAS` web); once
    every one of them passes its health check, the old ones get SIGTERM and
    are removed. Meanwhile all of them answer to the service's name: the edge
    re-resolves `web` every 2 s and tries another address when one
@@ -279,12 +279,12 @@ What one run does, in order:
    (`EDGE CONFIG NOT APPLIED` / `REVERTED`, and on `/__build`); the new
    release itself stays live. See [Edge config](#edge-config).
 10. Prunes only this stack: untag image tags other than current and previous,
-   `docker image prune --filter label=holt.stack=holt-prod`, and the builder's
-   cache over 3 GB. Nothing else on the box is touched.
+    `docker image prune --filter label=prscout.stack=prscout-prod`, and the builder's
+    cache over 3 GB. Nothing else on the box is touched.
 
 ## Edge config
 
-The edge (nginx) reads `~/.local/share/holt-prod/edge/default.conf`, a copy
+The edge (nginx) reads `~/.local/share/prscout-prod/edge/default.conf`, a copy
 of `deploy/prod/edge.conf` at the deployed commit. The whole directory is
 mounted, not the file: a single-file bind mount pins the file's inode, so
 after git replaced `edge.conf` the running edge kept the old one until it
@@ -313,14 +313,14 @@ edge missed live, such as the `/stats/` paths.
 By hand (the same checks deploy.sh makes):
 
 ```sh
-docker exec holt-prod-edge-1 nginx -t
-docker exec holt-prod-edge-1 nginx -s reload
+docker exec prscout-prod-edge-1 nginx -t
+docker exec prscout-prod-edge-1 nginx -s reload
 ```
 
 ## The updating page
 
 When the edge can't reach web (nginx's own 502, 503 or 504; never the
-app's own error pages), it answers with a small "Holt is updating. Back in
+app's own error pages), it answers with a small "PRScout is updating. Back in
 a few seconds." page instead: status 503, `Retry-After: 10`,
 `Cache-Control: no-store`, light and dark, and it reloads itself once the
 site answers (every 5 s; a meta refresh without JavaScript). Cloudflare
@@ -330,15 +330,15 @@ the same in staging's) and goes live with the edge config reload. A deploy
 normally never shows it; it covers a web crash or a swap that goes wrong.
 
 ```sh
-curl -sI -H 'Host: githolt.com' http://127.0.0.1:8310/  # 200 normally
+curl -sI -H 'Host: gitprscout.com' http://127.0.0.1:8310/  # 200 normally
 ```
 
 ## Status, logs, helpers
 
 ```sh
-P=~/projects/holt/deploy/prod; S=~/.local/share/holt-prod
-dc() { HOLT_SRC=$S/src HOLT_TAG=$(cat $S/current) HOLT_PROD_HOME=$S \
-       docker compose -p holt-prod -f $P/compose.yml --project-directory $S/src/deploy/prod \
+P=~/projects/prscout/deploy/prod; S=~/.local/share/prscout-prod
+dc() { PRSCOUT_SRC=$S/src PRSCOUT_TAG=$(cat $S/current) PRSCOUT_PROD_HOME=$S \
+       docker compose -p prscout-prod -f $P/compose.yml --project-directory $S/src/deploy/prod \
        --env-file $S/.env "$@"; }
 
 curl -s http://127.0.0.1:8310/__build | jq '.live.main.short, .last_attempt'
@@ -350,15 +350,15 @@ dc stop; dc start                        # pause / resume (keeps data and the po
 
 ## Backups and restore
 
-`install.sh` enables `holt-prod-backup.timer` (daily 03:30 UTC, runs the
-copy at `~/.local/share/holt-prod/bin/backup.sh`; re-run `install.sh` after
+`install.sh` enables `prscout-prod-backup.timer` (daily 03:30 UTC, runs the
+copy at `~/.local/share/prscout-prod/bin/backup.sh`; re-run `install.sh` after
 editing `backup.sh`). Each run writes
-`~/backups/holt/<UTC stamp>/holt.dump`, `holt_web.dump` (pg_dump custom
+`~/backups/prscout/<UTC stamp>/prscout.dump`, `prscout_web.dump` (pg_dump custom
 format, compressed) and `globals.sql`, and deletes sets older than 14 days.
 
 ```sh
-systemctl --user list-timers holt-prod-backup.timer
-journalctl --user -u holt-prod-backup -n 20
+systemctl --user list-timers prscout-prod-backup.timer
+journalctl --user -u prscout-prod-backup -n 20
 deploy/prod/backup.sh                    # one now
 ```
 
@@ -366,35 +366,35 @@ Restore (into the running stack; stop web and server first so nothing
 writes meanwhile):
 
 ```sh
-B=~/backups/holt/<stamp>
-DB=$(docker ps -q --filter label=com.docker.compose.project=holt-prod --filter label=com.docker.compose.service=db)
+B=~/backups/prscout/<stamp>
+DB=$(docker ps -q --filter label=com.docker.compose.project=prscout-prod --filter label=com.docker.compose.service=db)
 dc stop web server
-docker exec -i $DB psql -U holt -d postgres -c 'DROP DATABASE IF EXISTS holt_restore'
-docker exec -i $DB psql -U holt -d postgres -c 'CREATE DATABASE holt_restore'
-docker exec -i $DB pg_restore -U holt -d holt_restore --no-owner < $B/holt.dump      # try it on a scratch db first
-docker exec -i $DB psql -U holt -d holt_restore -c 'SELECT count(*) FROM reports'   # looks right?
+docker exec -i $DB psql -U prscout -d postgres -c 'DROP DATABASE IF EXISTS prscout_restore'
+docker exec -i $DB psql -U prscout -d postgres -c 'CREATE DATABASE prscout_restore'
+docker exec -i $DB pg_restore -U prscout -d prscout_restore --no-owner < $B/prscout.dump      # try it on a scratch db first
+docker exec -i $DB psql -U prscout -d prscout_restore -c 'SELECT count(*) FROM reports'   # looks right?
 # the real thing: swap the databases (nobody is connected: web and server are stopped)
-docker exec -i $DB psql -U holt -d postgres -c 'ALTER DATABASE holt RENAME TO holt_old; ALTER DATABASE holt_restore RENAME TO holt'
-# same for holt_web with holt_web.dump, then
+docker exec -i $DB psql -U prscout -d postgres -c 'ALTER DATABASE PRScout RENAME TO prscout_old; ALTER DATABASE prscout_restore RENAME TO PRScout'
+# same for prscout_web with prscout_web.dump, then
 dc start server web
-# once happy: docker exec -i $DB psql -U holt -d postgres -c 'DROP DATABASE holt_old'
+# once happy: docker exec -i $DB psql -U prscout -d postgres -c 'DROP DATABASE prscout_old'
 ```
 
 To restore on a new machine: start the stack once (`deploy.sh`), stop web
-and server, drop and recreate `holt` and `holt_web`, `pg_restore` each dump,
-start. `HOLT_SECRET_KEY` must be the same as when the BYOK keys were saved,
+and server, drop and recreate `PRScout` and `prscout_web`, `pg_restore` each dump,
+start. `PRSCOUT_SECRET_KEY` must be the same as when the BYOK keys were saved,
 so keep `.env` with the backups (it is not in them).
 
 ## Warm pass
 
 Production starts with an empty cache. `deploy/prod/warm.sh` runs
-`python -m holt_server.warm` in a detached container (`holt-prod-warm`) with
+`python -m prscout_server.warm` in a detached container (`prscout-prod-warm`) with
 the server's environment; jobs go through the queue at badge priority,
-`HOLT_WARM_PARALLEL` (3) in flight at once, so people's requests always run
+`PRSCOUT_WARM_PARALLEL` (3) in flight at once, so people's requests always run
 first. Seeds that are closed to outside pull requests or dormant go last. A
 report costs about 12 GitHub GraphQL points, so a cold sweep of the ~10,000
 seeds is about 120,000 points over about 42 hours. It stops by itself under
-`HOLT_WARM_MIN_POINTS` (counting the reports in flight) and picks up where it
+`PRSCOUT_WARM_MIN_POINTS` (counting the reports in flight) and picks up where it
 left off next time; with `--wait-for-budget` it waits for the points to come
 back instead.
 
@@ -410,7 +410,7 @@ deploy/prod/warm.sh --no-find --wait-for-budget   # then --status or --logs
 ```
 
 Seeds with no report go first. After them, a pass without `--tier` reads
-every report over 20 hours old again (`HOLT_WARM_MAX_AGE_HOURS`), which is
+every report over 20 hours old again (`PRSCOUT_WARM_MAX_AGE_HOURS`), which is
 right for an empty cache and wrong once most seeds have a report. **When the
 seed list has grown**, index it with the monthly tier instead: a first report
 for every seed without one, and only reports over a month old read again.
@@ -424,20 +424,20 @@ The dry run ends with one line, for example `plan: 3012 never reported; 0
 with a report older than 720 hours (30 days) or from an older engine; 6956
 fresh; 16 skipped as recently failed`. The pass's first log line says the
 age it uses and the setting it came from (`monthly tier: 9984 repos; reports
-older than 720 hours (30 days) are read again (HOLT_REFRESH_MONTHLY_HOURS)`).
-The tiers' ages are `HOLT_REFRESH_WEEKLY_HOURS` and
-`HOLT_REFRESH_MONTHLY_HOURS` in `~/.local/share/holt-prod/.env` (168 and 720
+older than 720 hours (30 days) are read again (PRSCOUT_REFRESH_MONTHLY_HOURS)`).
+The tiers' ages are `PRSCOUT_REFRESH_WEEKLY_HOURS` and
+`PRSCOUT_REFRESH_MONTHLY_HOURS` in `~/.local/share/prscout-prod/.env` (168 and 720
 unless set); `warm.sh --tier` and the refresh timer both get them through
 `compose.yml`.
 
 Only one pass runs at a time (an advisory lock, and `warm.sh` checks for the
 container). A deploy doesn't touch a running pass unless the engine changed:
 it keeps its old image and settings until it ends. To restart it on the new
-image, `docker stop holt-prod-warm` (a report it was running is queued again
+image, `docker stop prscout-prod-warm` (a report it was running is queued again
 and finished by the server), then `warm.sh` again.
 
 **After a deploy that changes the engine** (`ENGINE_VERSION` in
-`src/holt/engine_version.py` went up), every stored report from the old
+`src/prscout/engine_version.py` went up), every stored report from the old
 engine is out of date. Nobody is served one: report pages re-run it, the
 badge and the extension say "updating", and Discover and recommendations
 leave it out until it is redone. The auto-deploy starts the stale-only
@@ -451,7 +451,7 @@ deploy/prod/warm.sh --stale-only             # then --status or --logs
 
 A seed whose evidence was kept within its refresh tier's age (a week for repos
 someone saved or viewed lately, a month for the rest; at least
-`HOLT_EVIDENCE_REUSE_HOURS`, 168) is made again from that snapshot, with no
+`PRSCOUT_EVIDENCE_REUSE_HOURS`, 168) is made again from that snapshot, with no
 GitHub points; the summary line
 counts them ("N made again from kept evidence"). The rest are read from
 GitHub as before.
@@ -459,39 +459,39 @@ GitHub as before.
 ## Evidence snapshots
 
 Every report also keeps the evidence it read, one gzipped file per report, in
-`~/.local/share/holt-prod/evidence/<owner>__<name>/<UTC time>.json.gz`
+`~/.local/share/prscout-prod/evidence/<owner>__<name>/<UTC time>.json.gz`
 (`server/README.md`, "Evidence snapshots"). It is on `/home`, bind-mounted
 into the server at `/data/evidence`, never in the database volume on `/`.
 `env.sh` makes the directory before each deploy or warm pass: group-writable
 and setgid, and the server's user (uid 10001) joins its group
-(`HOLT_EVIDENCE_GID`, compose.yml `group_add`), so the files stay readable
+(`PRSCOUT_EVIDENCE_GID`, compose.yml `group_add`), so the files stay readable
 and removable by you. Staging keeps its own in
-`~/.local/share/holt-staging/evidence` (preview.sh).
+`~/.local/share/prscout-staging/evidence` (preview.sh).
 
 Every snapshot is kept. About 126 MB per 1,000 repos per round; with the
 refresh timer on, 325 repos take about 0.5 GB a year if all are monthly
 (12 rounds), plus a weekly repo's 52 rounds (6 MB a year each) and what
-people's own checks add. To cap it, set `HOLT_EVIDENCE_KEEP_DAYS` in
-`~/.local/share/holt-prod/.env` (a repo's newest snapshot always stays).
+people's own checks add. To cap it, set `PRSCOUT_EVIDENCE_KEEP_DAYS` in
+`~/.local/share/prscout-prod/.env` (a repo's newest snapshot always stays).
 
 ```sh
-du -sh ~/.local/share/holt-prod/evidence
-ls ~/.local/share/holt-prod/evidence/pallets__flask/
+du -sh ~/.local/share/prscout-prod/evidence
+ls ~/.local/share/prscout-prod/evidence/pallets__flask/
 ```
 
 ## Report refresh
 
-`holt-prod-warm-refresh.timer` refreshes reports by interest, daily at 06:00
-UTC (`warm-refresh.sh`, log `~/.local/share/holt-prod/logs/warm-refresh.log`):
+`prscout-prod-warm-refresh.timer` refreshes reports by interest, daily at 06:00
+UTC (`warm-refresh.sh`, log `~/.local/share/prscout-prod/logs/warm-refresh.log`):
 
-- **weekly**: repos someone saved, or viewed on Holt in the last 30 days,
-  whose report is over 168 hours old (`HOLT_REFRESH_WEEKLY_HOURS`);
+- **weekly**: repos someone saved, or viewed on PRScout in the last 30 days,
+  whose report is over 168 hours old (`PRSCOUT_REFRESH_WEEKLY_HOURS`);
 - **monthly**: the rest of the seed list, over 720 hours old
-  (`HOLT_REFRESH_MONTHLY_HOURS`).
+  (`PRSCOUT_REFRESH_MONTHLY_HOURS`).
 
 Repos with no report first, then the oldest, through the job queue at badge
 priority (people first), and it
-stops below `HOLT_WARM_MIN_POINTS`; what's left carries on the next day. Each
+stops below `PRSCOUT_WARM_MIN_POINTS`; what's left carries on the next day. Each
 report it makes adds a snapshot. At about 12 GitHub points a report, a month
 costs about 3,900 points at today's ~325 repos (4,900 if 25 of them are
 weekly) and about 120,000 at the full ~10,000 seeds (about 128,000 with 200
@@ -503,7 +503,7 @@ weekly): 130 to 4,300 points a day, against 5,000 an hour.
 deploy/prod/install.sh --refresh-on
 ```
 
-`--refresh-off` switches it off. By hand, once: `~/.local/share/holt-prod/bin/warm-refresh.sh`.
+`--refresh-off` switches it off. By hand, once: `~/.local/share/prscout-prod/bin/warm-refresh.sh`.
 
 ## Repository details
 
@@ -511,18 +511,18 @@ Discover, the Hacktoberfest row and the repo cards show each repo's
 language, stars, topics and description from `repo_meta`. They are read:
 
 - **right after a repo's report is stored**, when it has none or they are a
-  day old (`server/holt_server/meta_refresh.py`): best effort, after the
+  day old (`server/prscout_server/meta_refresh.py`): best effort, after the
   report is already done, reports finishing within a few seconds share one
   query. A failure is logged (`repository details ... failed`) and the
   next report tries again;
-- **once a day, the oldest first** by `holt-prod-warm-meta.timer`
+- **once a day, the oldest first** by `prscout-prod-warm-meta.timer`
   (05:00 UTC, installed by `install.sh`), which runs the copy at
-  `~/.local/share/holt-prod/bin/warm-meta.sh`: the warm pass with
+  `~/.local/share/prscout-prod/bin/warm-meta.sh`: the warm pass with
   `--no-reports --no-starter --no-find`, in a one-off container of the live
   server image. It works no jobs, reads the oldest details first for at
-  most `HOLT_META_MAX_MINUTES` (15) and leaves the rest for the next day, so
+  most `PRSCOUT_META_MAX_MINUTES` (15) and leaves the rest for the next day, so
   the whole list rolls over across several days (raise it to go faster). It costs about one GraphQL point
-  per ten repos and stops below `HOLT_WARM_MIN_POINTS`. The summary line says
+  per ten repos and stops below `PRSCOUT_WARM_MIN_POINTS`. The summary line says
   how many points it used and how many repos are still due, and lists repos
   not on GitHub or not read. Running out of time is not a failure; it exits
   non-zero (the unit shows failed) when GitHub couldn't answer three queries
@@ -533,10 +533,10 @@ language, stars, topics and description from `repo_meta`. They are read:
 
 ```sh
 deploy/prod/install.sh                              # (re)install both timers; needs a deploy first
-systemctl --user list-timers holt-prod-warm-meta.timer
-tail ~/.local/share/holt-prod/logs/warm-meta.log    # "repo details N read (P GitHub points), ..."
-systemctl --user status holt-prod-warm-meta.service # failed: GitHub couldn't answer
-~/.local/share/holt-prod/bin/warm-meta.sh           # one now
+systemctl --user list-timers prscout-prod-warm-meta.timer
+tail ~/.local/share/prscout-prod/logs/warm-meta.log    # "repo details N read (P GitHub points), ..."
+systemctl --user status prscout-prod-warm-meta.service # failed: GitHub couldn't answer
+~/.local/share/prscout-prod/bin/warm-meta.sh           # one now
 ```
 
 ## Checks after a deploy
@@ -544,22 +544,22 @@ systemctl --user status holt-prod-warm-meta.service # failed: GitHub couldn't an
 ```sh
 H=http://127.0.0.1:8310
 curl -sI $H/ | head -3
-curl -s $H/robots.txt                                # Allow: / … Sitemap: https://githolt.com/sitemap.xml
+curl -s $H/robots.txt                                # Allow: / … Sitemap: https://gitprscout.com/sitemap.xml
 curl -s $H/sitemap.xml | head -5
 curl -sI $H/hacktoberfest | head -1
-curl -sI -H 'Host: www.githolt.com' $H/ | grep -i location     # https://githolt.com/
+curl -sI -H 'Host: www.gitprscout.com' $H/ | grep -i location     # https://gitprscout.com/
 curl -s -o /dev/null -w '%{http_code}\n' $H/api/public/report/pallets/flask   # 200 (or 404: no report yet)
 cd e2e && BASE_URL=$H npx playwright test --workers=1     # plain http on the port; Chromium refuses a Host override
-cd e2e && BASE_URL=https://githolt.com npx playwright test --workers=1   # once the tunnel is up
+cd e2e && BASE_URL=https://gitprscout.com npx playwright test --workers=1   # once the tunnel is up
 ```
 
 ## Rehearsing a change to these scripts
 
-`HOLT_PROD_PROJECT` renames the project, the images, the label and the
+`PRSCOUT_PROD_PROJECT` renames the project, the images, the label and the
 builder, so a rehearsal can't touch the real stack. In a task worktree:
 
 ```sh
-HOLT_PROD_PROJECT=$COMPOSE_PROJECT_NAME HOLT_PROD_HOME=/tmp/rehearsal HOLT_PROD_PORT=$PORT deploy/prod/deploy.sh
+PRSCOUT_PROD_PROJECT=$COMPOSE_PROJECT_NAME PRSCOUT_PROD_HOME=/tmp/rehearsal PRSCOUT_PROD_PORT=$PORT deploy/prod/deploy.sh
 ```
 
 `cx done` takes that project down by name.
@@ -570,10 +570,10 @@ built), and deploy again with a loop of requests running against
 `127.0.0.1:$PORT`: every answer should be what it was before the swap (a 200, or a 429 from
 the rate limit), never a 502 or the updating page. A rehearsal's containers
 keep the default CPU shares. When the box is busy with other work,
-`HOLT_PROD_MAX_LOAD` raises the load the deploy will start under.
+`PRSCOUT_PROD_MAX_LOAD` raises the load the deploy will start under.
 
 To force a rollback, run `deploy.sh` from a copy of `deploy/` whose
-`compose.yml` gives web a wrong `HOLT_INTERNAL_KEY` (the containers get
+`compose.yml` gives web a wrong `PRSCOUT_INTERNAL_KEY` (the containers get
 healthy, the report check answers 401, both web containers go back), or tag
 an image that exits at start as the new commit's web image (the new
 containers are removed and the old ones never stop).
@@ -583,19 +583,19 @@ repository whose `main` you move), a stand-in for `gh` that prints the
 check runs' TSV from files, and a fake staging `/__build`:
 
 ```sh
-export HOLT_PROD_PROJECT=$COMPOSE_PROJECT_NAME HOLT_PROD_HOME=$R/home HOLT_PROD_PORT=$PORT
-export HOLT_FOLLOW_REMOTE=$R/origin.git HOLT_FOLLOW_GH=$R/gh
-export HOLT_FOLLOW_STAGING_URL=http://127.0.0.1:$((PORT+1))/__build
-export HOLT_SECRETS_FILE=$R/secrets.env      # fake CONTACT_EMAIL / CONTACT_CITY
+export PRSCOUT_PROD_PROJECT=$COMPOSE_PROJECT_NAME PRSCOUT_PROD_HOME=$R/home PRSCOUT_PROD_PORT=$PORT
+export PRSCOUT_FOLLOW_REMOTE=$R/origin.git PRSCOUT_FOLLOW_GH=$R/gh
+export PRSCOUT_FOLLOW_STAGING_URL=http://127.0.0.1:$((PORT+1))/__build
+export PRSCOUT_SECRETS_FILE=$R/secrets.env      # fake CONTACT_EMAIL / CONTACT_CITY
 git clone $R/origin.git $R/home/src          # so deploy.sh fetches the fake origin too
 deploy/prod/follow.sh                        # one tick
 ```
 
-Never run it without `HOLT_PROD_HOME`: it would deploy the real stack.
+Never run it without `PRSCOUT_PROD_HOME`: it would deploy the real stack.
 
-The edge step alone needs no images: point `HOLT_PROD_HOME` at a scratch
+The edge step alone needs no images: point `PRSCOUT_PROD_HOME` at a scratch
 directory with a `.env` (the `:?` variables set to anything,
-`HOLT_PROD_PORT=$PORT`) and `src/deploy/prod/edge.conf`, source `edge.sh`,
+`PRSCOUT_PROD_PORT=$PORT`) and `src/deploy/prod/edge.conf`, source `edge.sh`,
 define `compose` as `deploy.sh` does, then `edge_seed`, `compose up -d
 --no-deps edge`, edit that `edge.conf` and `edge_apply`, with a `curl` loop
 on the port to show it never drops.
@@ -604,29 +604,29 @@ on the port to show it never drops.
 
 ```sh
 deploy/prod/install-follow.sh --remove
-systemctl --user disable --now holt-prod-backup.timer holt-prod-warm-meta.timer holt-prod-warm-refresh.timer
+systemctl --user disable --now prscout-prod-backup.timer prscout-prod-warm-meta.timer prscout-prod-warm-refresh.timer
 dc down            # add -v to drop the database too (take a backup first)
-docker buildx rm holt-prod
-docker image prune -af --filter label=holt.stack=holt-prod
-rm -rf ~/.local/share/holt-prod ~/.config/systemd/user/holt-prod-backup.* ~/.config/systemd/user/holt-prod-warm-meta.* ~/.config/systemd/user/holt-prod-warm-refresh.*
+docker buildx rm prscout-prod
+docker image prune -af --filter label=prscout.stack=prscout-prod
+rm -rf ~/.local/share/prscout-prod ~/.config/systemd/user/prscout-prod-backup.* ~/.config/systemd/user/prscout-prod-warm-meta.* ~/.config/systemd/user/prscout-prod-warm-refresh.*
 ```
 
 ## Analytics
 
 Two sources, both on this box, neither a third party:
 
-- **Holt's own database** (`deploy/prod/stats.sh`): the product numbers.
+- **PRScout's own database** (`deploy/prod/stats.sh`): the product numbers.
   Per UTC day: distinct people asking for a report (the reach number,
   signed in or not), requests, repositories, reports actually generated,
   AI reports, `/find` searches, new accounts. People are counted from
   `usage_events.who`, a hash of the user id or IP that changes every day
-  (`server/holt_server/usage.py`), so the numbers are per day only.
+  (`server/prscout_server/usage.py`), so the numbers are per day only.
   `generated` includes badge refreshes and the warm pass.
 - **Umami** (compose service `umami`, image pinned to `3.4.0`): page views,
   referrers, countries, and the browser events `paste-submit`,
   `report-view` (with `verdict`), `starter-issue-click`, `find-run`,
   `sign-in` (with `provider`). Cookieless, nothing in browser storage, so
-  no cookie banner. Only githolt.com builds load it
+  no cookie banner. Only gitprscout.com builds load it
   (`web/src/lib/analytics.ts`); staging sends nothing.
 
 ```sh
@@ -645,10 +645,10 @@ deploy/prod/umami.sh
 It adds `UMAMI_DB_PASSWORD`, `UMAMI_APP_SECRET` and
 `COMPOSE_PROFILES=analytics` to `.env` (so every later deploy's `compose up`
 keeps Umami running), creates the `umami` role and database in the running
-`db` (that role can't connect to `holt` or `holt_web`), starts `umami`,
+`db` (that role can't connect to `PRScout` or `prscout_web`), starts `umami`,
 **replaces the default `admin` / `umami` password** with a random one saved
-to `~/.local/share/holt-prod/umami-admin` (`chmod 600`), and creates the
-githolt.com site with the fixed id the web app sends. Safe to run again.
+to `~/.local/share/prscout-prod/umami-admin` (`chmod 600`), and creates the
+gitprscout.com site with the fixed id the web app sends. Safe to run again.
 Nothing else in the stack is restarted.
 
 Why the same Postgres: a second server would cost another ~50 MB and its
@@ -658,19 +658,18 @@ and `backup.sh` dumps it with the others.
 ### Where to see it
 
 The dashboard is **not public**: it listens on `127.0.0.1:8311` only
-(`HOLT_UMAMI_PORT`) and needs the admin login. The edge exposes just
+(`PRSCOUT_UMAMI_PORT`) and needs the admin login. The edge exposes just
 `/stats/script.js` and `/stats/api/send` (the tracker and its endpoint, on
-githolt.com's own origin, so the CSP needs no extra host). From the laptop:
+gitprscout.com's own origin, so the CSP needs no extra host). From the laptop:
 
 ```sh
-ssh -N -L 8311:127.0.0.1:8311 aahil-server     # then http://localhost:8311
+ssh -N -L 8311:127.0.0.1:8311 rauhan-server     # then http://localhost:8311
 ```
 
-User `admin`, password on line 2 of `~/.local/share/holt-prod/umami-admin`.
+User `admin`, password on line 2 of `~/.local/share/prscout-prod/umami-admin`.
 Change it in the dashboard if you like (Settings, Profile); the file is only
 what `umami.sh` set.
 
 Memory: `umami` is capped at 320 MB. To turn it off: remove
 `COMPOSE_PROFILES=analytics` from `.env` and `dc --profile analytics stop umami`;
 the pages carry on (the script request just fails).
-

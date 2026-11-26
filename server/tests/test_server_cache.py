@@ -7,9 +7,9 @@ import asyncio
 
 import pytest
 from conftest import STATS, canned_report
-from holt.starter import RULES_VERSION
-from holt_server import api, cache, discover, find as find_mod
-from holt_server.db import RepoMeta, Report, RepoUserStats, StarterCache, Usage, now
+from prscout.starter import RULES_VERSION
+from prscout_server import api, cache, discover, find as find_mod
+from prscout_server.db import RepoMeta, Report, RepoUserStats, StarterCache, Usage, now
 from sqlalchemy import delete, event, select
 
 
@@ -266,18 +266,18 @@ def test_a_report_rewritten_is_served_at_once(h):
     assert h.get("/v1/reports/octo/one").json()["about"]["description"] == "A thing"
 
 
-def test_holt_users_numbers_leave_a_kept_report_when_they_are_taken_away(h):
+def test_prscout_users_numbers_leave_a_kept_report_when_they_are_taken_away(h):
     add(h, report("octo/one"),
         RepoUserStats(repo_key="octo/one", people=6, pull_requests=9, merged=4, closed=2,
                       waiting=3, computed_at=now()))
-    assert h.get("/v1/reports/octo/one").json()["holt_users"]["people"] == 6
+    assert h.get("/v1/reports/octo/one").json()["prscout_users"]["people"] == 6
 
     async def opt_out():
         async with h.svc.db.session() as s:
             await s.execute(delete(RepoUserStats).where(RepoUserStats.repo_key == "octo/one"))
             await s.commit()
     h.client.portal.call(opt_out)
-    assert h.get("/v1/reports/octo/one").json()["holt_users"] is None
+    assert h.get("/v1/reports/octo/one").json()["prscout_users"] is None
 
 
 def test_a_missing_report_is_never_kept(h):

@@ -7,11 +7,26 @@ import type { LabEmail } from "@/lib/api-schema";
 
 type Width = "inbox" | "phone";
 
-function Toggle<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, string][]; onChange: (v: T) => void }) {
+function Toggle<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: [T, string][];
+  onChange: (v: T) => void;
+}) {
   return (
     <div role="group" aria-label={label} className="lab-toggle">
       {options.map(([v, text]) => (
-        <button key={v} type="button" aria-pressed={value === v} onClick={() => onChange(v)}>
+        <button
+          key={v}
+          type="button"
+          aria-pressed={value === v}
+          onClick={() => onChange(v)}
+        >
           {text}
         </button>
       ))}
@@ -20,14 +35,27 @@ function Toggle<T extends string>({ label, value, options, onChange }: { label: 
 }
 
 // The preview's theme switch: the template's dark block on or off, whatever the device says.
-const themed = (html: string, dark: boolean) => html.replace("@media (prefers-color-scheme: dark)", dark ? "@media all" : "@media not all");
+const themed = (html: string, dark: boolean) =>
+  html.replace(
+    "@media (prefers-color-scheme: dark)",
+    dark ? "@media all" : "@media not all",
+  );
 
-function Email({ email, width, dark }: { email: LabEmail; width: Width; dark: boolean }) {
+function Email({
+  email,
+  width,
+  dark,
+}: {
+  email: LabEmail;
+  width: Width;
+  dark: boolean;
+}) {
   const [height, setHeight] = useState(560);
   const frame = useRef<HTMLIFrameElement>(null);
   const measure = () => {
     const doc = frame.current?.contentDocument;
-    if (doc?.readyState === "complete" && doc.body) setHeight(doc.body.scrollHeight + 2);
+    if (doc?.readyState === "complete" && doc.body)
+      setHeight(doc.body.scrollHeight + 2);
   };
   // The frame can finish loading before hydration, when onLoad isn't wired yet.
   useEffect(measure);
@@ -35,7 +63,7 @@ function Email({ email, width, dark }: { email: LabEmail; width: Width; dark: bo
     <section className="lab-email-block">
       <h2 className="font-semibold">{email.name}</h2>
       <div className="lab-inbox-row">
-        <span className="font-semibold">Holt</span>
+        <span className="font-semibold">PRScout</span>
         <span className="min-w-0 truncate">
           <span className="font-semibold text-ink">{email.subject}</span>
           <span className="text-faint"> {email.preheader}</span>
@@ -55,7 +83,10 @@ function Email({ email, width, dark }: { email: LabEmail; width: Width; dark: bo
             onLoad={measure}
           />
         </div>
-        <pre aria-label={`${email.name}, as plain text`} className="panel self-start overflow-x-auto whitespace-pre-wrap break-words p-5 text-[0.8rem] leading-relaxed">
+        <pre
+          aria-label={`${email.name}, as plain text`}
+          className="panel self-start overflow-x-auto whitespace-pre-wrap break-words p-5 text-[0.8rem] leading-relaxed"
+        >
           {email.text}
         </pre>
       </div>
@@ -69,8 +100,24 @@ export function EmailLab({ emails }: { emails: LabEmail[] }) {
   return (
     <div>
       <div className="lab-controls">
-        <Toggle label="Width" value={width} onChange={setWidth} options={[["inbox", "Inbox"], ["phone", "Phone"]]} />
-        <Toggle label="Mail app theme" value={dark ? "dark" : "light"} onChange={(v) => setDark(v === "dark")} options={[["light", "Light"], ["dark", "Dark"]]} />
+        <Toggle
+          label="Width"
+          value={width}
+          onChange={setWidth}
+          options={[
+            ["inbox", "Inbox"],
+            ["phone", "Phone"],
+          ]}
+        />
+        <Toggle
+          label="Mail app theme"
+          value={dark ? "dark" : "light"}
+          onChange={(v) => setDark(v === "dark")}
+          options={[
+            ["light", "Light"],
+            ["dark", "Dark"],
+          ]}
+        />
       </div>
       {emails.map((email) => (
         <Email key={email.name} email={email} width={width} dark={dark} />

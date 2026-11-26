@@ -21,15 +21,15 @@ import json
 from pathlib import Path
 
 from eval import baseline, baseline_matched
-from holt.agent.pipeline import analyze
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import PRICES, ReplayModel, TRAJECTORY_DIR
-from holt.types import Window
+from prscout.agent.pipeline import analyze
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import PRICES, ReplayModel, TRAJECTORY_DIR
+from prscout.types import Window
 
 OUT = Path("trajectories")
 FEATURED = ["is-a-dev/register", "NixOS/nixpkgs", "SecureBananaLabs/bug-bounty"]
 
-# The one repository where the baseline solution and Holt disagree outright, so
+# The one repository where the baseline solution and PRScout disagree outright, so
 # the comparison arms are worth reading side by side on it.
 COMPARISON = "is-a-dev/register"
 PATHFINDER_CASE = "NixOS/nixpkgs"
@@ -195,7 +195,7 @@ def render_comparison_arms(slug: str) -> str:
     matched_model = ReplayModel(TRAJECTORY_DIR / fname(slug))
     matched = baseline_matched.assess(slug, FixtureProvider(Window.PRE_T), matched_model)
 
-    holt, trace = analyze(slug, FixtureProvider(Window.PRE_T),
+    full, trace = analyze(slug, FixtureProvider(Window.PRE_T),
                           ReplayModel(TRAJECTORY_DIR / fname(slug)))
 
     calls = {c["label"]: c for c in load_calls(slug)}
@@ -204,9 +204,9 @@ def render_comparison_arms(slug: str) -> str:
     out = [
         f"# Trajectory — the comparison arms on {slug}",
         "",
-        "Three methods are scored against Holt in the headline table, and each is "
+        "Three methods are scored against PRScout in the headline table, and each is "
         "one model call. This is all three on the repository where they part "
-        "company with Holt: a domain registry where an outsider's merged pull "
+        "company with PRScout: a domain registry where an outsider's merged pull "
         "request is one line of their own name in a data file.",
         "",
         "| Arm | What it is shown | Verdict here |",
@@ -216,12 +216,12 @@ def render_comparison_arms(slug: str) -> str:
         f"| `baseline` (the baseline solution) | README + repository metadata | "
         f"`{base.verdict.value}` |",
         f"| `baseline_matched` (evidence-matched ablation) | the same signals and "
-        f"threads Holt reads, in one prompt | `{matched.verdict.value}` |",
-        f"| **Holt** | the full pipeline | **`{holt.verdict.value}`** |",
+        f"threads PRScout reads, in one prompt | `{matched.verdict.value}` |",
+        f"| **PRScout** | the full pipeline | **`{full.verdict.value}`** |",
         "",
-        f"Holt's rule: {trace.rules[0] if trace.rules else '(none)'}",
+        f"PRScout's rule: {trace.rules[0] if trace.rules else '(none)'}",
         "",
-        "The full Holt walkthrough for this repository is "
+        "The full PRScout walkthrough for this repository is "
         f"[`{fname(slug).replace('.jsonl', '.md')}`]({fname(slug).replace('.jsonl', '.md')}).",
         "",
         "Replayed from committed recordings. No model ran.",
@@ -258,12 +258,12 @@ def render_comparison_arms(slug: str) -> str:
             "This arm exists to separate two claims that are easy to confuse: "
             "*reading pull request history beats reading a landing page*, and "
             "*a staged pipeline beats one call*. It gets the same signals and the "
-            "same thread digest Holt reads. What differs is only the "
+            "same thread digest PRScout reads. What differs is only the "
             "architecture — one model call decides, instead of typed findings "
             "passing through verification into a model-free verdict function.",
             "",
             f"Its verdict here: `{matched.verdict.value}`. Out of sample it scores "
-            "MCC 0.32 against Holt's 0.63, and specificity 0.47 against 0.83 — "
+            "MCC 0.32 against PRScout's 0.63, and specificity 0.47 against 0.83 — "
             "most of the remaining gap is the rejection rule the model cannot "
             "override.",
             "",
@@ -306,14 +306,14 @@ calls, no model), the verdict function, and Stage E narration.
 
 | Trajectory | What it is |
 |---|---|
-| [comparison arms on `is-a-dev/register`](comparison-arms--is-a-dev__register.md) | all three scored comparison arms — `name_only`, `baseline`, `baseline_matched` — on the case where they disagree with Holt |
+| [comparison arms on `is-a-dev/register`](comparison-arms--is-a-dev__register.md) | all three scored comparison arms — `name_only`, `baseline`, `baseline_matched` — on the case where they disagree with PRScout |
 | [Path Finder on `NixOS/nixpkgs`](pathfinder--NixOS__nixpkgs.md) | ranking a repository's open issues by how likely an outsider is to land a fix; ships behind a flag that prints its own losing number |
-| [contributor profile, `home-assistant/core`](profile--home-assistant__core__epenet.md) | turning one contributor's merged work into a competence profile for `holt next` |
+| [contributor profile, `home-assistant/core`](profile--home-assistant__core__epenet.md) | turning one contributor's merged work into a competence profile for `prscout next` |
 
 Together with the pipeline files above, that is one reading copy per prompted
 agent in the project. The one exception is `describe()`
-(`src/holt/agent/progression.py`), which has no recorded calls because the model
-call it wraps moved 0 of 88 rankings when measured and was cut — `holt next`
+(`src/prscout/agent/progression.py`), which has no recorded calls because the model
+call it wraps moved 0 of 88 rankings when measured and was cut — `prscout next`
 runs no model at all.
 
 ## The raw record
@@ -337,15 +337,15 @@ and `dev/` alongside them.
 one.** Output shape is enforced at the API with a strict JSON schema, so a
 malformed answer is impossible rather than retried; the only retries in the
 system are transport-level (`max_retries = 4` on the client in
-`src/holt/model.py`, for network and 5xx failures) and they never produce a
+`src/prscout/model.py`, for network and 5xx failures) and they never produce a
 second answer to the same question. A stage that returns a finding whose
 evidence does not resolve is not re-prompted either — Stage D drops the finding.
 Verification subtracts; it never asks again.
 
 **There is no human approval step mid-run because there is no consequential
-action to approve.** Holt never writes to GitHub, opens a pull request or
+action to approve.** PRScout never writes to GitHub, opens a pull request or
 contacts a maintainer; it reads public data. The human decisions are the ones
-before and after: what to ask (`holt profile`, `--days`), whether to spend
+before and after: what to ask (`prscout profile`, `--days`), whether to spend
 anything at all (`--replay` and `--no-model` against `--live`), a cap on how
 many full analyses a discovery session may run (`--survivors`), and reading the
 evidence section before committing a week. In the terminal interface, the two
@@ -402,7 +402,7 @@ def main() -> None:
             TRAJECTORY_DIR / "progression" / f"{repo.replace('/', '__')}__{login}.jsonl",
             f"contributor profile — {login} in {repo}",
             [
-                "`holt next` ranks open issues for somebody who has already "
+                "`prscout next` ranks open issues for somebody who has already "
                 "merged work in a repository. This agent turns that person's "
                 "merged pull requests and the review feedback on them into a "
                 "competence profile, which feeds exactly one term in the "
@@ -410,7 +410,7 @@ def main() -> None:
                 "",
                 "It was measured and cut: adding the profile term moved **0 of "
                 "88** rankings — 0 wins, 0 losses, 88 ties — which is why the "
-                "shipped `holt next` runs no model call and costs nothing. The "
+                "shipped `prscout next` runs no model call and costs nothing. The "
                 "call is here because the experiment is in the changelog and the "
                 "record should be readable.",
             ],

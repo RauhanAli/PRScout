@@ -22,10 +22,15 @@ export const currentUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const s = await auth();
     if (!s?.user?.id) return null;
-    return { id: s.user.id, name: s.user.name ?? null, email: s.user.email ?? null, image: s.user.image ?? null };
+    return {
+      id: s.user.id,
+      name: s.user.name ?? null,
+      email: s.user.email ?? null,
+      image: s.user.image ?? null,
+    };
   } catch (e) {
     unstable_rethrow(e);
-    console.error("[holt] session lookup failed:", (e as Error).message);
+    console.error("[PRScout] session lookup failed:", (e as Error).message);
     return null;
   }
 });
@@ -37,16 +42,23 @@ type Params = Record<string, string | string[] | undefined>;
  * request ends here with a redirect to sign-in, then back to `path` with the
  * query it came with. Call it before the page loads anything.
  */
-export async function requireUser(path: string, params: Params = {}): Promise<SessionUser> {
+export async function requireUser(
+  path: string,
+  params: Params = {},
+): Promise<SessionUser> {
   const user = await currentUser();
   if (user) return user;
   const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) for (const one of [v ?? []].flat()) q.append(k, one);
+  for (const [k, v] of Object.entries(params))
+    for (const one of [v ?? []].flat()) q.append(k, one);
   redirect(signInHref(q.size ? `${path}?${q}` : path));
 }
 
 /** Who is asking, for API calls. Pass `user` when the page already looked it up. */
 export async function caller(known?: SessionUser | null): Promise<Caller> {
-  const [user, h] = await Promise.all([known !== undefined ? known : currentUser(), headers()]);
+  const [user, h] = await Promise.all([
+    known !== undefined ? known : currentUser(),
+    headers(),
+  ]);
   return { userId: user?.id ?? null, ip: clientIpFrom(h) };
 }

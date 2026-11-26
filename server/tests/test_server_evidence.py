@@ -8,12 +8,12 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from holt_server import engine, evidence_store, warm
-from holt_server.db import ENGINE_VERSION, Report, SavedRepo
-from holt_server.evidence_store import EvidenceStore
+from prscout_server import engine, evidence_store, warm
+from prscout_server.db import ENGINE_VERSION, Report, SavedRepo
+from prscout_server.evidence_store import EvidenceStore
 
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import T_CUTOFF, Window
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import T_CUTOFF, Window
 from sqlalchemy import select
 
 from conftest import canned_report
@@ -56,7 +56,7 @@ def test_the_newest_snapshot_wins(tmp_path):
 
 
 def replay_harness(make_harness, tmp_path, **overrides):
-    h = make_harness(HOLT_EVIDENCE_DIR=str(tmp_path / "evidence"), **overrides)
+    h = make_harness(PRSCOUT_EVIDENCE_DIR=str(tmp_path / "evidence"), **overrides)
     h.svc.analysis_fn = engine.analyze
     h.svc.provider_factory = lambda repo, as_of: FixtureProvider(Window.PRE_T,
                                                                  root=ROOT / "fixtures")
@@ -91,11 +91,11 @@ def test_a_report_keeps_its_evidence_and_can_be_made_again_from_it(make_harness,
 def test_a_failed_write_never_fails_the_report(make_harness, tmp_path, caplog):
     blocked = tmp_path / "not-a-directory"
     blocked.write_text("a file where the directory should be", encoding="utf-8")
-    h = make_harness(HOLT_EVIDENCE_DIR=str(blocked))
+    h = make_harness(PRSCOUT_EVIDENCE_DIR=str(blocked))
     h.svc.analysis_fn = engine.analyze
     h.svc.provider_factory = lambda repo, as_of: FixtureProvider(Window.PRE_T,
                                                                  root=ROOT / "fixtures")
-    with caplog.at_level("ERROR", logger="holt_server"):
+    with caplog.at_level("ERROR", logger="prscout_server"):
         body = h.wait(h.post("/v1/analyses", {"repo": REPO}).json()["job_id"])
         deadline = time.monotonic() + 10
         while "saving the evidence" not in caplog.text:
@@ -121,7 +121,7 @@ def test_off_without_a_directory(make_harness, tmp_path):
 @pytest.fixture
 def warm_h(make_harness, tmp_path, monkeypatch):
     monkeypatch.setattr(warm, "POLL_S", 0.02)
-    h = make_harness(HOLT_EVIDENCE_DIR=str(tmp_path / "evidence"))
+    h = make_harness(PRSCOUT_EVIDENCE_DIR=str(tmp_path / "evidence"))
 
     async def remaining():
         return 5000
@@ -183,7 +183,7 @@ def test_stale_only_reads_github_when_the_snapshot_is_too_old(warm_h):
 
 
 def test_stale_only_reuses_a_snapshot_as_old_as_the_repos_refresh_tier(warm_h):
-    # Ten days: past HOLT_EVIDENCE_REUSE_HOURS (a week), inside the monthly
+    # Ten days: past PRSCOUT_EVIDENCE_REUSE_HOURS (a week), inside the monthly
     # tier, so a seed nobody saved or viewed is made again from it...
     read_at = datetime.now(UTC).replace(microsecond=0) - timedelta(days=10)
     for repo in (REPO, "NixOS/other"):
@@ -223,7 +223,7 @@ def test_stale_only_reads_github_when_the_report_is_newer_than_the_snapshot(warm
 
 def test_stale_only_reads_github_when_reuse_is_off(make_harness, tmp_path, monkeypatch):
     monkeypatch.setattr(warm, "POLL_S", 0.02)
-    h = make_harness(HOLT_EVIDENCE_DIR=str(tmp_path / "ev"), HOLT_EVIDENCE_REUSE_HOURS=0)
+    h = make_harness(PRSCOUT_EVIDENCE_DIR=str(tmp_path / "ev"), PRSCOUT_EVIDENCE_REUSE_HOURS=0)
 
     async def remaining():
         return 5000

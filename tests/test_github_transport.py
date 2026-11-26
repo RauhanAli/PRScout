@@ -11,8 +11,8 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
-from holt.evidence import github_graphql as gql
-from holt.evidence.errors import (
+from prscout.evidence import github_graphql as gql
+from prscout.evidence.errors import (
     AuthError,
     Forbidden,
     RateLimited,
@@ -302,7 +302,7 @@ def test_issue_provider_uses_the_open_sorted_query():
             self.queries.append(q)
             return iter(())
 
-    from holt.types import Window
+    from prscout.types import Window
 
     fake = Fake()
     provider = gql.LiveGitHubIssueProvider(Window.PRE_T, transport=fake)

@@ -36,7 +36,7 @@ pytestmark = pytest.mark.skipif(
 DEPLOY_STUB = """#!/bin/sh
 echo "$1" >> "$STUB_DIR/deploys"
 case "${STUB_DEPLOY:-ok}" in
-    ok)   echo "$1" > "$HOLT_PROD_HOME/current"; echo "live" ;;
+    ok)   echo "$1" > "$PRSCOUT_PROD_HOME/current"; echo "live" ;;
     busy) echo "2026-01-01T00:00:00Z ERROR: another deploy is in progress"; exit 75 ;;
     *)    echo "2026-01-01T00:00:00Z ERROR: $1 failed its health check; rolled back"; exit 1 ;;
 esac
@@ -89,14 +89,14 @@ class Rig:
         for name, body in (("deploy.sh", DEPLOY_STUB), ("warm.sh", WARM_STUB)):
             (prod / name).write_text(body, encoding="utf-8")
             (prod / name).chmod(0o755)
-        (self.work / "src" / "holt").mkdir(parents=True)
+        (self.work / "src" / "prscout").mkdir(parents=True)
         self.engine(1)
         _git(self.work, "remote", "add", "origin", str(self.origin))
         self.commit("first")
         self.staging_on("")
 
     def engine(self, n: int) -> None:
-        (self.work / "src" / "holt" / "engine_version.py").write_text(
+        (self.work / "src" / "prscout" / "engine_version.py").write_text(
             f"ENGINE_VERSION = {n}\n", encoding="utf-8")
 
     def commit(self, msg: str) -> str:
@@ -126,10 +126,10 @@ class Rig:
             "PATH": os.environ["PATH"],
             "STUB_DIR": str(self.stubs),
             "STUB_DEPLOY": deploy,
-            "HOLT_PROD_HOME": str(self.state),
-            "HOLT_PROD_PROJECT": "follow-test",
-            "HOLT_FOLLOW_REMOTE": str(self.origin),
-            "HOLT_FOLLOW_STAGING_URL": (self.tmp / "staging.json").as_uri(),
+            "PRSCOUT_PROD_HOME": str(self.state),
+            "PRSCOUT_PROD_PROJECT": "follow-test",
+            "PRSCOUT_FOLLOW_REMOTE": str(self.origin),
+            "PRSCOUT_FOLLOW_STAGING_URL": (self.tmp / "staging.json").as_uri(),
         }
         return subprocess.run(["bash", str(FOLLOW), *args], env=env, capture_output=True,
                               text=True, timeout=60)
@@ -200,7 +200,7 @@ def test_green_deploys_that_exact_commit_and_shows_it_on_build(rig: Rig) -> None
     new = _ready(rig)
     (rig.state / "build").mkdir()
     (rig.state / "build" / "build.json").write_text(
-        json.dumps({"site": "https://githolt.com", "live": {"tag": "x"}}), encoding="utf-8")
+        json.dumps({"site": "https://gitprscout.com", "live": {"tag": "x"}}), encoding="utf-8")
     r = rig.tick()
     assert r.returncode == 0, r.stdout + r.stderr
     assert rig.calls("deploys") == [new]

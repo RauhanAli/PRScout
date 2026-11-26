@@ -13,7 +13,12 @@ import { useEffect, useRef } from "react";
 import { CAT, type CatMood } from "@/lib/cat";
 import { useReducedMotion } from "./use-seen";
 
-const TONE_VAR = { blue: "var(--blue)", green: "var(--green)", orange: "var(--orange)", amber: "var(--amber)" } as const;
+const TONE_VAR = {
+  blue: "var(--blue)",
+  green: "var(--green)",
+  orange: "var(--orange)",
+  amber: "var(--amber)",
+} as const;
 
 export function CatCompanion() {
   const root = useRef<HTMLButtonElement>(null);
@@ -28,14 +33,19 @@ export function CatCompanion() {
     let cleanup: (() => void) | undefined;
     let run = 0;
     const idle = (cb: () => void) =>
-      "requestIdleCallback" in window ? requestIdleCallback(cb, { timeout: 2500 }) : setTimeout(cb, 1200);
+      "requestIdleCallback" in window
+        ? requestIdleCallback(cb, { timeout: 2500 })
+        : setTimeout(cb, 1200);
     const sync = () => {
       const id = ++run;
       cleanup?.();
       cleanup = undefined;
       if (!wide.matches) return;
       idle(async () => {
-        const [{ gsap }, { ScrollTrigger }] = await Promise.all([import("gsap"), import("gsap/ScrollTrigger")]);
+        const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+          import("gsap"),
+          import("gsap/ScrollTrigger"),
+        ]);
         if (id !== run || !root.current) return;
         cleanup = await start(gsap, ScrollTrigger, root.current);
       });
@@ -54,7 +64,7 @@ export function CatCompanion() {
     <button
       ref={root}
       type="button"
-      aria-label="Play with Holt, the site cat"
+      aria-label="Play with PRScout, the site cat"
       data-cat-companion
       // One hover target sized to the whole face, above the hero text layer.
       // Where it starts: globals.css, [data-cat-companion].
@@ -64,13 +74,22 @@ export function CatCompanion() {
         <span
           className="cat-face text-[1.5rem] lg:text-[clamp(2rem,min(3.4vw,5.6svh),3.4rem)]"
           data-cat-face
-          style={{ textShadow: "0 0 28px color-mix(in oklab, var(--blue) 25%, transparent)" }}
+          style={{
+            textShadow:
+              "0 0 28px color-mix(in oklab, var(--blue) 25%, transparent)",
+          }}
         >
           <span>(=</span>
           <span className="cat-ear">{c.ears[0]}</span>
-          <span className="cat-eye" data-cat-eye>{c.eyes[0]}</span>
-          <span className="cat-mouth" data-cat-mouth>{c.mouth}</span>
-          <span className="cat-eye" data-cat-eye>{c.eyes[1]}</span>
+          <span className="cat-eye" data-cat-eye>
+            {c.eyes[0]}
+          </span>
+          <span className="cat-mouth" data-cat-mouth>
+            {c.mouth}
+          </span>
+          <span className="cat-eye" data-cat-eye>
+            {c.eyes[1]}
+          </span>
           <span className="cat-ear">{c.ears[1]}</span>
           <span>=)</span>
         </span>
@@ -120,16 +139,54 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     // those makes the next quickTo call throw ("y not eligible for reset").
     gsap.killTweensOf([face, ears, mouth]);
     gsap.killTweensOf(eyes, "scaleY");
-    gsap.set([face, mouth, ears], { clearProps: "x,y,rotation,scale,scaleX,scaleY" });
+    gsap.set([face, mouth, ears], {
+      clearProps: "x,y,rotation,scale,scaleX,scaleY",
+    });
     gsap.set(eyes, { scaleY: 1 });
     const t = gsap.timeline();
-    if (name === "curious") t.fromTo(face, { rotation: -4, y: 2 }, { rotation: 3, y: 0, duration: 0.38, ease: "power2.out" });
-    if (name === "startled") t.fromTo(face, { y: 5, scale: 0.94 }, { y: -5, scale: 1.04, duration: 0.22 }).to(face, { y: 0, scale: 1, duration: 0.3 });
+    if (name === "curious")
+      t.fromTo(
+        face,
+        { rotation: -4, y: 2 },
+        { rotation: 3, y: 0, duration: 0.38, ease: "power2.out" },
+      );
+    if (name === "startled")
+      t.fromTo(
+        face,
+        { y: 5, scale: 0.94 },
+        { y: -5, scale: 1.04, duration: 0.22 },
+      ).to(face, { y: 0, scale: 1, duration: 0.3 });
     if (name === "heartbroken")
-      t.to(ears, { y: 3, rotation: (i: number) => (i ? -8 : 8), duration: 0.3 }).to(face, { y: 5, rotation: -3, duration: 0.4 }, 0);
-    if (name === "determined") t.fromTo(face, { x: -3 }, { x: 3, duration: 0.12, yoyo: true, repeat: 1 }).to(face, { x: 0, duration: 0.2 });
-    if (name === "celebrating") t.fromTo(face, { y: 3, scaleY: 0.92 }, { y: -7, scaleY: 1.04, duration: 0.22 }).to(face, { y: 0, scaleY: 1, duration: 0.3 });
-    if (name === "adoring") t.fromTo(face, { scale: 0.96, rotation: -3 }, { scale: 1.03, rotation: 3, duration: 0.28, yoyo: true, repeat: 1, ease: "sine.inOut" });
+      t.to(ears, {
+        y: 3,
+        rotation: (i: number) => (i ? -8 : 8),
+        duration: 0.3,
+      }).to(face, { y: 5, rotation: -3, duration: 0.4 }, 0);
+    if (name === "determined")
+      t.fromTo(
+        face,
+        { x: -3 },
+        { x: 3, duration: 0.12, yoyo: true, repeat: 1 },
+      ).to(face, { x: 0, duration: 0.2 });
+    if (name === "celebrating")
+      t.fromTo(
+        face,
+        { y: 3, scaleY: 0.92 },
+        { y: -7, scaleY: 1.04, duration: 0.22 },
+      ).to(face, { y: 0, scaleY: 1, duration: 0.3 });
+    if (name === "adoring")
+      t.fromTo(
+        face,
+        { scale: 0.96, rotation: -3 },
+        {
+          scale: 1.03,
+          rotation: 3,
+          duration: 0.28,
+          yoyo: true,
+          repeat: 1,
+          ease: "sine.inOut",
+        },
+      );
   };
 
   const setMood = (m: CatMood) => {
@@ -139,10 +196,22 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     gsap.killTweensOf(eyes, "scaleY");
     gsap
       .timeline()
-      .to(face, { scaleX: 1.14, scaleY: 0.62, y: 5, duration: 0.12, ease: "power2.in" })
+      .to(face, {
+        scaleX: 1.14,
+        scaleY: 0.62,
+        y: 5,
+        duration: 0.12,
+        ease: "power2.in",
+      })
       .add(() => glyphs(m))
       .to(cat, { color: TONE_VAR[CAT[m].tone], duration: 0.28 }, 0)
-      .to(face, { scaleX: 1, scaleY: 1, y: 0, duration: 0.3, ease: "power2.out" })
+      .to(face, {
+        scaleX: 1,
+        scaleY: 1,
+        y: 0,
+        duration: 0.3,
+        ease: "power2.out",
+      })
       .add(() => pose(POSE[m]));
   };
 
@@ -150,11 +219,16 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
   let idleCall: gsap.core.Tween | undefined;
   const idle = () => {
     if (!hovered) {
-      if (Math.random() < 0.5) gsap.to(eyes, { scaleY: 0.08, duration: 0.07, yoyo: true, repeat: 1 });
+      if (Math.random() < 0.5)
+        gsap.to(eyes, { scaleY: 0.08, duration: 0.07, yoyo: true, repeat: 1 });
       else
         gsap
           .timeline()
-          .to(ears, { y: -3, rotation: (i: number) => (i === 0 ? -6 : 6), duration: 0.15 })
+          .to(ears, {
+            y: -3,
+            rotation: (i: number) => (i === 0 ? -6 : 6),
+            duration: 0.15,
+          })
           .to(ears, { y: 0, rotation: 0, duration: 0.25 });
     }
     idleCall = gsap.delayedCall(gsap.utils.random(2.4, 4), idle);
@@ -175,7 +249,11 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     eyes.forEach((e) => (e.textContent = "^"));
     mouth.textContent = "ᴗ";
     gsap.to(character, { scale: 1.04, duration: 0.2 });
-    gsap.to(ears, { y: -3, rotation: (i: number) => (i ? 3 : -3), duration: 0.2 });
+    gsap.to(ears, {
+      y: -3,
+      rotation: (i: number) => (i ? 3 : -3),
+      duration: 0.2,
+    });
   };
   const onLeave = () => {
     hovered = false;
@@ -188,7 +266,11 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     mouth.textContent = "ᴗ";
     gsap
       .timeline()
-      .fromTo(character, { scaleX: 1.06, scaleY: 0.9 }, { scaleX: 0.98, scaleY: 1.06, y: -6, duration: 0.18 })
+      .fromTo(
+        character,
+        { scaleX: 1.06, scaleY: 0.9 },
+        { scaleX: 0.98, scaleY: 1.06, y: -6, duration: 0.18 },
+      )
       .to(character, { scaleX: 1.04, scaleY: 1.04, y: 0, duration: 0.26 });
     reaction = window.setTimeout(restore, 850);
   };
@@ -199,14 +281,28 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
   // Eyes follow the pointer on desktop.
   let onMove: ((e: PointerEvent) => void) | undefined;
   if (matchMedia("(pointer: fine)").matches) {
-    const cx = gsap.quickTo(character, "x", { duration: 0.55, ease: "power3.out" });
-    const cy = gsap.quickTo(character, "y", { duration: 0.55, ease: "power3.out" });
+    const cx = gsap.quickTo(character, "x", {
+      duration: 0.55,
+      ease: "power3.out",
+    });
+    const cy = gsap.quickTo(character, "y", {
+      duration: 0.55,
+      ease: "power3.out",
+    });
     const ex = gsap.quickTo(eyes, "x", { duration: 0.16 });
     const ey = gsap.quickTo(eyes, "y", { duration: 0.16 });
     onMove = (e) => {
       const r = cat.getBoundingClientRect();
-      const x = gsap.utils.clamp(-1, 1, (e.clientX - (r.left + r.width / 2)) / (innerWidth * 0.3));
-      const y = gsap.utils.clamp(-1, 1, (e.clientY - (r.top + r.height / 2)) / (innerHeight * 0.3));
+      const x = gsap.utils.clamp(
+        -1,
+        1,
+        (e.clientX - (r.left + r.width / 2)) / (innerWidth * 0.3),
+      );
+      const y = gsap.utils.clamp(
+        -1,
+        1,
+        (e.clientY - (r.top + r.height / 2)) / (innerHeight * 0.3),
+      );
       cx(x * 10);
       cy(y * 7);
       ex(x * 5.5);
@@ -245,8 +341,16 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     const side = () => {
       const scale = SIDE_FACE / face.offsetWidth;
       return {
-        x: innerWidth - SIDE_EDGE - SIDE_FACE - face.offsetLeft * scale - cat.offsetLeft,
-        y: innerHeight * 0.5 - (face.offsetTop + face.offsetHeight / 2) * scale - cat.offsetTop,
+        x:
+          innerWidth -
+          SIDE_EDGE -
+          SIDE_FACE -
+          face.offsetLeft * scale -
+          cat.offsetLeft,
+        y:
+          innerHeight * 0.5 -
+          (face.offsetTop + face.offsetHeight / 2) * scale -
+          cat.offsetTop,
         scale,
       };
     };
@@ -255,8 +359,24 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     // under it), then down the lane.
     journey = gsap
       .timeline({ paused: true })
-      .to(cat, { x: () => side().x, scale: () => side().scale, opacity: 0.92, duration: 0.35, ease: "power3.out", force3D: true })
-      .to(cat, { y: () => side().y, duration: 0.6, ease: "power3.inOut", force3D: true }, 0.25);
+      .to(cat, {
+        x: () => side().x,
+        scale: () => side().scale,
+        opacity: 0.92,
+        duration: 0.35,
+        ease: "power3.out",
+        force3D: true,
+      })
+      .to(
+        cat,
+        {
+          y: () => side().y,
+          duration: 0.6,
+          ease: "power3.inOut",
+          force3D: true,
+        },
+        0.25,
+      );
     // Back at the top it glides home on its own ease: reversing the walk
     // would replay the fast exit backwards, ending in a snap.
     journeyTrigger = ScrollTrigger.create({
@@ -271,7 +391,15 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
       onLeaveBack: () => {
         atSide = false;
         journey!.pause();
-        back = gsap.to(cat, { x: 0, y: 0, scale: 1, opacity: 0.85, duration: 0.7, ease: "power3.inOut", force3D: true });
+        back = gsap.to(cat, {
+          x: 0,
+          y: 0,
+          scale: 1,
+          opacity: 0.85,
+          duration: 0.7,
+          ease: "power3.inOut",
+          force3D: true,
+        });
       },
     });
     // After a resize (ScrollTrigger refreshes once it settles), a cat at the
@@ -279,7 +407,13 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     onRefresh = () => {
       if (!atSide) return;
       journey!.pause();
-      gsap.to(cat, { ...side(), duration: 0.3, ease: "power2.out", overwrite: "auto", force3D: true });
+      gsap.to(cat, {
+        ...side(),
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: "auto",
+        force3D: true,
+      });
     };
     ScrollTrigger.addEventListener("refresh", onRefresh);
 
@@ -299,7 +433,8 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
         void spot.offsetWidth;
         spot.dataset.landed = "";
       },
-      onLeaveBack: () => gsap.to(character, { autoAlpha: 1, duration: 0.3, overwrite: "auto" }),
+      onLeaveBack: () =>
+        gsap.to(character, { autoAlpha: 1, duration: 0.3, overwrite: "auto" }),
     });
   }
 
@@ -309,7 +444,13 @@ async function start(gsap: Gsap, ScrollTrigger: ST, cat: HTMLButtonElement) {
     .toArray<HTMLElement>("[data-reveal]")
     .filter((el) => el.getBoundingClientRect().top > innerHeight * 0.9)
     .map((el) =>
-      gsap.from(el, { y: 12, autoAlpha: 0, duration: 0.45, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 98%", once: true } }),
+      gsap.from(el, {
+        y: 12,
+        autoAlpha: 0,
+        duration: 0.45,
+        ease: "power3.out",
+        scrollTrigger: { trigger: el, start: "top 98%", once: true },
+      }),
     );
 
   return () => {

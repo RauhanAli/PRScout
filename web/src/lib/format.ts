@@ -41,7 +41,12 @@ export function timeAgo(iso: string, now = Date.now()): string {
 export function shortDate(iso: string): string {
   const t = new Date(iso);
   if (Number.isNaN(t.getTime())) return "";
-  return t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  return t.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 export function daysLabel(days: number): string {
@@ -52,7 +57,7 @@ export function daysLabel(days: number): string {
   return "a month";
 }
 
-// Tile colours. The server's `odds` (server/holt_server/schema.py, MERGE_*
+// Tile colours. The server's `odds` (server/prscout_server/schema.py, MERGE_*
 // and NO_REPLY_*) uses the same thresholds, so a tile and the odds never pull
 // different ways.
 export function mergeTone(mergedPct: number): Tone {
@@ -88,7 +93,10 @@ export function statLines(s: Partial<Stats>): StatLine[] {
     out.push({
       key: "reply",
       big: h == null ? "No replies" : humanHours(h),
-      label: h == null ? "to measure: no outside PR got an answer" : "is the typical wait for a first reply",
+      label:
+        h == null
+          ? "to measure: no outside PR got an answer"
+          : "is the typical wait for a first reply",
       tone: h == null ? "bad" : h <= 48 ? "good" : h <= 24 * 7 ? "warn" : "bad",
     });
   }
@@ -96,7 +104,10 @@ export function statLines(s: Partial<Stats>): StatLine[] {
     out.push({
       key: "first",
       big: String(s.first_time_merged_authors),
-      label: s.first_time_merged_authors === 1 ? "person got their first PR merged here" : "people got their first PR merged here",
+      label:
+        s.first_time_merged_authors === 1
+          ? "person got their first PR merged here"
+          : "people got their first PR merged here",
       tone: s.first_time_merged_authors > 0 ? "good" : "bad",
     });
   }
@@ -132,11 +143,13 @@ export function statLines(s: Partial<Stats>): StatLine[] {
   return out;
 }
 
-const humanize = (k: string) => k.replace(/[_-]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
-const NEGATIVE = /no_reply|ignored|closed|reject|stale|declin|abandon|negative|hostile/;
+const humanize = (k: string) =>
+  k.replace(/[_-]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+const NEGATIVE =
+  /no_reply|ignored|closed|reject|stale|declin|abandon|negative|hostile/;
 
 // Plain labels for the engine's values. The same table as the engine's
-// src/holt/agent/labels.py (tests/test_labels.py holds the two together).
+// src/prscout/agent/labels.py (tests/test_labels.py holds the two together).
 const OUTCOME_LABELS: Record<string, string> = {
   merged_after_review: "Merged after review",
   merged_without_engagement: "Merged without review comments",
@@ -172,64 +185,100 @@ export function fieldLabel(kind: string): string {
  * kind "outsider_pr" (value "merged" | "no_reply"); AI mode uses "outcome"
  * (value like "merged_after_review") or the engine field a claim is about.
  */
-export function evidenceLabel(e: { kind: string; value: string | null }): { label: string; bad: boolean } {
+export function evidenceLabel(e: { kind: string; value: string | null }): {
+  label: string;
+  bad: boolean;
+} {
   const value = e.value ?? "";
   const bad = NEGATIVE.test(value);
   if (e.kind === "outsider_pr") {
-    return { label: e.value === "merged" ? "Newcomer PR merged" : e.value === "no_reply" ? "Newcomer PR, no reply" : `Newcomer PR: ${humanize(value).toLowerCase()}`, bad };
+    return {
+      label:
+        e.value === "merged"
+          ? "Newcomer PR merged"
+          : e.value === "no_reply"
+            ? "Newcomer PR, no reply"
+            : `Newcomer PR: ${humanize(value).toLowerCase()}`,
+      bad,
+    };
   }
-  if (e.kind === "outcome") return { label: OUTCOME_LABELS[value] ?? humanize(value), bad };
+  if (e.kind === "outcome")
+    return { label: OUTCOME_LABELS[value] ?? humanize(value), bad };
   return { label: FIELD_LABELS[e.kind] ?? humanize(e.kind), bad };
 }
 
 /** "#526518" or a short id for an evidence link. */
 export function evidenceRef(url: string): string {
-  const m = url.match(/github\.com\/[^/]+\/[^/]+\/(pull|issues|discussions|commit)\/([^/#?]+)/);
+  const m = url.match(
+    /github\.com\/[^/]+\/[^/]+\/(pull|issues|discussions|commit)\/([^/#?]+)/,
+  );
   if (!m) return "open on GitHub";
   return m[1] === "commit" ? m[2].slice(0, 7) : `#${m[2]}`;
 }
 
 /** Someone is already on it: an open pull request, an assignee, or a recent "can I work on this?". */
-export function issueTaken(issue: Pick<StarterIssue, "people" | "open_prs">): boolean {
+export function issueTaken(
+  issue: Pick<StarterIssue, "people" | "open_prs">,
+): boolean {
   return Boolean(issue.people || issue.open_prs);
 }
 
 /** Said when a repo has starter issues and someone is on every one. */
 export const NONE_FREE = "No free starter issue right now";
 
-const LANG_NAMES = new Map([...LANGS, ...MORE_LANGS].map((l) => [l.toLowerCase(), l]));
-const LANG_SHORT: Record<string, string> = { js: "JavaScript", ts: "TypeScript", py: "Python", golang: "Go", cpp: "C++", csharp: "C#" };
-const WORK: Record<string, string> = { docs: "Docs", tests: "Tests", design: "Design", translations: "Translations" };
+const LANG_NAMES = new Map(
+  [...LANGS, ...MORE_LANGS].map((l) => [l.toLowerCase(), l]),
+);
+const LANG_SHORT: Record<string, string> = {
+  js: "JavaScript",
+  ts: "TypeScript",
+  py: "Python",
+  golang: "Go",
+  cpp: "C++",
+  csharp: "C#",
+};
+const WORK: Record<string, string> = {
+  docs: "Docs",
+  tests: "Tests",
+  design: "Design",
+  translations: "Translations",
+};
 
 /**
  * The skill an issue asks for, when it says so itself: a language one of its
  * labels names ("python", "lang: rust"), else the kind of work when that isn't
  * code. Null otherwise: nothing is guessed.
  */
-export function issueSkill(issue: Pick<StarterIssue, "labels" | "areas">): string | null {
+export function issueSkill(
+  issue: Pick<StarterIssue, "labels" | "areas">,
+): string | null {
   for (const raw of issue.labels) {
     const label = raw.toLowerCase().trim();
     for (const name of [label, label.split(/[:/]/).pop()!.trim()]) {
       // One-letter names ("C", "R") are too easy to hit by accident.
-      const lang = LANG_SHORT[name] ?? (name.length > 1 ? LANG_NAMES.get(name) : undefined);
+      const lang =
+        LANG_SHORT[name] ??
+        (name.length > 1 ? LANG_NAMES.get(name) : undefined);
       if (lang) return lang;
     }
   }
   const work = issue.areas?.[0];
-  return work && work !== "code" ? WORK[work] ?? null : null;
+  return work && work !== "code" ? (WORK[work] ?? null) : null;
 }
 
 /** The one-line "what to do next" for a starter issue. */
 export function nextStep(issue: StarterIssue): string {
   const labels = issue.labels.map((l) => l.toLowerCase());
   const docs = labels.some((l) => l.includes("doc"));
-  if (issue.open_prs) return "Look at the open pull request first; if it has stalled, ask to take over.";
+  if (issue.open_prs)
+    return "Look at the open pull request first; if it has stalled, ask to take over.";
   if (issue.people) return "Ask whether it's still free before you start.";
   if (issue.comments === 0) {
     return docs
       ? "Comment on the issue to say you'd like to fix the docs, then open a small pull request."
       : "Comment on the issue to ask if you can take it.";
   }
-  if (issue.comments <= 3) return "Read the comments first, then ask if it's still free for you to take.";
+  if (issue.comments <= 3)
+    return "Read the comments first, then ask if it's still free for you to take.";
   return "Read the discussion; if nobody is working on it, ask a maintainer if you can pick it up.";
 }

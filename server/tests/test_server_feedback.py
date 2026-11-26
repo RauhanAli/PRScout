@@ -6,8 +6,8 @@ import csv
 import io
 import json
 
-from holt_server import feedback
-from holt_server.db import Feedback
+from prscout_server import feedback
+from prscout_server.db import Feedback
 from sqlalchemy import select
 
 GEN = "2026-09-25T00:00:00Z"
@@ -145,7 +145,7 @@ def test_export_cli_writes_a_file(h, tmp_path, monkeypatch):
     analyse(h)
     answer(h, "up")
     out = tmp_path / "golden.json"
-    monkeypatch.setattr("holt_server.settings.get_settings", lambda: h.svc.settings)
+    monkeypatch.setattr("prscout_server.settings.get_settings", lambda: h.svc.settings)
     assert feedback.main(["export", "--format", "json", "--out", str(out)]) == 0
     data = json.loads(out.read_text(encoding="utf-8"))
     assert [(d["repo"], d["vote"]) for d in data] == [("pallets/flask", "up")]

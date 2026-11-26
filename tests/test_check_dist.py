@@ -13,20 +13,20 @@ spec.loader.exec_module(check_dist)
 
 
 def wheel(tmp_path: Path, members: list[str]) -> Path:
-    path = tmp_path / "holt_cli-0.0.0-py3-none-any.whl"
+    path = tmp_path / "prscout_cli-0.0.0-py3-none-any.whl"
     with zipfile.ZipFile(path, "w") as archive:
-        for name in members + ["holt_cli-0.0.0.dist-info/licenses/LICENSE",
-                               "holt_cli-0.0.0.dist-info/licenses/NOTICE"]:
+        for name in members + ["prscout_cli-0.0.0.dist-info/licenses/LICENSE",
+                               "prscout_cli-0.0.0.dist-info/licenses/NOTICE"]:
             archive.writestr(name, "")
     return path
 
 
 def test_a_clean_wheel_passes(tmp_path):
-    assert check_dist.check_archive(wheel(tmp_path, ["holt/cli.py"])) == []
+    assert check_dist.check_archive(wheel(tmp_path, ["prscout/cli.py"])) == []
 
 
 def test_benchmark_baselines_are_refused(tmp_path):
     errors = check_dist.check_archive(
-        wheel(tmp_path, ["holt/cli.py", "holt/baseline.py", "holt/baseline_matched.py"]))
+        wheel(tmp_path, ["prscout/cli.py", "prscout/baseline.py", "prscout/baseline_matched.py"]))
     assert len(errors) == 2
     assert all("benchmark-only" in e for e in errors)

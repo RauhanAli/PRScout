@@ -93,7 +93,7 @@ export function RepoRows({ rows, saved, compact = false }: { rows: YourRepo[]; s
       </ul>
       {href && (
         <div className="app-appear sticky bottom-4 mt-6 flex justify-end">
-          <Link href={href} className="btn-primary shadow-soft">compare {picked.length} →</Link>
+          <Link href={href} className="btn-primary shadow-soft">Compare {picked.length} →</Link>
         </div>
       )}
     </>

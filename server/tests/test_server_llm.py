@@ -6,10 +6,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from holt_server import engine, llm
-from holt_server.errors import ApiError
+from prscout_server import engine, llm
+from prscout_server.errors import ApiError
 
-from holt.model import OutputLimitReached, max_output_tokens
+from prscout.model import OutputLimitReached, max_output_tokens
 
 SCHEMA = {"type": "object"}
 
@@ -93,9 +93,9 @@ def test_a_cut_off_answer_raises_and_is_an_upstream_error(client):
     ("https://openrouter.ai/api/v1", "openrouter"),
     ("https://api.openai.com/v1", "openai"),
     ("https://generativelanguage.googleapis.com/v1beta/openai/", "gemini"),
-    ("https://holt.openai.azure.com/openai/v1/", "openai"),
-    ("https://holt.services.ai.azure.com/openai/v1/", "openai"),
-    ("https://holt.cognitiveservices.azure.com/openai/v1/", "openai"),
+    ("https://prscout.openai.azure.com/openai/v1/", "openai"),
+    ("https://prscout.services.ai.azure.com/openai/v1/", "openai"),
+    ("https://prscout.cognitiveservices.azure.com/openai/v1/", "openai"),
     (None, "openrouter"),
 ])
 def test_the_provider_is_read_from_the_endpoint(url, provider):
@@ -149,16 +149,16 @@ def test_each_call_records_its_stage_and_time():
 @pytest.mark.parametrize(("env", "provider"), [
     ({}, "openrouter"),
     ({"OPENROUTER_BASE_URL": "https://api.openai.com/v1"}, "openai"),
-    ({"OPENROUTER_BASE_URL": "https://proxy.local/v1", "HOLT_MODEL_PROVIDER": "openai"},
+    ({"OPENROUTER_BASE_URL": "https://proxy.local/v1", "PRSCOUT_MODEL_PROVIDER": "openai"},
      "openai"),
 ])
 def test_the_servers_spec_follows_its_endpoint(tmp_path, env, provider):
     import asyncio
 
     from conftest import make_settings
-    from holt_server.services import Services
+    from prscout_server.services import Services
 
     svc = Services(make_settings(tmp_path, OPENROUTER_API_KEY="sk-test",
-                                 HOLT_MODEL_REASONING_EFFORT="low", **env))
+                                 PRSCOUT_MODEL_REASONING_EFFORT="low", **env))
     made = asyncio.run(svc.model_spec_for(None))
     assert (made.provider, made.reasoning_effort) == (provider, "low")

@@ -8,7 +8,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ApiError, Checkout, OrderConfirmed, RazorpaySuccess } from "@/lib/types";
+import type {
+  ApiError,
+  Checkout,
+  OrderConfirmed,
+  RazorpaySuccess,
+} from "@/lib/types";
 
 type Phase =
   | { t: "idle" }
@@ -20,7 +25,10 @@ type Phase =
 
 interface RazorpayInstance {
   open(): void;
-  on(event: "payment.failed", cb: (r: { error?: { description?: string } }) => void): void;
+  on(
+    event: "payment.failed",
+    cb: (r: { error?: { description?: string } }) => void,
+  ): void;
 }
 declare global {
   interface Window {
@@ -48,20 +56,40 @@ export function loadRazorpay(): Promise<void> {
 }
 
 const MESSAGES: Partial<Record<ApiError["code"], string>> = {
-  payments_off: "Passes aren't on sale right now. Everything free in Holt keeps working.",
+  payments_off:
+    "Passes aren't on sale right now. Everything free in PRScout keeps working.",
   payment_unconfirmed:
     "We couldn't confirm that payment with Razorpay. If money left your account, Pro will start in a few minutes, or it will be refunded.",
 };
 
-export async function post<T>(url: string, body: unknown): Promise<{ ok: true; data: T } | { ok: false; code?: string; message: string }> {
+export async function post<T>(
+  url: string,
+  body: unknown,
+): Promise<
+  { ok: true; data: T } | { ok: false; code?: string; message: string }
+> {
   try {
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     const data = await res.json().catch(() => null);
     if (res.ok) return { ok: true, data: data as T };
     const e = (data as { error?: ApiError } | null)?.error;
-    return { ok: false, code: e?.code, message: (e && MESSAGES[e.code]) || e?.message || "That didn't work. Try again in a minute." };
+    return {
+      ok: false,
+      code: e?.code,
+      message:
+        (e && MESSAGES[e.code]) ||
+        e?.message ||
+        "That didn't work. Try again in a minute.",
+    };
   } catch {
-    return { ok: false, message: "Couldn't reach Holt. Check your connection and try again." };
+    return {
+      ok: false,
+      message: "Couldn't reach PRScout. Check your connection and try again.",
+    };
   }
 }
 
@@ -75,7 +103,14 @@ export interface BuyPassProps {
   primary?: boolean;
 }
 
-export function BuyPass({ pass, label, signedIn, prefill, autoStart, primary }: BuyPassProps) {
+export function BuyPass({
+  pass,
+  label,
+  signedIn,
+  prefill,
+  autoStart,
+  primary,
+}: BuyPassProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>({ t: "idle" });
   const started = useRef(false);
@@ -107,7 +142,11 @@ export function BuyPass({ pass, label, signedIn, prefill, autoStart, primary }: 
     try {
       await loadRazorpay();
     } catch {
-      setPhase({ t: "failed", message: "Razorpay's payment window didn't load. If you use an ad blocker, allow checkout.razorpay.com and try again." });
+      setPhase({
+        t: "failed",
+        message:
+          "Razorpay's payment window didn't load. If you use an ad blocker, allow checkout.razorpay.com and try again.",
+      });
       return;
     }
     setPhase({ t: "paying" });
@@ -118,14 +157,27 @@ export function BuyPass({ pass, label, signedIn, prefill, autoStart, primary }: 
       currency: order.currency,
       name: order.name,
       description: order.description,
-      prefill: { name: prefill?.name ?? undefined, email: prefill?.email ?? undefined },
-      notes: { holt_order: order.order_id },
+      prefill: {
+        name: prefill?.name ?? undefined,
+        email: prefill?.email ?? undefined,
+      },
+      notes: { prscout_order: order.order_id },
       theme: { color: "#15755a" },
       handler: (paid: RazorpaySuccess) => void confirm(order.order_id, paid),
-      modal: { ondismiss: () => setPhase((p) => (p.t === "paying" ? { t: "dismissed" } : p)) },
+      modal: {
+        ondismiss: () =>
+          setPhase((p) => (p.t === "paying" ? { t: "dismissed" } : p)),
+      },
     });
     // Checkout shows the failure itself and lets them retry; this is for after it closes.
-    rzp.on("payment.failed", (e) => setPhase({ t: "failed", message: e.error?.description || "The payment didn't go through. You haven't been charged." }));
+    rzp.on("payment.failed", (e) =>
+      setPhase({
+        t: "failed",
+        message:
+          e.error?.description ||
+          "The payment didn't go through. You haven't been charged.",
+      }),
+    );
     rzp.open();
   }, [pass, prefill, confirm]);
 
@@ -139,20 +191,47 @@ export function BuyPass({ pass, label, signedIn, prefill, autoStart, primary }: 
   const cls = `${primary ? "btn-primary" : "btn-ghost"} mt-6 w-full`;
   if (!signedIn) {
     return (
-      <Link href={`/signin?callbackUrl=${encodeURIComponent(`/pricing?buy=${pass}`)}`} className={cls}>
+      <Link
+        href={`/signin?callbackUrl=${encodeURIComponent(`/pricing?buy=${pass}`)}`}
+        className={cls}
+      >
         sign in to buy →
       </Link>
     );
   }
-  const busy = phase.t === "starting" || phase.t === "paying" || phase.t === "confirming";
+  const busy =
+    phase.t === "starting" || phase.t === "paying" || phase.t === "confirming";
   return (
     <div>
-      <button type="button" className={cls} onClick={() => void start()} disabled={busy} aria-busy={busy}>
-        {phase.t === "starting" ? "opening checkout…" : phase.t === "paying" ? "paying in Razorpay…" : phase.t === "confirming" ? "confirming your payment…" : label}
+      <button
+        type="button"
+        className={cls}
+        onClick={() => void start()}
+        disabled={busy}
+        aria-busy={busy}
+      >
+        {phase.t === "starting"
+          ? "opening checkout…"
+          : phase.t === "paying"
+            ? "paying in Razorpay…"
+            : phase.t === "confirming"
+              ? "confirming your payment…"
+              : label}
       </button>
-      <p aria-live="polite" className="mt-3 min-h-[1.25rem] font-sans text-[0.89rem]">
-        {phase.t === "failed" && <span role="alert" className="text-orange">{phase.message}</span>}
-        {phase.t === "dismissed" && <span className="text-muted">Checkout closed. You haven&apos;t been charged.</span>}
+      <p
+        aria-live="polite"
+        className="mt-3 min-h-[1.25rem] font-sans text-[0.89rem]"
+      >
+        {phase.t === "failed" && (
+          <span role="alert" className="text-orange">
+            {phase.message}
+          </span>
+        )}
+        {phase.t === "dismissed" && (
+          <span className="text-muted">
+            Checkout closed. You haven&apos;t been charged.
+          </span>
+        )}
       </p>
     </div>
   );

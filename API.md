@@ -1,18 +1,18 @@
-# Holt HTTP API (contract between `server/` and `web/`)
+# PRScout HTTP API (contract between `server/` and `web/`)
 
 Version: v0 (pre-launch). The server is FastAPI in `server/`. The browser
 never calls it directly. `web/` calls it from Next.js server code (route
 handlers, server components) — a BFF. So:
 
-- Every request carries `X-Holt-Internal-Key: <shared secret>` (env
-  `HOLT_INTERNAL_KEY` on both sides). Requests without it get 401.
-- Requests made for a signed-in user also carry `X-Holt-User: <user id>`.
+- Every request carries `X-prscout-Internal-Key: <shared secret>` (env
+  `PRSCOUT_INTERNAL_KEY` on both sides). Requests without it get 401.
+- Requests made for a signed-in user also carry `X-prscout-User: <user id>`.
   The server trusts it because of the internal key. Anonymous requests omit it.
-- Anonymous requests carry `X-Holt-Client-Ip` for rate limiting. An anonymous
+- Anonymous requests carry `X-prscout-Client-Ip` for rate limiting. An anonymous
   request that needs rate limiting (new analyses, find, starter issues) without
   it gets 400 `invalid_request`; the server never falls back to the BFF's own
   address.
-- Base URL for web: env `HOLT_API_URL` (e.g. `http://127.0.0.1:$PORT`).
+- Base URL for web: env `PRSCOUT_API_URL` (e.g. `http://127.0.0.1:$PORT`).
 
 Users, sessions and OAuth (GitHub + Google) live in `web/` (Auth.js). The
 server keeps its own `users` table keyed by the same id, created on first
@@ -20,7 +20,7 @@ sight, holding plan and free AI credits. The website doesn't take users' own
 API keys (the CLI does); every AI report runs on the server's key.
 
 Response shapes are pydantic models in
-`server/holt_server/schema.py`; the web's TypeScript types are generated from
+`server/prscout_server/schema.py`; the web's TypeScript types are generated from
 them (`server/scripts/api_types.sh` writes `web/src/lib/api-schema.ts`, and CI
 fails when it is stale). This file describes the fields; the models are exact.
 Change a model, this file and the generated types in the same PR.
@@ -124,7 +124,7 @@ responses. The server also accepts and normalises full URLs
   "budget_independent": true,         // the verdict is the same for any `days` (see below)
   "cost": { "input_tokens": 9000, "output_tokens": 6000,
             "usd": 0.0123, "seconds": 48.2 }, // ai only, else null
-  "holt_users": { "people": 9, "pull_requests": 12, "merged": 7, "closed": 2,
+  "prscout_users": { "people": 9, "pull_requests": 12, "merged": 7, "closed": 2,
                   "waiting": 3, "window_days": 365, "computed_at": "…" } | null,
   "about": {                          // what the repo is; null until its details are read
     "description": "string | null", "readme_line": "string | null",
@@ -161,14 +161,14 @@ null on reports cached before they were recorded. Per-stage timings go to the
 server log, not the report. Which model wrote a report, playbook or summary is
 never in a response; the server keeps it in its `ai_runs` table.
 
-`holt_users` is what connected Holt users' public pull requests to this
+`prscout_users` is what connected PRScout users' public pull requests to this
 repository came to (from My Contributions, the last `window_days`): counts only,
 never who. It is filled only by `GET /v1/reports/{owner}/{repo}` (null on the
 analysis endpoints and never stored with the report), and only when at least 5
 different people make up the numbers: one person with many pull requests
 counts once. Users who turned on `stats_opt_out` are never counted. The numbers
 are recounted by the daily contributions refresh (and
-`python -m holt_server.contributions stats`); opting out or disconnecting
+`python -m prscout_server.contributions stats`); opting out or disconnecting
 recounts that user's repositories at once. Surfaces show them as they come and
 never rank or name anyone.
 
@@ -176,13 +176,13 @@ never rank or name anyone.
 the README's first sentence (`readme_line`, plain text), as `repo_meta` last
 read them: right after a repository's first report and daily by the warm pass,
 many repositories per GraphQL query, never on the request path. Like
-`holt_users` it is filled only by `GET /v1/reports/{owner}/{repo}` and never
+`prscout_users` it is filled only by `GET /v1/reports/{owner}/{repo}` and never
 stored with the report; it is null until the details have been read, and the
 fields added with it (`forks` onwards, `readme_line`) are null on rows read
 before they existed. `pull_requests` counts every pull request ever opened
 (`open_pull_requests` those open now) and `contributors` the people who
 committed, anonymous committers included, as GitHub's contributors list
-counts them; all three are the whole repository, not Holt's sample.
+counts them; all three are the whole repository, not PRScout's sample.
 `contributors` comes from one REST request per repository after the details
 query and stays at its last value when that request fails. `languages` holds up to three, biggest first, `share` in
 0..1. `homepage` is always an `http(s)` URL. `links` is where a newcomer
@@ -203,12 +203,12 @@ query per hundred people for their profile `name` (null when they haven't set
 one, or when that query fails). `url` is always a `https://github.com/` profile
 and `avatar_url` an `https` image. It is empty until the details are read
 again, and keeps its last value when GitHub doesn't answer. It is GitHub's
-public list, shown as GitHub orders it: Holt never ranks people.
+public list, shown as GitHub orders it: PRScout never ranks people.
 
 ### Engine version and `outdated`
 
 Every stored report records the engine version that made it
-(`ENGINE_VERSION` in `src/holt/engine_version.py`, bumped whenever the verdict
+(`ENGINE_VERSION` in `src/prscout/engine_version.py`, bumped whenever the verdict
 rules or the report's shape change; reports from before it was recorded count
 as older). A report from an older version is never a cache hit: `POST
 /v1/analyses` runs a fresh check, finds screen again, and Discover,
@@ -216,7 +216,7 @@ recommendations and My Contributions leave it out until it is redone. The
 same goes for cached `/v1/find` results.
 
 `outdated` (boolean) is filled only by `GET /v1/reports/{owner}/{repo}`, like
-`holt_users`, and is never stored: `true` when an older engine made the report
+`prscout_users`, and is never stored: `true` when an older engine made the report
 returned. That endpoint still returns it (never a 404), so a client can fall
 back to it; the web report page runs a fresh check instead and shows the old
 report only if that check fails. The public extension proxy passes it on
@@ -255,7 +255,7 @@ number on a report is over one set.
 `sample` is what the counts were read from: every pull request read, when the
 oldest and newest were opened, and how many came from the team or from bots
 (left out of every count). Null on reports cached before it existed. `asks` is
-what the project asks of a contributor, where Holt could read it, blocking ones
+what the project asks of a contributor, where PRScout could read it, blocking ones
 first: `ticket_first` (the bot that closed outside pull requests says they need
 a ticket in the project's tracker; `link` is the tracker it names),
 `no_ai_prs` (outside pull requests closed and labelled or retitled as AI, or a
@@ -299,8 +299,8 @@ request was opened.
   repository the cohort is the newest 100 of the window plus the newest 100 of
   each older third of it (one light search, up to 3 GitHub points); a quieter
   one's own sample covers it. Outside means not on the team the sample shows,
-and not anyone who merged a pull request in the cohort (merging takes write
-access; staff often read as CONTRIBUTOR). Minimums: 8 outside pull requests for any
+  and not anyone who merged a pull request in the cohort (merging takes write
+  access; staff often read as CONTRIBUTOR). Minimums: 8 outside pull requests for any
   merge number, 8 merges for `merge_slow_days`. All null when most outside
   work lands off GitHub's merge button (Gerrit, a merge bot, an internal
   sync): GitHub's merge time isn't the project's.
@@ -415,12 +415,15 @@ newest first-timer pull requests behind the counts instead, as
 ## Endpoints
 
 ### `GET /health` → `{"ok": true, "version": "…"}` (no internal key needed)
+
 503 with `{"ok": false, "database": false, …}` when the database doesn't
 answer within 1.5 s. It asks on a connection of its own, so it answers while
 the server is busy.
 
 ### `POST /v1/analyses`
+
 Body: `{"repo": "owner/repo", "mode": "rules"|"ai", "days": 7, "refresh": false}`
+
 - Model choice is server configuration (`OPENROUTER_MODEL`); a `model` field in
   the request is ignored. It is accepted (not a 400) for older clients, and it
   never reaches the engine, the job or the cache key.
@@ -432,7 +435,7 @@ Body: `{"repo": "owner/repo", "mode": "rules"|"ai", "days": 7, "refresh": false}
   its reply-time note redone, and nothing is read from GitHub.
 - Otherwise `202 {"status":"queued","job_id":"…"}`.
 - `mode:"rules"` is free and allowed anonymously (rate-limited per IP).
-- `mode:"ai"` requires `X-Holt-User` (else `needs_key`) and a server model key
+- `mode:"ai"` requires `X-prscout-User` (else `needs_key`) and a server model key
   (else `ai_unavailable`, checked first, so nothing is spent or queued). A new
   job is charged for the `ai_report` feature (see Credits and plans below; else
   `quota_exceeded`); a cached report or joining a running job costs nothing. A
@@ -441,6 +444,7 @@ Body: `{"repo": "owner/repo", "mode": "rules"|"ai", "days": 7, "refresh": false}
 ### `GET /v1/analyses/{job_id}` → `{"status":"queued"|"running"|"done"|"error", "stage": "Reading pull requests", "progress": 0.4, "report": Report|null, "error": Error|null}`
 
 ### `GET /v1/analyses/{job_id}/events` — Server-Sent Events
+
 Events: `stage` `{"stage": "…", "progress": 0.0–1.0}`, then exactly one of
 `done` `{"report": Report}` or `error` `{"error": Error}`. `stage` strings are
 plain English ("Fetching pull requests", "Reading threads", "Checking evidence",
@@ -451,11 +455,13 @@ The same applies to `/v1/find/{job_id}/events`. A job that runs past its time
 limit ends with `error` code `upstream` and a "took too long" message.
 
 ### `GET /v1/reports?limit=500` (internal key, like other reads)
+
 The latest 7-day rules report per repository, newest first, for sitemaps:
 `{"reports": [{"repo": "owner/repo", "mode": "rules", "generated_at": "…",
 "verdict": "viable"}]}`. `limit` 1–5000, default 500.
 
 ### `GET /v1/reports/{owner}/{repo}?mode=rules|ai&days=7`
+
 Latest cached report or 404 `not_found`. With `mode=rules` and no fresh
 report for this `days`, a fresh `budget_independent` one made for another
 `days` is served for this one (as for `POST /v1/analyses`). `outdated: true`
@@ -465,7 +471,7 @@ key like every `/v1` route.
 
 The free report (`mode=rules`) is the same for every reader, so the server
 keeps it as sent, in the process, for up to 60 seconds. A report, the repo's
-details or Holt users' numbers written by the same process show on the next
+details or PRScout users' numbers written by the same process show on the next
 read; written by another process (a warm pass run from the command line),
 within those 60 seconds. `GET /v1/discover` and the index part of `POST
 /v1/find` are kept the same way. Nothing that depends on who is asking is
@@ -473,6 +479,7 @@ kept. This endpoint and `GET /v1/discover` send an `ETag` and answer `304`
 with no body to a matching `If-None-Match`.
 
 ### `GET /v1/repos/{owner}/{repo}/starter-issues?limit=20`
+
 Open issues in this repo that suit a newcomer and nobody has taken, best
 first (issues nobody is on before the rest; with 3 or more of those, the ones
 someone is on are left out):
@@ -481,7 +488,8 @@ a cache hit costs no GitHub call and no rate limit. A miss counts against the
 **read** limit, never the work limit (see Rate limits).
 
 ### `GET /v1/repos/search?q=excalidraw`
-Which repository does a bare name mean? Public repositories whose *name*
+
+Which repository does a bare name mean? Public repositories whose _name_
 matches `q`, most starred first, at most five, forks left out:
 `{"query": "excalidraw", "results": [{"repo": "excalidraw/excalidraw", "description": "…"|null, "stars": 90000}]}`.
 `q` is a name, 1–60 characters of letters, digits, `.`, `_`, `-` and single
@@ -494,6 +502,7 @@ rate-limiting it answers `rate_limited`. The compare page uses it to turn a type
 into a repo; pick the result whose name equals `q` first, else the top one.
 
 ### `POST /v1/find`
+
 Body: `{"languages": ["python"], "topics": [], "days": 7, "hacktoberfest": true, "limit": 20}`
 Returns `{"results": [ { "repo": "owner/repo", "headline": "…", "tone": "good", "verdict": "…",
 "description": "string | null", "language": "string | null", "languages": ["…"],
@@ -511,14 +520,14 @@ them the bar has one "weren't merged" segment.
 
 Results come from two places, in this order, with no repo twice:
 
-1. **Holt's index**: every repo whose latest 7-day rules report (current
+1. **PRScout's index**: every repo whose latest 7-day rules report (current
    engine) says "Worth your time", as Discover's welcoming board ranks them
    (best odds, merged share, reply time, sample). Matched through `repo_meta`:
    any picked language as the main language or a real second share
    (`languages`), any picked topic, the `hacktoberfest` topic when
    `hacktoberfest` is true; archived repos and forks left out (a repo closed
    to outside pull requests is left out by its verdict). The typical first
-   reply must fit in `days`. Only repos with starter issues Holt already knows
+   reply must fit in `days`. Only repos with starter issues PRScout already knows
    (read within the last 72 hours; up to 5, best first) are listed, those
    with an issue nobody is on before those whose issues are all taken. Read
    from the database: no GitHub call, no rate limit.
@@ -526,13 +535,13 @@ Results come from two places, in this order, with no repo twice:
    screened with the rules, ordered by starter-issue quality.
 
 - **Search cached** (same search, finished within 6 hours): `200
-  {"status": "done", "results": [...], "complete": true}` at once, with no rate
+{"status": "done", "results": [...], "complete": true}` at once, with no rate
   limit: the index as it is now, then the cached search. "Same search" means
   the same languages and topics (order, case and duplicates ignored),
   `hacktoberfest` and `days`; `limit` is a slice of one answer (searches are
   computed for at least 20).
 - **Already running** for someone else: `202 {"status": "queued", "job_id":
-  "…", "results": [...]}` with that search's `job_id`, also free. `results` is
+"…", "results": [...]}` with that search's `job_id`, also free. `results` is
   the index part, to show while the search runs.
 - Otherwise the same `202` for a new search, which costs one unit of the work
   bucket; poll or stream under `/v1/find/{job_id}` like analyses. Polling a
@@ -544,11 +553,12 @@ Results come from two places, in this order, with no repo twice:
   issues shown first aren't ones closed or taken since. If the search fails (an `error` event),
   the index part from the `202` is still the answer to show.
 - **Over the work limit** with index results: `200 {"status": "done",
-  "results": [...], "complete": false}`, the index part only (no search ran
+"results": [...], "complete": false}`, the index part only (no search ran
   for this caller). Don't keep it for other callers. With no index results the
   usual `429`.
 
 ### `POST /v1/find/index`
+
 Body: `{"languages": ["python"], "topics": [], "days": 7, "hacktoberfest": true, "limit": 24, "cursor": "…" | null}`
 The index part of a find (1. above) and nothing else, in parts, for a list
 that loads more as it is scrolled: `{"results": [FindResult], "total": 87,
@@ -559,19 +569,30 @@ starts or waits for a search, calls GitHub, or counts against a limit, and
 the search's own repos are not in it.
 
 StarterIssue:
+
 ```jsonc
-{ "number": 123, "title": "…", "url": "https://github.com/o/r/issues/123",
-  "labels": ["good first issue"], "created_at": "…", "comments": 2,
-  "why": ["Labelled good first issue", "Touches docs/, where 8 of 10 outsider PRs were merged"],
-  "people": 0,               // distinct people already on it; null from an older cache
-  "open_prs": 0,             // its open pull requests; null from an older cache
+{
+  "number": 123,
+  "title": "…",
+  "url": "https://github.com/o/r/issues/123",
+  "labels": ["good first issue"],
+  "created_at": "…",
+  "comments": 2,
+  "why": [
+    "Labelled good first issue",
+    "Touches docs/, where 8 of 10 outsider PRs were merged",
+  ],
+  "people": 0, // distinct people already on it; null from an older cache
+  "open_prs": 0, // its open pull requests; null from an older cache
   "on_it": "Nobody on it yet", // those two in words; null when they are
-  "beginner": true,          // labelled for first-timers ("good first issue" and its spellings)
-  "areas": ["docs"] }        // which of code/docs/tests/design/translations it looks like
+  "beginner": true, // labelled for first-timers ("good first issue" and its spellings)
+  "areas": ["docs"],
+} // which of code/docs/tests/design/translations it looks like
 ```
+
 `people` counts distinct people with an open pull request that closes or
 mentions the issue, a "can I work on this?" comment in the last 45 days, or an
-assignment that went quiet. `on_it` is the line the web and `holt start` both
+assignment that went quiet. `on_it` is the line the web and `prscout start` both
 show: "Nobody on it yet", "1 open pull request", "2 people already on it" or
 "2 people already on it, 1 open pull request". Issues already solved (a merged
 linked pull request), taken (an assignee active in the last 45 days, or a
@@ -588,7 +609,8 @@ issue is sent, so cached issues have them too. The web uses them with a
 profile (see Profile); they never change a verdict or which repos are listed.
 
 ### `GET /v1/discover?sort=welcoming|stars|trending&language=python&topic=cli&hacktoberfest=true&limit=24&cursor=…`
-Browse the repositories Holt has checked, built only from each repo's latest
+
+Browse the repositories PRScout has checked, built only from each repo's latest
 7-day **rules** report (never the model) and ranking repositories, never
 people. Reads only the database: no GitHub call and no rate limit.
 
@@ -598,7 +620,7 @@ people. Reads only the database: no GitHub call and no rate limit.
   toward a typical share, so 6 of 8 doesn't outrank 60 of 105), the median
   reply time and how many outsiders tried.
 - `sort=stars`: GitHub stars, every verdict but `personal`.
-- `sort=trending`: people who asked for the repo's report on Holt in the last
+- `sort=trending`: people who asked for the repo's report on PRScout in the last
   7 days (each person counted once per UTC day), only repos with at least
   `trending_min` (5). The counts (`checked_this_week` too) are up to a minute
   old.
@@ -611,7 +633,7 @@ people. Reads only the database: no GitHub call and no rate limit.
   cursor names the last repo already sent, so when the board changes between
   two parts the next one still starts right after it: no repo twice, none
   skipped below it. A cursor Discover didn't give out is `400
-  invalid_request`. The server keeps each ranked board for up to 60 seconds
+invalid_request`. The server keeps each ranked board for up to 60 seconds
   and cuts every part from it; a part already built costs no database read.
 - `hacktoberfest=true` keeps only repos tagged with the `hacktoberfest` GitHub
   topic (how a project takes part; a Hacktoberfest find searches the same
@@ -668,17 +690,19 @@ report as announced), and if GitHub didn't answer, `about` stays null until
 the next report or daily read.
 
 ### `GET /badge/{owner}/{repo}.svg` (no internal key; public; `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`)
+
 Shields-style SVG badge. Maintainers embed it in READMEs; it links back to the
-report page at `{HOLT_WEB_URL}/{owner}/{repo}`. Uses the latest 7-day rules
+report page at `{PRSCOUT_WEB_URL}/{owner}/{repo}`. Uses the latest 7-day rules
 report:
+
 - `viable`: a positive, factual line in green from `stats`, e.g.
-  "Holt | merges outsiders · replies in ~6h" ("merges outsiders" when
+  "PRScout | merges outsiders · replies in ~6h" ("merges outsiders" when
   `outsider_merged` > 0; the reply time when the median first reply is within
   72h; "worth your time" if neither).
 - any other verdict (`long_shot`, `personal` and `catalogue` included): neutral grey
-  "Holt | see report", never a red or amber verdict.
-- no report yet: neutral grey "Holt | not checked yet".
-- the report is from an older engine version: neutral grey "Holt | updating",
+  "PRScout | see report", never a red or amber verdict.
+- no report yet: neutral grey "PRScout | not checked yet".
+- the report is from an older engine version: neutral grey "PRScout | updating",
   never its old verdict, sent with `Cache-Control: public, max-age=300` so
   the new verdict shows soon.
 
@@ -688,6 +712,7 @@ limits (per client IP and in total, separate from user limits), run at most
 one at a time, and wait behind every user request.
 
 ### Account
+
 - `GET /v1/me` → `{"plan": "free"|"…", "plan_expires_at": "…"|null, "credits": Credits}`.
   `plan` is the plan in force: `free` once a paid plan has lapsed.
 - `GET /v1/me/credits` → `Credits`:
@@ -713,17 +738,17 @@ one at a time, and wait behind every user request.
 - `GET /v1/me/history?limit=50` → recent analyses by this user:
   `{"items": [{"job_id", "repo", "mode", "days", "status", "verdict", "headline", "tone", "created_at"}], "cards": [...]}`
   (`verdict`/`headline`/`tone` are null until the job is done). `cards` holds
-  Holt's current card (a Discover repo card, from the latest 7-day rules
+  PRScout's current card (a Discover repo card, from the latest 7-day rules
   report) for each repo in `items` that has one, in no order; Your repos
   shows their numbers.
 
-`/v1/me*` without `X-Holt-User` → 401 `unauthorized`. Free AI credits: every
-signed-in user gets `HOLT_SIGNUP_AI_CREDITS` once, the first time the server
+`/v1/me*` without `X-prscout-User` → 401 `unauthorized`. Free AI credits: every
+signed-in user gets `PRSCOUT_SIGNUP_AI_CREDITS` once, the first time the server
 sees them (users from before credits get them on their next request), then can
-claim one more whenever `HOLT_CLAIM_EVERY_DAYS` (7) have passed since the last
+claim one more whenever `PRSCOUT_CLAIM_EVERY_DAYS` (7) have passed since the last
 claim; the welcome grant starts that clock. Claims don't accumulate: at most one
 is ever due. Spending, claiming and refunds are atomic on the server.
-`HOLT_SIGNUP_AI_CREDITS` is 0 now that the free merge plans replace them: a new
+`PRSCOUT_SIGNUP_AI_CREDITS` is 0 now that the free merge plans replace them: a new
 account gets no AI credits and nothing to claim (`next_claim_at` null), and
 accounts welcomed before keep their credits and their weekly claim.
 
@@ -738,7 +763,7 @@ passes that stays switched off (below):
   and what one use costs in credits, **plans** (`free`, `pro`: what each
   covers, unlimited, N uses per UTC month, or N uses in all) and **passes** (days of Pro for
   one payment, with INR and USD prices) are defined in a JSON catalogue
-  (`server/holt_server/pricing.json`, or `HOLT_PRICING_FILE`).
+  (`server/prscout_server/pricing.json`, or `PRSCOUT_PRICING_FILE`).
 - The free plan covers 3 merge plans in all (every account, new or old);
   Pro covers 30 a month while a pass is active. Pro's uses don't touch the
   free three.
@@ -750,16 +775,16 @@ passes that stays switched off (below):
   and purchased credits (admin grants, and credit packs bought before passes;
   they never expire, or expire when the grant says). Every change is a ledger
   row saying which pool.
-- Admins change credits and plans with a CLI (`python -m holt_server.credits`,
+- Admins change credits and plans with a CLI (`python -m prscout_server.credits`,
   server/README.md), not over HTTP.
 
 #### Passes (checkout)
 
 A pass is one payment for a fixed number of days of Pro (`pro_1m` 30 days,
 `pro_3m` 90, `pro_12m` 365). It never renews. Razorpay, INR. **Switched
-off** unless the server has `HOLT_PAYMENTS_ENABLED=1` and its Razorpay keys,
+off** unless the server has `PRSCOUT_PAYMENTS_ENABLED=1` and its Razorpay keys,
 and a pass in the catalogue has `on_sale: true` and an INR price (outside
-production, `HOLT_PASSES_ON_SALE=1` puts every pass on sale: staging, in
+production, `PRSCOUT_PASSES_ON_SALE=1` puts every pass on sale: staging, in
 Razorpay test mode). While off,
 `GET /v1/passes` offers nothing and `POST /v1/me/orders` answers 403
 `payments_off`. The price and the days always come from the server's
@@ -814,7 +839,7 @@ gets their pass.
 
 ### Admin (read-only)
 
-Internal key plus an `X-Holt-User` listed in `HOLT_ADMIN_USERS`; anyone else
+Internal key plus an `X-prscout-User` listed in `PRSCOUT_ADMIN_USERS`; anyone else
 gets 404 `not_found`. There is no admin UI.
 
 - `GET /v1/admin/users?limit=100&plan=pro` → `{"users": [AdminUserSummary]}`,
@@ -826,8 +851,8 @@ gets 404 `not_found`. There is no admin UI.
   for an unknown user.
 - `GET /v1/admin/pricing` → the catalogue this server loaded.
 - `GET /v1/admin/ai-spend` → `AdminAiSpend`: `{"budget_usd", "spent_usd",
-  "held_usd", "runs", "running", "line"}`, this environment's AI spend against
-  `HOLT_AI_BUDGET_USD` (0 = AI off); `line` is `"AI spend: $0.23 of $1.00"`.
+"held_usd", "runs", "running", "line"}`, this environment's AI spend against
+  `PRSCOUT_AI_BUDGET_USD` (0 = AI off); `line` is `"AI spend: $0.23 of $1.00"`.
 
 ### Connect GitHub
 
@@ -860,7 +885,7 @@ the user's GitHub token. Stored in `github_connections` and `repo_views`.
   `invalid_repo`.
 
 A connected user's public contributions may be counted, anonymously, in
-cross-user repo statistics (the report's `holt_users`, shown only when 5+
+cross-user repo statistics (the report's `prscout_users`, shown only when 5+
 people contribute) unless `stats_opt_out` is true. Turning it on (PATCH, or a
 POST that changes it) or disconnecting takes them out of every repository's
 numbers in the same request.
@@ -900,14 +925,14 @@ sign-in to the caller in the same step.
 
 ### My Contributions
 
-A connected user's public pull requests, each with Holt's verdict for its
+A connected user's public pull requests, each with PRScout's verdict for its
 repository. Read with the server's token pool from GitHub's public search
 (`is:pr is:public author:<login> -user:<login>`, the last 365 days, at most
 200, newest first; the user's own repositories and anything private are left
 out, and so is every repository they help run: GitHub calls them its owner,
 a member or a collaborator on any of their pull requests there, or they merged
 one of their own). Fetched when GitHub is connected, again once a day in the
-background (`HOLT_CONTRIBUTIONS_REFRESH_HOURS`, 24; 0 = off), and on refresh. Stored in
+background (`PRSCOUT_CONTRIBUTIONS_REFRESH_HOURS`, 24; 0 = off), and on refresh. Stored in
 `contributions` and `contribution_syncs`; each fetch replaces the user's rows.
 Nothing here starts an analysis.
 
@@ -915,12 +940,13 @@ A person can leave a repository out of their numbers (a friend's project, their
 team's repo, a hackathon): its pull requests stay in the list with `counted:
 false`, and `summary` counts only the rest. The choice is per repository, kept
 in `contribution_choices` across fetches, and deleted on disconnect. Without a
-choice, a repository Holt finds is the person's own or their team's project is
+choice, a repository PRScout finds is the person's own or their team's project is
 left out (`not_counted_because: "own_project"`); counting it again overrides
 that. It changes only this page's numbers, not the product metric or any
 repository's statistics.
 
 `Contributions` =
+
 ```jsonc
 {
   "login": "octocat",
@@ -929,7 +955,7 @@ repository's statistics.
   "window_days": 365, "truncated": false, // true: GitHub had more than 200
   "summary": { "opened": 12, "merged": 6, "waiting": 3, "closed": 3,
                "landed_share": 0.5,  // merged / (merged + closed); null if none decided
-               "found_via_holt": 2,
+               "found_via_PRScout": 2,
                "not_counted": 1 },   // pull requests left out of the numbers above
   "pull_requests": [
     { "repo": "pallets/flask", "number": 5432, "title": "…",
@@ -941,7 +967,7 @@ repository's statistics.
                    "first_reply_hours": 15.0 | null, // typical wait for an outside PR's first reply
                    "timing": { … } | null  // the report's `stats.timing` (engine 7), as is
                  } | null,   // latest cached 7-day rules report
-      "found_via_holt": true,
+      "found_via_PRScout": true,
       "counted": true,                  // in `summary`; all of a repo's PRs, or none
       "not_counted_because": null | "you" | "own_project",
       // Where an open one stands (below). "unknown" and nulls on merged and closed ones.
@@ -1003,29 +1029,29 @@ get one within 3 days here."
   `DELETE` on the same path forgets the choice (back to the default). Only
   repositories in the person's list; anything else → 404 `not_found`. Not
   connected → 404.
-- `found_via_holt`: the user opened the pull request within 30 days after
-  opening that repository's report page on Holt while connected (`repo_views`
+- `found_via_PRScout`: the user opened the pull request within 30 days after
+  opening that repository's report page on PRScout while connected (`repo_views`
   keeps the first and the last view of each repository; a pull request within
   30 days after either counts). Only verifiable data; never self-reported.
 - `GET /v1/metrics/contributions?since=YYYY-MM-DD` (internal key, no user) →
   `{"since": "" | "YYYY-MM-DD", "window_days": 30, "connected_users",
-  "users_with_pull_requests", "users_with_pr_after_holt", "prs_after_holt",
-  "prs_after_holt_merged"}`: counts only, over connected users who did not turn
+"users_with_pull_requests", "users_with_pr_after_PRScout", "prs_after_PRScout",
+"prs_after_prscout_merged"}`: counts only, over connected users who did not turn
   on `stats_opt_out`, of pull requests opened on or after `since` (default:
-  all stored). Also `python -m holt_server.contributions metric [--since DATE]
-  [--json]`.
+  all stored). Also `python -m prscout_server.contributions metric [--since DATE]
+[--json]`.
 
 ### PR watch (alerts)
 
-Holt watches a connected user's open pull requests and tells them, on the bell
+PRScout watches a connected user's open pull requests and tells them, on the bell
 and by email, when it's their turn, when one has waited longer than most do in
 that repository, before a stale bot closes it, and when it is approved, merged
-or closed. Rules only, no model; everything is read as the Holt GitHub App,
+or closed. Rules only, no model; everything is read as the PRScout GitHub App,
 public data only. Stored in `alert_settings`, `watch_mutes`, `alerts` and
 `alert_emails`; alerts are deleted after 90 days, and all of it when GitHub is
 disconnected.
 
-**Switched off by default.** With `HOLT_PR_WATCH` unset, nothing checks pull
+**Switched off by default.** With `PRSCOUT_PR_WATCH` unset, nothing checks pull
 requests or sends email, `access.state` is `unavailable` for everyone, and
 turning alerts on answers 501 `not_implemented`. The web hides the feature then.
 
@@ -1042,16 +1068,16 @@ get replies, merges and closes, but no "past normal" or stale-bot alert.
 
 **The alerts.** `kind` is one of:
 
-| `kind` | When | `text` |
-|---|---|---|
-| `changes` | Someone on the team asked for changes after your last move. | Your turn. @reviewer asked for changes on click #2811. |
-| `reply` | Someone on the team commented or reviewed after your last move. | Your turn. @reviewer replied on click #2811. |
-| `approved` | A team member approved, or the review decision became approved. | Nice. @reviewer approved click #2811. |
-| `late_reply` | No team reply yet, and the wait passed the repository's **slow** first reply (`timing.first_reply_slow_hours`, the wait within which 8 in 10 get one). Never the typical one. | Day 6 and still no reply on p5.js #7120. Most get one within 4 days here. |
-| `late_merge` | There has been a reply, it's their turn, and the wait passed `timing.merge_slow_days`. | Day 20 on efcore #3310. Most merged PRs land within 2 weeks here. |
-| `stale_soon` | The repository's stale bot has a known day count (`timing.stale_close_days`) and the pull request has been quiet for all but 5 of those days (and at least half of them). | It's been quiet for 25 days on free-programming-books #11020. The bot closes it at 30. |
-| `merged` | It was merged. | kubernetes #128811 was merged. |
-| `closed` | It was closed without merging. | moment #6120 was closed without merging. |
+| `kind`       | When                                                                                                                                                                          | `text`                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `changes`    | Someone on the team asked for changes after your last move.                                                                                                                   | Your turn. @reviewer asked for changes on click #2811.                                 |
+| `reply`      | Someone on the team commented or reviewed after your last move.                                                                                                               | Your turn. @reviewer replied on click #2811.                                           |
+| `approved`   | A team member approved, or the review decision became approved.                                                                                                               | Nice. @reviewer approved click #2811.                                                  |
+| `late_reply` | No team reply yet, and the wait passed the repository's **slow** first reply (`timing.first_reply_slow_hours`, the wait within which 8 in 10 get one). Never the typical one. | Day 6 and still no reply on p5.js #7120. Most get one within 4 days here.              |
+| `late_merge` | There has been a reply, it's their turn, and the wait passed `timing.merge_slow_days`.                                                                                        | Day 20 on efcore #3310. Most merged PRs land within 2 weeks here.                      |
+| `stale_soon` | The repository's stale bot has a known day count (`timing.stale_close_days`) and the pull request has been quiet for all but 5 of those days (and at least half of them).     | It's been quiet for 25 days on free-programming-books #11020. The bot closes it at 30. |
+| `merged`     | It was merged.                                                                                                                                                                | kubernetes #128811 was merged.                                                         |
+| `closed`     | It was closed without merging.                                                                                                                                                | moment #6120 was closed without merging.                                               |
 
 `text` is rendered by the server, so the bell and the extension say the same
 thing; the emails phrase the same alert their own way. Without a name to give,
@@ -1062,11 +1088,11 @@ fires again only when the team speaks again (a comment after a request for
 changes that still stands reads as `reply`). `late_reply` and `late_merge` fire
 once per pull request, and again only after the old alert is deleted at 90 days.
 
-**How they're made.** A checker runs every 30 minutes (`HOLT_PR_WATCH_MINUTES`)
+**How they're made.** A checker runs every 30 minutes (`PRSCOUT_PR_WATCH_MINUTES`)
 for users with alerts on and access: it re-reads their open pull requests by
 node ID (about 5 GraphQL points per 100), searches a user's list again when it
 is over 6 hours old (which finds new pull requests), and works out the waits
-from stored times. It stops reading GitHub under `HOLT_WARM_MIN_POINTS`. Every
+from stored times. It stops reading GitHub under `PRSCOUT_WARM_MIN_POINTS`. Every
 contributions fetch (the daily one, and the refresh button) makes the same
 alerts for what it sees change, so a refresh never swallows one.
 
@@ -1095,7 +1121,7 @@ still reach the bell.
 "watching": 3, "email_available": true}`.
 
 - `GET /v1/me/alerts?limit=20&before=<id>` → `{"unread": 2, "access": AlertAccess,
-  "enabled": true, "watching": 3, "items": [AlertItem], "next_before": 17 | null}`.
+"enabled": true, "watching": 3, "items": [AlertItem], "next_before": 17 | null}`.
   Newest first; `limit` 1–50; `next_before` is the `before` for the next page
   (null on the last). `unread` counts every unread alert, and is 0 without
   access. `enabled` is the person's own switch (as in settings). `watching` is
@@ -1133,15 +1159,15 @@ still reach the bell.
 
 The emails link to the web app, so `web/` serves:
 
-- `{HOLT_WEB_URL}/alerts/unsubscribe?t=<token>`: the footer link's page. It
+- `{PRSCOUT_WEB_URL}/alerts/unsubscribe?t=<token>`: the footer link's page. It
   sends the token to `POST /v1/alerts/unsubscribe` and offers an undo. Do that
   from the browser (a button, or on load), not while rendering on the server:
   mail scanners and link previews fetch the links in an email, and a fetch
   alone must not unsubscribe anyone.
-- `{HOLT_WEB_URL}/api/alerts/unsubscribe?t=<token>`: a `POST` route for mail
+- `{PRSCOUT_WEB_URL}/api/alerts/unsubscribe?t=<token>`: a `POST` route for mail
   clients' one-click unsubscribe (RFC 8058). It passes the token on the same
   way and answers 200.
-- `{HOLT_WEB_URL}/settings/alerts` and `{HOLT_WEB_URL}/me/contributions`.
+- `{PRSCOUT_WEB_URL}/settings/alerts` and `{PRSCOUT_WEB_URL}/me/contributions`.
 
 ### Account emails
 
@@ -1152,7 +1178,7 @@ on and whom no pass covers); and one 3 days before a paid pass ends. Each is
 sent once (`account_emails` is the log). Stored in `account_mail` and
 `account_emails`.
 
-**Switched off by default.** With `HOLT_ACCOUNT_EMAILS` unset none is sent;
+**Switched off by default.** With `PRSCOUT_ACCOUNT_EMAILS` unset none is sent;
 with it on they also need `RESEND_API_KEY`. The receipt always goes out. The
 rest respect one switch, `product_emails`, on by default.
 
@@ -1167,18 +1193,18 @@ rest respect one switch, `product_emails`, on by default.
   `PUT /v1/me/emails` body `{"product_emails": false}` → the same shape.
 - `GET /v1/lab/emails` (internal key, no user) → `{"emails": [LabEmail]}`,
   `LabEmail` = `{"kind", "name", "subject", "preheader", "html", "text"}`:
-  every email Holt sends (these, and PR watch's two) on made-up data, for the
-  web's `/lab/emails` page. 404 `not_found` when `HOLT_ENV=production`.
+  every email PRScout sends (these, and PR watch's two) on made-up data, for the
+  web's `/lab/emails` page. 404 `not_found` when `PRSCOUT_ENV=production`.
 
 The product emails carry the same two unsubscribe links as alert emails
-(`{HOLT_WEB_URL}/alerts/unsubscribe?t=<token>` and the one-click
-`{HOLT_WEB_URL}/api/alerts/unsubscribe?t=<token>`); `POST /v1/alerts/unsubscribe`
+(`{PRSCOUT_WEB_URL}/alerts/unsubscribe?t=<token>` and the one-click
+`{PRSCOUT_WEB_URL}/api/alerts/unsubscribe?t=<token>`); `POST /v1/alerts/unsubscribe`
 tells the two kinds of token apart. They also link to `/find`,
 `/settings/alerts`, `/me`, `/me/contributions`, `/pricing` and `/refunds`.
 
 ### Profile
 
-What a signed-in user tells Holt once, so `/find` and `/hacktoberfest` start
+What a signed-in user tells PRScout once, so `/find` and `/hacktoberfest` start
 from it. Stated, never inferred. Stored in `profiles`.
 
 `ProfileOut` = `{"profile": ProfilePrefs | null, "adult_confirmed": true}`, where
@@ -1189,7 +1215,7 @@ here or by connecting GitHub.
 
 - `GET /v1/me/profile` → `ProfileOut` (`profile` is null until saved).
 - `PUT /v1/me/profile` body `{"languages", "topics", "days", "contributions",
-  "level", "adult_confirmed"}` (all optional) → `ProfileOut`. Replaces the whole
+"level", "adult_confirmed"}` (all optional) → `ProfileOut`. Replaces the whole
   profile. Languages and topics are lower-cased and deduplicated, at most 10
   each; topics are GitHub topics (letters, numbers, dashes; spaces become
   dashes). `days` 1–90. `contributions` from `code`, `docs`, `tests`,
@@ -1218,13 +1244,13 @@ here calls GitHub.
 `SavedItem` = `{"repo": "owner/repo", "saved_at": "…", "card": DiscoverRepo | null}`.
 `card` is what `/v1/discover` shows for the repo (verdict, reason, stats,
 description, language, stars, topics), read fresh from its latest 7-day rules
-report and `repo_meta`; null while Holt has no current report for it.
+report and `repo_meta`; null while PRScout has no current report for it.
 
 - `GET /v1/me/saved` → `SavedList`. Not rate limited.
 - `GET /v1/me/saved/{owner}/{repo}` → `SavedState` (is this one saved?).
 - `PUT /v1/me/saved/{owner}/{repo}` (no body) → `SavedState`. Idempotent:
   saving again keeps the first `saved_at`. The name is stored with GitHub's
-  casing when Holt already knows the repo. Bad name → 400 `invalid_repo`; a
+  casing when PRScout already knows the repo. Bad name → 400 `invalid_repo`; a
   new save past `max_saved` → 400 `invalid_request`.
 - `DELETE /v1/me/saved/{owner}/{repo}` → `SavedState` with `saved: false`,
   also when it wasn't saved.
@@ -1242,7 +1268,7 @@ the project, linked), and a checklist. It is written by a model from counted
 facts about the last 365 days of pull requests, and every claim is checked
 against those facts before it is kept. It has no verdict and never changes the
 report's. It exists only when the server runs with its paid features
-(`HOLT_PRO_URL`); without them the GET says `available: false` and the POST is
+(`PRSCOUT_PRO_URL`); without them the GET says `available: false` and the POST is
 501 `not_implemented`.
 
 - `GET /v1/playbook/{owner}/{repo}` (anonymous or signed in; reads only the
@@ -1261,11 +1287,11 @@ report's. It exists only when the server runs with its paid features
     runs (`{"job_id", "status", "stage", "progress"}`), so a reloaded page can
     follow it again.
 - `POST /v1/me/playbook/{owner}/{repo}` (signed in; no body) unlocks it:
-  - A playbook written in the last `HOLT_PLAYBOOK_CACHE_HOURS` (168) →
+  - A playbook written in the last `PRSCOUT_PLAYBOOK_CACHE_HOURS` (168) →
     `200 {"status": "done", "playbook": Playbook}`, charged once per user and
     repository (free when already unlocked).
   - Otherwise `202 {"status": "queued", "job_id"}`: a job writes it (usually
-    1–3 minutes, stopped after `HOLT_JOB_TIMEOUT_AI`). People unlocking the same
+    1–3 minutes, stopped after `PRSCOUT_JOB_TIMEOUT_AI`). People unlocking the same
     repository at once share one job; each is charged once. Someone who
     already unlocked it gets the newer one free.
   - Charged for the `playbook` feature before anything runs (402
@@ -1282,6 +1308,7 @@ report's. It exists only when the server runs with its paid features
 cover everyone's pull requests because too few outside ones were merged).
 `sections` always has five lists, in display order; show nothing for an empty
 one:
+
 - `must_do`, `size_and_scope`, `reviewers`, `checklist`: `PlaybookItem`s,
   `{"text", "sources": [{"statement", "seen", "of", "links": ["https://github.com/…"]}]}`.
   `text` is plain English and may contain Markdown code spans (check names,
@@ -1306,14 +1333,14 @@ the report's, computed by rules; the model never picks it, and no field names
 the model.
 
 The AI report is a fresh one if there is one (made for anyone, by the current
-engine, within `HOLT_CACHE_HOURS`); otherwise the job reads the threads
+engine, within `PRSCOUT_CACHE_HOURS`); otherwise the job reads the threads
 itself, as an AI report does, and keeps that report for the next plan. Either
 way the plan costs one merge plan, never an AI report credit. If reading the
 threads fails, the plan is still made, from the rules report: `ai` is null
 and `note` says so.
 
 Merge plans can be made only when the server runs with its paid features
-(`HOLT_PRO_URL`) **and** AI is on (an AI budget, `HOLT_AI_BUDGET_USD`);
+(`PRSCOUT_PRO_URL`) **and** AI is on (an AI budget, `PRSCOUT_AI_BUDGET_USD`);
 otherwise the GET says `available: false`, and the POST is 501
 `not_implemented` (no paid features) or 503 `ai_unavailable` (AI off), with
 nothing charged.
@@ -1332,7 +1359,7 @@ nothing charged.
 - `POST /v1/me/merge-plan/{owner}/{repo}` (signed in; no body) →
   `202 {"status": "queued", "job_id"}`: a job makes a new plan (usually two to
   four minutes when it reads the threads itself, about one when a fresh AI
-  report exists; stopped after `HOLT_JOB_TIMEOUT_AI` plus 330 s). Its `stage`
+  report exists; stopped after `PRSCOUT_JOB_TIMEOUT_AI` plus 330 s). Its `stage`
   says what it is doing in plain words ("Reading the pull request threads").
   Asking again while one is being made returns that job, charged once.
   - One use of `merge_plan` is taken before anything runs (402
@@ -1383,7 +1410,7 @@ nothing charged.
 - `verdict` is the report's (`line` is its `verdict_line`), with up to three
   numbers from its stats; a number with nothing to count is left out.
 - `steps`: at most 6, in order. `detail`, `link` and `copy` may each be null;
-  `copy` is a comment the person may post themselves (Holt never posts).
+  `copy` is a comment the person may post themselves (PRScout never posts).
 - `merged`: at most 6 figures (`value` and `unit` read together: "72 lines",
   "50 of 50"). `closed`: at most 5 reasons, most `seen` first, each with its
   first quote (`who` is the project member who wrote it) and up to 5
@@ -1420,7 +1447,7 @@ limit. Free for every signed-in user.
 
 - **Which repos**: only ones whose latest 7-day rules report (checked in the
   last 14 days) says `viable`, plus `viable` find results from the last 7 days
-  that Holt has no report for, where maintainers are still answering (median
+  that PRScout has no report for, where maintainers are still answering (median
   first reply within 7 days, at most half of outside pull requests with no
   reply). Archived repos, forks, the user's own repos and every repo they
   already sent a pull request to (My Contributions) are left out.
@@ -1460,15 +1487,16 @@ limit. Free for every signed-in user.
   "computed_at": "…" }
 ```
 
-Empty `picks` with `total: 0` means nothing fits right now (or Holt has no
+Empty `picks` with `total: 0` means nothing fits right now (or PRScout has no
 repos to offer yet). Starter issues older than 72 hours aren't shown.
 
 ### Feedback: "Was this verdict right?"
+
 - `POST /v1/feedback` body `{"repo": "owner/repo", "mode": "rules"|"ai", "days": 7,
-  "generated_at": "<the report's generated_at>", "vote": "up"|"down", "reason": "…"|null}`
+"generated_at": "<the report's generated_at>", "vote": "up"|"down", "reason": "…"|null}`
   → `200 {"repo", "generated_at", "verdict", "vote", "reason"}`.
-- Anonymous or signed in. The person is `X-Holt-User` when present, else
-  `X-Holt-Client-Ip` (required then; 400 `invalid_request` without it). The
+- Anonymous or signed in. The person is `X-prscout-User` when present, else
+  `X-prscout-Client-Ip` (required then; 400 `invalid_request` without it). The
   server stores a salted hash of the IP, never the IP itself.
 - `generated_at` (with repo, mode and days) names the exact report version on
   screen; `404 not_found` if the server has no such report. The stored verdict
@@ -1478,8 +1506,8 @@ repos to offer yet). Starter issues older than 72 hours aren't shown.
   to 500 characters.
 - Its own hourly limit, separate from work and read: 30 answers per IP
   anonymously, 120 per user; over it, 429 `rate_limited`.
-- For the engine's golden set, `python -m holt_server.feedback export
-  [--format csv|json] [--out FILE] [--since YYYY-MM-DD]` writes every answer
+- For the engine's golden set, `python -m prscout_server.feedback export
+[--format csv|json] [--out FILE] [--since YYYY-MM-DD]` writes every answer
   with the report's key numbers and a pseudonymous voter id (no user ids or IP
   hashes). There is no HTTP export.
 
@@ -1490,9 +1518,9 @@ compares with what gets merged in its repository. Each check says **looks
 fine**, **worth fixing** or **can't tell yet**, computed by rules, with the
 evidence behind it (example merged pull requests, the contributing guide's own
 line), plus the merged pull request most like it. There is no overall verdict,
-and it never changes the report's. Guidance only: Holt never posts to GitHub
+and it never changes the report's. Guidance only: PRScout never posts to GitHub
 and never writes code. It exists only when the server runs with its paid
-features (`HOLT_PRO_URL`); without them the GET says `available: false` and the
+features (`PRSCOUT_PRO_URL`); without them the GET says `available: false` and the
 POST is 501 `not_implemented`.
 
 A target is either a pull request (`pr`: a link like
@@ -1529,12 +1557,13 @@ kinds at once is 400 `invalid_request` with a plain message.
     request or branch GitHub doesn't have (or a branch with no new commits) is
     `not_found`; GitHub trouble is `upstream`. Usually a few seconds, up to a
     few minutes when the repository's history must be read first; stopped
-    after `HOLT_JOB_TIMEOUT_AI`.
+    after `PRSCOUT_JOB_TIMEOUT_AI`.
 - `GET /v1/preflight-jobs/{job_id}` → `{"status", "stage", "progress", "preflight": Preflight|null, "error": Error|null}`,
   and `GET /v1/preflight-jobs/{job_id}/events` (SSE, as for analyses; `done`
   carries `{"preflight": Preflight}`).
 
 `Preflight`: `{"repo", "checked_at", "window_days", "archived", "note", "target", "checks", "counts", "similar", "summary", "free_recheck"}`.
+
 - `target`: `{"kind": "pull_request"|"branch", "number", "url", "title", "author", "outside", "state", "draft", "head", "base", "head_sha", "additions", "deletions", "lines", "files"}`.
   For a branch, `number`, `state` and `outside` are null and `url` is GitHub's
   compare page. `outside` is whether GitHub gives the author no role in the
@@ -1559,38 +1588,42 @@ kinds at once is 400 `invalid_request` with a plain message.
 
 ## Public proxy for the browser extension (implemented by `web/`)
 
-The browser extension (`extension/`) cannot hold `HOLT_INTERNAL_KEY`, so
+The browser extension (`extension/`) cannot hold `PRSCOUT_INTERNAL_KEY`, so
 `web/` exposes two read-only, anonymous proxy routes on the public host
-(default `githolt.com`). They only read the cache; they never start an
+(default `gitprscout.com`). They only read the cache; they never start an
 analysis or call GitHub.
 
 ### `GET /api/public/report/{owner}/{repo}`
+
 Proxies `GET /v1/reports/{owner}/{repo}?mode=rules&days=7`.
+
 - `200` → the Report object (above), `mode: "rules"`. The extension reads only
   `headline`, `tone` and `stats.outsider_attempts` / `stats.outsider_merged`,
   so the proxy may strip `evidence` to keep responses small.
 - `outdated: true` on a `200` means an older engine version made the report.
   The proxy never starts a check for it; it sends `max-age=300` instead of
-  900, and the extension shows "Holt: updating" (not the old verdict) and
+  900, and the extension shows "PRScout: updating" (not the old verdict) and
   links to the report page, which re-runs it.
 - `404` → `{"error": {"code": "not_found", ...}}` when nothing is cached yet
-  (or the repo is missing/private). The extension then shows "Check with Holt"
+  (or the repo is missing/private). The extension then shows "Check with PRScout"
   and links to `/{owner}/{repo}`, whose page starts the rules analysis for
   any visitor who isn't a bot (signed out: rate-limited per IP by
-  `HOLT_ANON_RATE_PER_HOUR`, and over the limit it asks them to sign in first).
+  `PRSCOUT_ANON_RATE_PER_HOUR`, and over the limit it asks them to sign in first).
   Signed out, that page shows a report as a teaser (verdict, reason, odds and
   one number) unless it is one of the curated examples; these proxies are
   unaffected.
-- `429` `rate_limited` / `5xx` → shown as "Check with Holt" too.
+- `429` `rate_limited` / `5xx` → shown as "Check with PRScout" too.
 
 ### `GET /api/public/starter-issues/{owner}/{repo}`
+
 Proxies `GET /v1/repos/{owner}/{repo}/starter-issues?limit=20` →
 `{"repo": "…", "issues": [StarterIssue]}`. The extension reads `number`,
 `why` and `on_it`. `404` when nothing is known.
 
 Both routes:
+
 - Accept `GET` and `OPTIONS` only, no cookies or auth. Forward the caller's
-  IP as `X-Holt-Client-Ip` like any anonymous request. A `501` from the
+  IP as `X-prscout-Client-Ip` like any anonymous request. A `501` from the
   server (starter issues not shipped yet) may pass through; the extension
   just shows no marks.
 - Send `Cache-Control: public, max-age=900` (15 min) on `200` and

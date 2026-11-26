@@ -1,10 +1,10 @@
 # Load tests
 
-How much traffic a Holt deployment takes, and what gives first. [k6](https://k6.io)
+How much traffic a PRScout deployment takes, and what gives first. [k6](https://k6.io)
 scripts for three kinds of load, a watcher that records what the server was
 doing meanwhile, and a short report per run.
 
-**Staging only.** The scripts refuse `githolt.com`, and refuse any target
+**Staging only.** The scripts refuse `gitprscout.com`, and refuse any target
 whose `/__build` doesn't say it is the staging site. Never point them at
 production.
 
@@ -16,56 +16,56 @@ On the server that hosts staging (the watcher reads Docker there):
 loadtest/run.sh readers            # scenario 1, on staging's local edge
 loadtest/run.sh fresh              # scenario 2 (spends GitHub points)
 loadtest/run.sh mixed              # scenario 3 (spends GitHub points)
-loadtest/run.sh readers --public   # the same, through https://staging.githolt.com
+loadtest/run.sh readers --public   # the same, through https://staging.gitprscout.com
 ```
 
 It needs `k6` (one binary: <https://github.com/grafana/k6/releases>) on
-`PATH`, at `~/.cache/holt-loadtest/k6`, or named by `K6=`; `python3`; and
+`PATH`, at `~/.cache/prscout-loadtest/k6`, or named by `K6=`; `python3`; and
 `docker` for the server-side numbers.
 
 Each run writes `loadtest/results/<time>-<scenario>/` (gitignored) and prints
 its `report.md`:
 
-| File | What |
-|---|---|
-| `report.md` | The tables below, ready to paste |
-| `summary.json` | k6's numbers per window |
-| `samples.jsonl` | The watcher's samples, one every 5 seconds |
-| `jobs.tsv` | Jobs started during the run: queue wait and run time |
-| `points.txt` | GitHub points left on staging's tokens, before and after |
-| `k6.log`, `watch.log` | What each said |
+| File                  | What                                                     |
+| --------------------- | -------------------------------------------------------- |
+| `report.md`           | The tables below, ready to paste                         |
+| `summary.json`        | k6's numbers per window                                  |
+| `samples.jsonl`       | The watcher's samples, one every 5 seconds               |
+| `jobs.tsv`            | Jobs started during the run: queue wait and run time     |
+| `points.txt`          | GitHub points left on staging's tokens, before and after |
+| `k6.log`, `watch.log` | What each said                                           |
 
 ## Two ways in
 
-| | Target | Measures |
-|---|---|---|
-| default | `http://127.0.0.1:9110`, staging's edge on the host | The stack itself: nginx, the web app, the API server, Postgres |
-| `--public` | `https://staging.githolt.com` | What a visitor gets: the same, behind Cloudflare's tunnel and Access |
+|            | Target                                              | Measures                                                             |
+| ---------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| default    | `http://127.0.0.1:9110`, staging's edge on the host | The stack itself: nginx, the web app, the API server, Postgres       |
+| `--public` | `https://staging.gitprscout.com`                    | What a visitor gets: the same, behind Cloudflare's tunnel and Access |
 
 On the local edge the scripts send the headers the tunnel would add
 (`Host`, `X-Forwarded-For`, `X-Forwarded-Proto`). With `--public`, `run.sh`
 reads the Cloudflare Access service token the smoke tests use
 (`STAGING_CF_ACCESS_CLIENT_ID` and `STAGING_CF_ACCESS_CLIENT_SECRET` in
-`~/.config/holt/secrets.env`), trades it once for Access's cookie, and never
+`~/.config/prscout/secrets.env`), trades it once for Access's cookie, and never
 prints it. Say which way a number came from when you quote it: k6 runs on the
 same box, so the public path's numbers include a trip out to Cloudflare and
 back.
 
 ## The scenarios
 
-**1. Readers** (`readers.js`). Signed-out visitors opening pages Holt
+**1. Readers** (`readers.js`). Signed-out visitors opening pages PRScout
 already has, stepping up through 10, 50, 100 and 200 virtual users. Each
 virtual user opens a page, pauses 0.5 to 1.5 seconds, and opens another, so
 200 of them ask for up to 200 pages a second. The mix:
 
-| Page | Share |
-|---|---:|
-| A cached report, as a signed-out teaser (`repos/cached.txt`) | 40% |
-| The landing page | 20% |
-| Discover (the board, by stars, two language boards) | 15% |
-| A cached example report, in full (`FULL_REPOS`) | 10% |
-| Find, with its default search | 10% |
-| Examples | 5% |
+| Page                                                         | Share |
+| ------------------------------------------------------------ | ----: |
+| A cached report, as a signed-out teaser (`repos/cached.txt`) |   40% |
+| The landing page                                             |   20% |
+| Discover (the board, by stars, two language boards)          |   15% |
+| A cached example report, in full (`FULL_REPOS`)              |   10% |
+| Find, with its default search                                |   10% |
+| Examples                                                     |    5% |
 
 **2. Fresh checks** (`fresh.js`). A burst of repos staging has never
 checked (`repos/fresh.txt`), all at once, each started the way a signed-out
@@ -83,24 +83,24 @@ a browser caches and Cloudflare serves. Nobody is signed in.
 
 Environment variables, all optional:
 
-| Variable | Default | |
-|---|---|---|
-| `STEPS` | `10,50,100,200` | Readers: virtual users at each step |
-| `STEP_SECONDS` | `45` | Readers: how long each step is held |
-| `RAMP_SECONDS` | `10` | Readers: time to reach a step (left out of its numbers) |
-| `THINK_MIN`, `THINK_MAX` | `0.5`, `1.5` | A reader's pause between pages, seconds |
-| `FULL_REPOS` | `pallets/flask,home-assistant/core` | Example reports opened in full |
-| `ONLY` | | Readers: load only these pages, e.g. `discover,find` (names as in a report's page table) |
-| `ENCODING` | `gzip, br` | The `Accept-Encoding` sent; `identity` asks for uncompressed pages |
-| `FRESH_MAX` | `6` (mixed: `4`) | Checks in the burst, 15 at most |
-| `FRESH_SKIP` | `0` | Start this far down `repos/fresh.txt` |
-| `FRESH_REPOS` | | Repos to check instead of the file's, comma-separated |
-| `MIXED_VUS` | `50` | Mixed: readers |
-| `BEFORE_SECONDS`, `DURING_SECONDS` | `45`, `120` | Mixed: readers alone, then with the checks |
-| `MAX_LOAD` | `20` | Stop when the host's 1-minute load passes this |
-| `MIN_AVAILABLE_MB` | `2048` | Stop when the host's available memory drops under this |
-| `STACK` | `stage-holt-new` | The Compose project the watcher reads |
-| `LOCAL_EDGE` | `http://127.0.0.1:9110` | Staging's edge on the host |
+| Variable                           | Default                             |                                                                                          |
+| ---------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `STEPS`                            | `10,50,100,200`                     | Readers: virtual users at each step                                                      |
+| `STEP_SECONDS`                     | `45`                                | Readers: how long each step is held                                                      |
+| `RAMP_SECONDS`                     | `10`                                | Readers: time to reach a step (left out of its numbers)                                  |
+| `THINK_MIN`, `THINK_MAX`           | `0.5`, `1.5`                        | A reader's pause between pages, seconds                                                  |
+| `FULL_REPOS`                       | `pallets/flask,home-assistant/core` | Example reports opened in full                                                           |
+| `ONLY`                             |                                     | Readers: load only these pages, e.g. `discover,find` (names as in a report's page table) |
+| `ENCODING`                         | `gzip, br`                          | The `Accept-Encoding` sent; `identity` asks for uncompressed pages                       |
+| `FRESH_MAX`                        | `6` (mixed: `4`)                    | Checks in the burst, 15 at most                                                          |
+| `FRESH_SKIP`                       | `0`                                 | Start this far down `repos/fresh.txt`                                                    |
+| `FRESH_REPOS`                      |                                     | Repos to check instead of the file's, comma-separated                                    |
+| `MIXED_VUS`                        | `50`                                | Mixed: readers                                                                           |
+| `BEFORE_SECONDS`, `DURING_SECONDS` | `45`, `120`                         | Mixed: readers alone, then with the checks                                               |
+| `MAX_LOAD`                         | `20`                                | Stop when the host's 1-minute load passes this                                           |
+| `MIN_AVAILABLE_MB`                 | `2048`                              | Stop when the host's available memory drops under this                                   |
+| `STACK`                            | `stage-prscout-new`                 | The Compose project the watcher reads                                                    |
+| `LOCAL_EDGE`                       | `http://127.0.0.1:9110`             | Staging's edge on the host                                                               |
 
 ## What it costs
 
@@ -125,7 +125,7 @@ hasn't seen:
 
 ```sh
 grep -v '^#' loadtest/repos/fresh.txt | while read -r repo; do
-  seen=$(docker exec stage-holt-new-db-1 psql -U holt -d holt -At \
+  seen=$(docker exec stage-prscout-new-db-1 psql -U prscout -d prscout -At \
     -c "select count(*) from reports where repo_key = lower('$repo')")
   [ "$seen" = 0 ] && echo "$repo"
 done

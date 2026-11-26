@@ -4,9 +4,9 @@ GitHub's REST search (one request, its own budget), cached for a few minutes."""
 from __future__ import annotations
 
 import pytest
-from holt.evidence.errors import RateLimited
-from holt_server import api, github
-from holt_server.errors import ApiError
+from prscout.evidence.errors import RateLimited
+from prscout_server import api, github
+from prscout_server.errors import ApiError
 from test_server_discover import lookup_with
 
 
@@ -145,4 +145,4 @@ def test_the_internal_key_is_needed(h):
 def test_a_search_from_nobody_in_particular_is_refused(h):
     h.svc.lookup.search = _Fake([HIT])
     r = h.get("/v1/repos/search?q=excalidraw", ip=None)
-    assert r.status_code == 400 and "X-Holt-Client-Ip" in r.json()["error"]["message"]
+    assert r.status_code == 400 and "X-prscout-Client-Ip" in r.json()["error"]["message"]

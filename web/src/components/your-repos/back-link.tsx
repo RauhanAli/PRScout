@@ -6,15 +6,24 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
-const KEY = "holt-back-to";
+const KEY = "prscout-back-to";
 
 /** Where each list lives, by pathname. */
-const LABELS: Record<string, string> = { "/me/repos": "Your repos", "/me": "Home" };
+const LABELS: Record<string, string> = {
+  "/me/repos": "Your repos",
+  "/me": "Home",
+};
 
 /** Remember the page this row was opened from. Call it on the row link's click. */
 export function rememberBack(repo: string) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify({ repo: repo.toLowerCase(), href: location.pathname + location.search }));
+    sessionStorage.setItem(
+      KEY,
+      JSON.stringify({
+        repo: repo.toLowerCase(),
+        href: location.pathname + location.search,
+      }),
+    );
   } catch {}
 }
 
@@ -41,7 +50,10 @@ export function BackLink({ repo }: { repo: string }) {
   const label = LABELS[back.href.split("?")[0]];
   if (!label) return null;
   return (
-    <Link href={back.href} className="mb-4 inline-flex min-h-11 items-center text-[0.82rem] text-muted hover:text-blue sm:min-h-0">
+    <Link
+      href={back.href}
+      className="mb-4 inline-flex min-h-11 items-center text-[0.82rem] text-muted hover:text-blue sm:min-h-0"
+    >
       ← {label}
     </Link>
   );

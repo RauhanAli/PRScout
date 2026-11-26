@@ -4,7 +4,7 @@ Written to `fixtures/issues_pre_t/` and `fixtures/issues_post_t/` rather than
 into the existing directories, so adding this cannot invalidate the pull request
 fixtures every current result depends on.
 
-Run:  HOLT_POOL=eval/pool.json uv run python scripts/capture_issues.py
+Run:  PRSCOUT_POOL=eval/pool.json uv run python scripts/capture_issues.py
 """
 
 from __future__ import annotations
@@ -14,11 +14,11 @@ import os
 import time
 from pathlib import Path
 
-from holt.evidence.fixtures import write_fixture
-from holt.evidence.github_graphql import GitHubGraphQL, project_issues
-from holt.types import T_CUTOFF, Window
+from prscout.evidence.fixtures import write_fixture
+from prscout.evidence.github_graphql import GitHubGraphQL, project_issues
+from prscout.types import T_CUTOFF, Window
 
-POOL = Path(os.environ.get("HOLT_POOL", "eval/pool.json"))
+POOL = Path(os.environ.get("PRSCOUT_POOL", "eval/pool.json"))
 ROOT = Path("fixtures/issues")
 
 

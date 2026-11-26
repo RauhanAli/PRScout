@@ -9,11 +9,11 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from holt.starter import RULES_VERSION
+from prscout.starter import RULES_VERSION
 from conftest import STATS, canned_report
-from holt_server import api, discover, jobs, recommendations, warm
-from holt_server.contributions import verdicts
-from holt_server.db import (
+from prscout_server import api, discover, jobs, recommendations, warm
+from prscout_server.contributions import verdicts
+from prscout_server.db import (
     ENGINE_VERSION,
     FindCache,
     Job,
@@ -117,7 +117,7 @@ def test_an_outdated_report_for_another_budget_is_not_retimed(h):
 def test_badge_says_updating_not_the_old_verdict_and_queues_a_refresh(h):
     add(h, report("octo/one", OLD, verdict="viable"))
     r = h.client.get("/badge/octo/one.svg")
-    assert "Holt: updating" in r.text and "merges" not in r.text
+    assert "PRScout: updating" in r.text and "merges" not in r.text
     assert r.headers["cache-control"] == api.BADGE_UPDATING_CACHE
     [job] = all_rows(h, Job)
     h.wait(job.id)
@@ -258,7 +258,7 @@ def test_stale_only_flag_reaches_the_pass(monkeypatch, tmp_path):
             self.http = type("HTTP", (), {"close": lambda self: None})()
 
     monkeypatch.setattr(warm, "warm_once", fake_warm_once)
-    monkeypatch.setattr("holt_server.services.Services", FakeServices)
+    monkeypatch.setattr("prscout_server.services.Services", FakeServices)
     seeds = tmp_path / "seeds.txt"
     seeds.write_text("octo/one\n", encoding="utf-8")
     assert warm.main(["--dry-run", "--stale-only", "--seeds", str(seeds)]) == 0

@@ -4,7 +4,7 @@
 #   loadtest/run.sh readers            the ramp of readers, on the local edge
 #   loadtest/run.sh fresh              a burst of fresh checks (costs GitHub points)
 #   loadtest/run.sh mixed              readers, with a burst of checks in the middle
-#   loadtest/run.sh readers --public   the same through https://staging.githolt.com
+#   loadtest/run.sh readers --public   the same through https://staging.gitprscout.com
 #
 # Settings are environment variables (README.md lists them), e.g.
 #   STEPS=10,50 STEP_SECONDS=30 loadtest/run.sh readers
@@ -27,12 +27,12 @@ case "$SCENARIO" in
     *) echo "usage: run.sh readers|fresh|mixed [--public]" >&2; exit 2 ;;
 esac
 
-SITE_HOST="${SITE_HOST:-staging.githolt.com}"
-STACK="${STACK:-stage-holt-new}"                     # staging's Compose project
+SITE_HOST="${SITE_HOST:-staging.gitprscout.com}"
+STACK="${STACK:-stage-prscout-new}"                     # staging's Compose project
 LOCAL_EDGE="${LOCAL_EDGE:-http://127.0.0.1:9110}"    # staging's edge on this host
 MAX_LOAD="${MAX_LOAD:-20}"
 MIN_AVAILABLE_MB="${MIN_AVAILABLE_MB:-2048}"
-SECRETS="${HOLT_SECRETS_FILE:-$HOME/.config/holt/secrets.env}"
+SECRETS="${PRSCOUT_SECRETS_FILE:-$HOME/.config/prscout/secrets.env}"
 if (( PUBLIC )); then
     export BASE_URL="${BASE_URL:-https://$SITE_HOST}"
 else
@@ -41,12 +41,12 @@ fi
 export SITE_HOST
 
 case "$BASE_URL$SITE_HOST" in
-    *//githolt.com*|*//www.githolt.com*) echo "run.sh: that is production. Load tests run against staging only." >&2; exit 2 ;;
+    *//gitprscout.com*|*//www.gitprscout.com*) echo "run.sh: that is production. Load tests run against staging only." >&2; exit 2 ;;
 esac
-[[ "$SITE_HOST" == githolt.com || "$SITE_HOST" == www.githolt.com ]] && { echo "run.sh: that is production." >&2; exit 2; }
+[[ "$SITE_HOST" == gitprscout.com || "$SITE_HOST" == www.gitprscout.com ]] && { echo "run.sh: that is production." >&2; exit 2; }
 
 K6="${K6:-$(command -v k6 || true)}"
-[[ -z "$K6" && -x "$HOME/.cache/holt-loadtest/k6" ]] && K6="$HOME/.cache/holt-loadtest/k6"
+[[ -z "$K6" && -x "$HOME/.cache/prscout-loadtest/k6" ]] && K6="$HOME/.cache/prscout-loadtest/k6"
 [[ -n "$K6" ]] || { echo "run.sh: k6 not found. Install it (README.md) or set K6=/path/to/k6." >&2; exit 2; }
 
 # The host must have room before the run starts, with a margin under the limits.
@@ -87,8 +87,8 @@ points_left() {
     [[ -n "$server" ]] || return 0
     docker exec -i "$server" python - 2>/dev/null <<'PY' || true
 import httpx
-from holt_server.github import RATE_LIMIT, build_pool
-from holt_server.settings import get_settings
+from prscout_server.github import RATE_LIMIT, build_pool
+from prscout_server.settings import get_settings
 
 http = httpx.Client()
 pool = build_pool(get_settings(), http)
@@ -124,7 +124,7 @@ cat "$OUT/watch.log" >&2
 
 # The jobs this run started: how long each waited in the queue and ran.
 if have_db; then
-    docker exec "$DB" psql -U holt -d holt -At -F $'\t' -c "
+    docker exec "$DB" psql -U prscout -d prscout -At -F $'\t' -c "
         select kind, coalesce(repo, ''), status,
                coalesce(round(extract(epoch from started_at - created_at)::numeric, 1)::text, ''),
                coalesce(round(extract(epoch from finished_at - started_at)::numeric, 1)::text, '')

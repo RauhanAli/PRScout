@@ -5,7 +5,7 @@ things about it are easy to break without noticing, because nothing fails
 until a person opens the site:
 
 - the address. It used to be written in five places; now `STAGING_HOST` is
-  the only one, and the web app's site host, `HOLT_WEB_URL`, `AUTH_URL`, the
+  the only one, and the web app's site host, `PRSCOUT_WEB_URL`, `AUTH_URL`, the
   `site` on `/__build` and the smoke tests' `BASE_URL` must all follow it.
 - the OAuth keys. Staging reads `STAGING_*_OAUTH_*` from the secrets file
   production also reads, and must never end up with production's keys.
@@ -31,8 +31,8 @@ from pathlib import Path
 import pytest
 
 STAGING = Path("deploy/staging")
-OLD_HOST = "holt-new.aahil-khan.xyz"
-DEFAULT_HOST = "staging.githolt.com"
+OLD_HOST = "prscout-new.rauhan-ali.xyz"
+DEFAULT_HOST = "staging.gitprscout.com"
 
 pytestmark = pytest.mark.skipif(
     sys.platform == "win32" or not all(shutil.which(t) for t in ("bash", "git", "flock")),
@@ -53,17 +53,17 @@ n=$(cat "$STUB_DIR/containers" 2>/dev/null || echo 0)
 case " $* " in
     *" up "*)
         case " $* " in *" --scale "*) echo $((n + 1)) > "$STUB_DIR/containers" ;; esac
-        cp "$HOLT_STAGE_HOME/now.json" "$STUB_DIR/now-while-starting"; env | grep -E '^(STAGING_HOST|HOLT_WEB_URL|AUTH_|NEXT_PUBLIC_|GITHUB_TOKENS=|GITHUB_APP_|HOLT_GITHUB_APP_KEY_GID=|OPENROUTER_|HOLT_AI_|HOLT_PRO_MODEL_|HOLT_PRO_PLAYBOOK_|RAZORPAY_|HOLT_PAYMENTS_|HOLT_PASSES_|RESEND_API_KEY=)' | sort > "$STUB_DIR/compose.env" ;;
+        cp "$PRSCOUT_STAGE_HOME/now.json" "$STUB_DIR/now-while-starting"; env | grep -E '^(STAGING_HOST|PRSCOUT_WEB_URL|AUTH_|NEXT_PUBLIC_|GITHUB_TOKENS=|GITHUB_APP_|PRSCOUT_GITHUB_APP_KEY_GID=|OPENROUTER_|PRSCOUT_AI_|PRSCOUT_PRO_MODEL_|PRSCOUT_PRO_PLAYBOOK_|RAZORPAY_|PRSCOUT_PAYMENTS_|PRSCOUT_PASSES_|RESEND_API_KEY=)' | sort > "$STUB_DIR/compose.env" ;;
     *" ps "*) i=1; while [ "$i" -le "$n" ]; do echo "c$i"; i=$((i + 1)); done ;;
     *" config --hash "*) echo "$last stub-hash" ;;
     *" config "*)
-        printf '{"services": {"server": {"image": "stage-holt-new-server:latest", "build": {"context": "/s"}},'
-        printf ' "web": {"image": "stage-holt-new-web:latest", "build": {"context": "/w", "args": {"NEXT_PUBLIC_CONTACT_CITY": "%s"}}}}}\\n' "$NEXT_PUBLIC_CONTACT_CITY" ;;
+        printf '{"services": {"server": {"image": "stage-prscout-new-server:latest", "build": {"context": "/s"}},'
+        printf ' "web": {"image": "stage-prscout-new-web:latest", "build": {"context": "/w", "args": {"NEXT_PUBLIC_CONTACT_CITY": "%s"}}}}}\\n' "$NEXT_PUBLIC_CONTACT_CITY" ;;
     *" compose "*" build "*)
-        cp "$HOLT_STAGE_HOME/now.json" "$STUB_DIR/now-while-building-$last"
+        cp "$PRSCOUT_STAGE_HOME/now.json" "$STUB_DIR/now-while-building-$last"
         [ -n "$STUB_BUILD_FAILS" ] && exit 1
         echo "$last" >> "$STUB_DIR/built"
-        date +%s%N > "$STUB_DIR/image-stage-holt-new-$last:latest" ;;
+        date +%s%N > "$STUB_DIR/image-stage-prscout-new-$last:latest" ;;
     *" image inspect "*)
         [ -f "$STUB_DIR/image-$last" ] || exit 1
         echo "sha256:$(cat "$STUB_DIR/image-$last")" ;;
@@ -177,9 +177,9 @@ class Sandbox:
             env={
                 "PATH": os.environ["PATH"],
                 "HOME": str(self.home),
-                "HOLT_STAGE_HOME": str(self.state),
-                "HOLT_SECRETS_FILE": str(self.secrets),
-                "HOLT_LOCAL_REPO": str(self.root / "no-local-repo"),
+                "PRSCOUT_STAGE_HOME": str(self.state),
+                "PRSCOUT_SECRETS_FILE": str(self.secrets),
+                "PRSCOUT_LOCAL_REPO": str(self.root / "no-local-repo"),
                 "STUB_DIR": str(self.stub_dir),
                 "FORCE": "1",   # don't wait for the machine running the tests to be quiet
                 "SWAP_SETTLE": "0",
@@ -216,7 +216,7 @@ def sandbox(tmp_path: Path) -> Sandbox:
     return Sandbox(tmp_path)
 
 
-def test_the_default_host_is_staging_githolt_com(sandbox: Sandbox) -> None:
+def test_the_default_host_is_staging_gitprscout_com(sandbox: Sandbox) -> None:
     started = sandbox.live()
     assert started["STAGING_HOST"] == DEFAULT_HOST
     assert sandbox.site == f"https://{DEFAULT_HOST}"
@@ -227,7 +227,7 @@ def test_the_env_file_holds_the_host_and_no_urls(sandbox: Sandbox) -> None:
     sandbox.live()
     written = sandbox.env_file.read_text(encoding="utf-8")
     assert f"STAGING_HOST={DEFAULT_HOST}\n" in written
-    assert "HOLT_WEB_URL" not in written
+    assert "PRSCOUT_WEB_URL" not in written
     assert "NEXT_PUBLIC_SITE_HOST" not in written
 
 
@@ -244,17 +244,17 @@ def test_another_host_moves_every_url_and_is_remembered(sandbox: Sandbox) -> Non
 
 def test_an_env_file_from_the_old_address_moves_to_the_new_one(sandbox: Sandbox) -> None:
     sandbox.env_file.write_text(
-        f"HOLT_STAGE_PORT=9110\nHOLT_WEB_URL=https://{OLD_HOST}\nNEXT_PUBLIC_SITE_HOST={OLD_HOST}\n",
+        f"PRSCOUT_STAGE_PORT=9110\nPRSCOUT_WEB_URL=https://{OLD_HOST}\nNEXT_PUBLIC_SITE_HOST={OLD_HOST}\n",
         encoding="utf-8",
     )
     started = sandbox.live()
     assert started["STAGING_HOST"] == DEFAULT_HOST
-    assert "HOLT_WEB_URL" not in started   # compose.yml writes it from STAGING_HOST
+    assert "PRSCOUT_WEB_URL" not in started   # compose.yml writes it from STAGING_HOST
     assert sandbox.site == f"https://{DEFAULT_HOST}"
     assert sandbox.base_url == f"https://{DEFAULT_HOST}"
 
 
-@pytest.mark.parametrize("host", ["https://staging.githolt.com", "staging.githolt.com/", "githolt.com", "www.githolt.com"])
+@pytest.mark.parametrize("host", ["https://staging.gitprscout.com", "staging.gitprscout.com/", "gitprscout.com", "www.gitprscout.com"])
 def test_a_url_or_productions_host_is_refused(sandbox: Sandbox, host: str) -> None:
     done = sandbox.run(STAGING_HOST=host)
     assert done.returncode != 0
@@ -334,11 +334,11 @@ def test_ai_runs_on_openai_under_one_dollar_for_everything(sandbox: Sandbox) -> 
     assert "AI: on (OpenAI gpt-5-mini), budget $1.00" in done.stdout
     env = dict(line.split("=", 1) for line in
                (sandbox.stub_dir / "compose.env").read_text(encoding="utf-8").splitlines())
-    assert env["OPENROUTER_API_KEY"] == env["HOLT_PRO_MODEL_KEY"] == "sk-openai-value"
+    assert env["OPENROUTER_API_KEY"] == env["PRSCOUT_PRO_MODEL_KEY"] == "sk-openai-value"
     assert env["OPENROUTER_BASE_URL"] == "https://api.openai.com/v1"
-    assert env["OPENROUTER_MODEL"] == env["HOLT_PRO_PLAYBOOK_MODEL"] == "gpt-5-mini"
-    assert env["HOLT_PRO_MODEL_PROVIDER"] == "openai"
-    assert env["HOLT_AI_BUDGET_USD"] == "1.00"
+    assert env["OPENROUTER_MODEL"] == env["PRSCOUT_PRO_PLAYBOOK_MODEL"] == "gpt-5-mini"
+    assert env["PRSCOUT_PRO_MODEL_PROVIDER"] == "openai"
+    assert env["PRSCOUT_AI_BUDGET_USD"] == "1.00"
     logs = "".join(p.read_text(encoding="utf-8") for p in (sandbox.state / "logs").glob("*.log"))
     assert "sk-openai-value" not in done.stdout + done.stderr + logs
 
@@ -349,7 +349,7 @@ def test_without_an_openai_key_ai_is_off(sandbox: Sandbox) -> None:
     assert "AI: off (no OPENAI_API_KEY" in done.stdout
     env = dict(line.split("=", 1) for line in
                (sandbox.stub_dir / "compose.env").read_text(encoding="utf-8").splitlines())
-    assert env["HOLT_AI_BUDGET_USD"] == "0" and env["OPENROUTER_API_KEY"] == ""
+    assert env["PRSCOUT_AI_BUDGET_USD"] == "0" and env["OPENROUTER_API_KEY"] == ""
 
 
 def test_alert_emails_get_resends_key_and_nothing_logs_it(sandbox: Sandbox) -> None:
@@ -374,7 +374,7 @@ def test_without_resends_key_no_alert_email_is_sent(sandbox: Sandbox) -> None:
     assert env["RESEND_API_KEY"] == ""
 
 
-PASSES_OFF = {"HOLT_PAYMENTS_ENABLED": "0", "HOLT_PASSES_ON_SALE": "0", "RAZORPAY_KEY_ID": "",
+PASSES_OFF = {"PRSCOUT_PAYMENTS_ENABLED": "0", "PRSCOUT_PASSES_ON_SALE": "0", "RAZORPAY_KEY_ID": "",
               "RAZORPAY_KEY_SECRET": "", "RAZORPAY_WEBHOOK_SECRET": ""}
 
 
@@ -391,7 +391,7 @@ def test_razorpay_test_keys_put_passes_on_sale_and_nothing_logs_them(sandbox: Sa
     env = dict(line.split("=", 1) for line in
                (sandbox.stub_dir / "compose.env").read_text(encoding="utf-8").splitlines())
     assert payment_env(env) == {
-        "HOLT_PAYMENTS_ENABLED": "1", "HOLT_PASSES_ON_SALE": "1", "RAZORPAY_KEY_ID": "rzp_test_abc",
+        "PRSCOUT_PAYMENTS_ENABLED": "1", "PRSCOUT_PASSES_ON_SALE": "1", "RAZORPAY_KEY_ID": "rzp_test_abc",
         "RAZORPAY_KEY_SECRET": "rzp-secret-value", "RAZORPAY_WEBHOOK_SECRET": "hook-secret-value"}
     logs = "".join(p.read_text(encoding="utf-8") for p in (sandbox.state / "logs").glob("*.log"))
     for value in ("rzp-secret-value", "hook-secret-value", "rzp_test_abc"):
@@ -415,7 +415,7 @@ def test_passes_stay_off_without_razorpay_test_keys(sandbox: Sandbox) -> None:
 
     # Switches exported by whoever runs the script, or left in .env: ignored.
     sandbox.write_secrets()
-    assert payment_env(sandbox.live(HOLT_PAYMENTS_ENABLED="1", HOLT_PASSES_ON_SALE="1",
+    assert payment_env(sandbox.live(PRSCOUT_PAYMENTS_ENABLED="1", PRSCOUT_PASSES_ON_SALE="1",
                                     RAZORPAY_KEY_ID="rzp_live_abc",
                                     RAZORPAY_KEY_SECRET="live-secret")) == PASSES_OFF
 
@@ -496,7 +496,7 @@ def test_stagings_own_github_app_replaces_the_tokens(sandbox: Sandbox, tmp_path:
     started = sandbox.live()
     assert (started["GITHUB_APP_ID"], started["GITHUB_APP_INSTALLATION_ID"]) == ("777", "888")
     assert started["GITHUB_APP_PRIVATE_KEY_FILE"] == str(key)  # compose mounts it read-only
-    assert started["HOLT_GITHUB_APP_KEY_GID"] == str(key.stat().st_gid)
+    assert started["PRSCOUT_GITHUB_APP_KEY_GID"] == str(key.stat().st_gid)
     assert started["GITHUB_TOKENS"] == ""  # nor the one make-env.sh wrote into .env
     assert "reading as staging's GitHub App" in done.stdout
     assert "stub" not in done.stdout + done.stderr
@@ -561,19 +561,19 @@ def test_the_old_address_is_gone_from_what_runs_staging() -> None:
 def test_compose_takes_every_url_from_the_host_setting() -> None:
     compose = (STAGING / "compose.yml").read_text(encoding="utf-8")
     host = "${STAGING_HOST:-" + DEFAULT_HOST + "}"
-    assert f"HOLT_WEB_URL: https://{host}\n" in compose
+    assert f"PRSCOUT_WEB_URL: https://{host}\n" in compose
     assert f"AUTH_URL: https://{host}\n" in compose
     assert compose.count(f"NEXT_PUBLIC_SITE_HOST: {host}\n") == 2   # build arg and runtime
-    assert "${HOLT_WEB_URL" not in compose and "${NEXT_PUBLIC_SITE_HOST" not in compose
+    assert "${PRSCOUT_WEB_URL" not in compose and "${NEXT_PUBLIC_SITE_HOST" not in compose
     # What must not move with the address.
     assert compose.count('ROBOTS_NOINDEX: "1"\n') == 2
     assert 'TRUST_PROXY_HEADERS: "1"\n' in compose
-    assert '"127.0.0.1:${HOLT_STAGE_PORT:-9110}:8080"' in compose
+    assert '"127.0.0.1:${PRSCOUT_STAGE_PORT:-9110}:8080"' in compose
 
 
 # Not FORCE, so the per-image checks run, and never waiting on the machine running the tests.
-QUIET = {"FORCE": "0", "HOLT_STAGE_MAX_LOAD": "1000", "HOLT_STAGE_MAX_LOAD_LIGHT": "1000", "HOLT_STAGE_MIN_AVAIL_MB": "0"}
-UNIT = {**QUIET, "HOLT_STAGE_SMOKE_UNIT": "holt-stage-smoke.service"}
+QUIET = {"FORCE": "0", "PRSCOUT_STAGE_MAX_LOAD": "1000", "PRSCOUT_STAGE_MAX_LOAD_LIGHT": "1000", "PRSCOUT_STAGE_MIN_AVAIL_MB": "0"}
+UNIT = {**QUIET, "PRSCOUT_STAGE_SMOKE_UNIT": "prscout-stage-smoke.service"}
 
 
 def test_only_the_images_whose_inputs_changed_are_rebuilt(sandbox: Sandbox) -> None:
@@ -587,7 +587,7 @@ def test_only_the_images_whose_inputs_changed_are_rebuilt(sandbox: Sandbox) -> N
 
     sandbox.commit("web/src/page.tsx", "export default 1\n")
     assert rebuilt() == ["web"]                        # a web-only change never rebuilds the server
-    sandbox.commit("src/holt/engine.py", "x = 1\n")
+    sandbox.commit("src/prscout/engine.py", "x = 1\n")
     assert rebuilt() == ["server"]
     sandbox.commit("uv.lock", "lock\n")
     assert rebuilt() == ["server"]
@@ -602,7 +602,7 @@ def test_only_the_images_whose_inputs_changed_are_rebuilt(sandbox: Sandbox) -> N
     assert rebuilt() == ["web"]
 
     # An image that is gone (or was rebuilt by something else) is rebuilt.
-    (sandbox.stub_dir / "image-stage-holt-new-server:latest").unlink()
+    (sandbox.stub_dir / "image-stage-prscout-new-server:latest").unlink()
     sandbox.commit("docs/notes.md", "again\n")
     assert rebuilt() == ["server"]
 
@@ -677,7 +677,7 @@ def test_the_smoke_run_uses_three_browsers_after_the_site_is_live(sandbox: Sandb
     assert sandbox.build["now"]["state"] == "live"
 
     sandbox.commit("web/src/page.tsx", "x\n")
-    assert sandbox.run(**QUIET, HOLT_STAGE_SMOKE_WORKERS="2").returncode == 0
+    assert sandbox.run(**QUIET, PRSCOUT_STAGE_SMOKE_WORKERS="2").returncode == 0
     assert any("--workers=2" in line for line in sandbox.stub_lines("npx"))
 
 
@@ -702,7 +702,7 @@ def test_the_smoke_run_can_be_skipped_for_one_build(sandbox: Sandbox) -> None:
     assert smoke()["status"] == "passed" and ran()
 
     sandbox.commit("web/src/page.tsx", "3\n")
-    assert smoke(HOLT_STAGE_SMOKE="0")["status"] == "skipped" and not ran()
+    assert smoke(PRSCOUT_STAGE_SMOKE="0")["status"] == "skipped" and not ran()
 
     # The file skips every build until it is removed.
     (sandbox.state / "no-smoke").touch()
@@ -714,7 +714,7 @@ def test_under_the_timer_the_smoke_run_is_its_own_unit(sandbox: Sandbox) -> None
     done = sandbox.run(**UNIT)
     assert done.returncode == 0, done.stdout + done.stderr
     # The build hands it off and ends, so the next change isn't held up by it.
-    assert "systemctl --user start --no-block holt-stage-smoke.service" in sandbox.stub_lines("systemctl")
+    assert "systemctl --user start --no-block prscout-stage-smoke.service" in sandbox.stub_lines("systemctl")
     assert not sandbox.stub_lines("npx")
     assert sandbox.build["now"]["state"] == "smoke"
 
@@ -735,12 +735,12 @@ def test_under_the_timer_the_smoke_run_is_its_own_unit(sandbox: Sandbox) -> None
     sandbox.commit("web/src/page.tsx", "x\n")
     done = sandbox.run(**UNIT)
     assert done.returncode == 0, done.stdout + done.stderr
-    assert "systemctl --user stop holt-stage-smoke.service" in sandbox.stub_lines("systemctl")
+    assert "systemctl --user stop prscout-stage-smoke.service" in sandbox.stub_lines("systemctl")
     assert "stopped the previous build's run" in done.stdout
 
 
 def test_the_timer_ticks_every_minute_and_knows_its_smoke_unit() -> None:
     text = (STAGING / "install.sh").read_text(encoding="utf-8")
     assert "OnUnitInactiveSec=1min" in text
-    assert "Environment=HOLT_STAGE_SMOKE_UNIT=holt-stage-smoke.service" in text
+    assert "Environment=PRSCOUT_STAGE_SMOKE_UNIT=prscout-stage-smoke.service" in text
     assert "ExecStart=$STATE/bin/preview.sh --smoke" in text

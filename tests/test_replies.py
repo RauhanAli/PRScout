@@ -11,9 +11,9 @@ from datetime import timedelta
 
 import pytest
 
-from holt.agent import people, replies
-from holt.agent.signals import Thread, build_threads, compute
-from holt.types import T_CUTOFF, EvidenceRecord
+from prscout.agent import people, replies
+from prscout.agent.signals import Thread, build_threads, compute
+from prscout.types import T_CUTOFF, EvidenceRecord
 
 T0 = T_CUTOFF - timedelta(days=30)
 

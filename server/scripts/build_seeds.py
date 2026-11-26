@@ -1,11 +1,11 @@
-"""Build server/holt_server/seeds/repos.txt, the warm cache's seed list.
+"""Build server/prscout_server/seeds/repos.txt, the warm cache's seed list.
 
     GITHUB_TOKEN=... uv run python server/scripts/build_seeds.py [--total 300]
 
 Without GITHUB_TOKEN it reads as the server does: the GitHub App if it is set
 up (GITHUB_APP_*), else GITHUB_TOKENS (server/README.md).
 
-Uses the same sourcing as `holt start` / `/v1/find` (holt.starter): repositories
+Uses the same sourcing as `prscout start` / `/v1/find` (prscout.starter): repositories
 with the hacktoberfest topic, plus beginner-friendly repositories (open
 good-first-issue style issues, recently active, not archived or forks) in each
 of the top languages. Read-only; roughly two GraphQL searches per language.
@@ -20,14 +20,14 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-OUT = Path(__file__).resolve().parents[1] / "holt_server" / "seeds" / "repos.txt"
+OUT = Path(__file__).resolve().parents[1] / "prscout_server" / "seeds" / "repos.txt"
 LANGUAGES = ["python", "javascript", "typescript", "java", "go", "rust", "c++", "c",
              "c#", "php", "ruby", "kotlin"]
 HACKTOBERFEST_SHARE = 0.4
 
 
 def build(total: int, token: str) -> tuple[list[str], dict[str, int]]:
-    from holt.starter import GitHub, source_candidates
+    from prscout.starter import GitHub, source_candidates
 
     transport = GitHub(token=token)
     now = datetime.now(UTC)
@@ -56,8 +56,8 @@ def build(total: int, token: str) -> tuple[list[str], dict[str, int]]:
 def server_token() -> str | None:
     """A token from the server's own settings: the GitHub App's, else GITHUB_TOKENS."""
     import httpx
-    from holt_server.github import build_pool
-    from holt_server.settings import get_settings
+    from prscout_server.github import build_pool
+    from prscout_server.settings import get_settings
 
     pool = build_pool(get_settings(), httpx.Client(timeout=30.0))
     return pool.next() if pool else None
@@ -76,7 +76,7 @@ def main() -> int:
     repos, counts = build(args.total, token)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     header = [
-        "# Warm-cache seed repositories (holt_server/warm.py). One owner/repo per line.",
+        "# Warm-cache seed repositories (prscout_server/warm.py). One owner/repo per line.",
         f"# Generated {datetime.now(UTC).date().isoformat()} by server/scripts/build_seeds.py;",
         "# re-run it to refresh. Sourced like /v1/find: the hacktoberfest topic, then",
         f"# beginner-friendly repositories in {', '.join(LANGUAGES)}.",

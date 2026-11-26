@@ -12,8 +12,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from golden import backtest as bt
-from holt.agent.signals import build_threads, compute
-from holt.types import EvidenceRecord
+from prscout.agent.signals import build_threads, compute
+from prscout.types import EvidenceRecord
 
 REPO = "o/r"
 AS_OF = datetime(2026, 6, 15, tzinfo=UTC)

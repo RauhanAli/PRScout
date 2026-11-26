@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SAVE_PARAM, savedSet, signInToSave, wantsSave, withoutSave, withSaved } from "./saved.ts";
+import {
+  SAVE_PARAM,
+  savedSet,
+  signInToSave,
+  wantsSave,
+  withoutSave,
+  withSaved,
+} from "./saved.ts";
 
-const back = (href: string) => new URL(href, "https://holt.test").searchParams.get("callbackUrl");
+const back = (href: string) =>
+  new URL(href, "https://prscout.test").searchParams.get("callbackUrl");
 
 test("signing in to save comes back to the same page, asking to save", () => {
   const href = signInToSave("/pallets/flask", "", "pallets/flask");
@@ -11,8 +19,12 @@ test("signing in to save comes back to the same page, asking to save", () => {
 });
 
 test("keeps the page's own query and replaces an old save request", () => {
-  const href = signInToSave("/discover", "?sort=stars&save=octo%2Fold", "octo/new");
-  const u = new URL(back(href)!, "https://holt.test");
+  const href = signInToSave(
+    "/discover",
+    "?sort=stars&save=octo%2Fold",
+    "octo/new",
+  );
+  const u = new URL(back(href)!, "https://prscout.test");
   assert.equal(u.pathname, "/discover");
   assert.equal(u.searchParams.get("sort"), "stars");
   assert.deepEqual(u.searchParams.getAll(SAVE_PARAM), ["octo/new"]);
@@ -26,8 +38,14 @@ test("a page asks to save only the repo it names, whatever the casing", () => {
 });
 
 test("the request is dropped from the address once handled", () => {
-  assert.equal(withoutSave("/pallets/flask", "?save=pallets%2Fflask"), "/pallets/flask");
-  assert.equal(withoutSave("/pallets/flask", "?days=3&save=pallets%2Fflask"), "/pallets/flask?days=3");
+  assert.equal(
+    withoutSave("/pallets/flask", "?save=pallets%2Fflask"),
+    "/pallets/flask",
+  );
+  assert.equal(
+    withoutSave("/pallets/flask", "?days=3&save=pallets%2Fflask"),
+    "/pallets/flask?days=3",
+  );
 });
 
 test("the saved set ignores case, and changes return a new set", () => {

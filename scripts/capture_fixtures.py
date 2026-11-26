@@ -15,11 +15,11 @@ import sys
 import time
 from pathlib import Path
 
-from holt.evidence.fixtures import FIXTURE_ROOT, write_fixture
-from holt.evidence.github_graphql import GitHubGraphQL, LiveGitHubProvider
-from holt.types import T_CUTOFF, Window
+from prscout.evidence.fixtures import FIXTURE_ROOT, write_fixture
+from prscout.evidence.github_graphql import GitHubGraphQL, LiveGitHubProvider
+from prscout.types import T_CUTOFF, Window
 
-POOL = Path(os.environ.get("HOLT_POOL", "eval/pool.json"))
+POOL = Path(os.environ.get("PRSCOUT_POOL", "eval/pool.json"))
 # Asymmetric on purpose. Pre-T is what the agent reads, and it will never read
 # two hundred threads, so a sample is fine. Post-T is what labels are computed
 # from, where truncation biases the measurement -- three repositories hit the

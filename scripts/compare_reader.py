@@ -2,7 +2,7 @@
 
     uv run python scripts/compare_reader.py --base origin/main pallets/flask psf/requests
 
-Loads `src/holt/evidence/github_graphql.py` as it was at `--base` next to the
+Loads `src/prscout/evidence/github_graphql.py` as it was at `--base` next to the
 one in the working tree, reads each repository with both at the same moment
 (same cutoff, same token, on two threads) and compares the evidence records:
 ids, links, timestamps and payloads. Prints the GraphQL points and queries
@@ -27,10 +27,10 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from holt.evidence import github_graphql as current
-from holt.types import Window
+from prscout.evidence import github_graphql as current
+from prscout.types import Window
 
-READER = "src/holt/evidence/github_graphql.py"
+READER = "src/prscout/evidence/github_graphql.py"
 
 
 def load_reader(rev: str) -> ModuleType:

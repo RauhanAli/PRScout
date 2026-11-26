@@ -1,7 +1,13 @@
-// Shapes the extension reads from the Holt public API. They are a subset of the
+// Shapes the extension reads from the PRScout public API. They are a subset of the
 // Report and StarterIssue objects in API.md; everything else is ignored.
 
-export type Verdict = "viable" | "long_shot" | "not_viable" | "insufficient_evidence" | "personal" | "catalogue";
+export type Verdict =
+  | "viable"
+  | "long_shot"
+  | "not_viable"
+  | "insufficient_evidence"
+  | "personal"
+  | "catalogue";
 
 /** The verdict's colour, chosen by the server: `warn` is a Long shot,
  * `neutral` is Not enough evidence or a Personal project. */
@@ -17,7 +23,7 @@ export interface Report {
   /** A short count for the chip ("15 of 100 outside PRs merged"); null when
    * nobody outside tried. Missing from responses cached before it existed. */
   stat_line?: string | null;
-  /** True when an older version of Holt's rules made this report; the chip
+  /** True when an older version of PRScout's rules made this report; the chip
    * says "updating" instead of its verdict. Missing from older servers. */
   outdated?: boolean;
   stats?: {
@@ -49,7 +55,7 @@ export type Lookup<T> =
 export type LookupKind = "report" | "starter-issues";
 
 export interface LookupMessage {
-  type: "holt:lookup";
+  type: "prscout:lookup";
   kind: LookupKind;
   owner: string;
   repo: string;

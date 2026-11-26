@@ -17,13 +17,13 @@ import pytest
 from conftest import make_settings
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from holt_server import github_app
-from holt_server.errors import ApiError
-from holt_server.github import TokenPool, build_pool
-from holt_server.github_app import AppConfigError, GitHubApp
-from holt_server.settings import Settings
+from prscout_server import github_app
+from prscout_server.errors import ApiError
+from prscout_server.github import TokenPool, build_pool
+from prscout_server.github_app import AppConfigError, GitHubApp
+from prscout_server.settings import Settings
 
-from holt.evidence.errors import AuthError
+from prscout.evidence.errors import AuthError
 
 _KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 PEM = _KEY.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
@@ -170,7 +170,7 @@ def test_pool_leases_the_app_token_and_names_it_in_logs(caplog):
     app, gh = make_app()
     pool = TokenPool([app])
     assert pool.next() == "ghs_installation1"
-    with caplog.at_level(logging.WARNING, logger="holt_server.github"):
+    with caplog.at_level(logging.WARNING, logger="prscout_server.github"):
         pool.note_rate_limited(0, 120)
         pool.note_points(0, 3, iso(NOW + 900))
     assert "the GitHub App" in caplog.text
@@ -246,7 +246,7 @@ def test_with_the_app_the_pool_is_the_app_only(tmp_path, caplog):
     settings = make_settings(tmp_path, GITHUB_APP_ID="123456", GITHUB_APP_INSTALLATION_ID="42",
                              GITHUB_APP_PRIVATE_KEY_FILE=str(key))
     gh = FakeGitHub(Clock())
-    with caplog.at_level(logging.INFO, logger="holt_server.github"):
+    with caplog.at_level(logging.INFO, logger="prscout_server.github"):
         pool = build_pool(settings, httpx.Client(transport=httpx.MockTransport(gh)))
     assert len(pool) == 1 and pool.label(0) == "the GitHub App"
     assert "GITHUB_TOKENS" in caplog.text  # says the tokens are not used
@@ -298,7 +298,7 @@ def test_verify_command_names_the_app_and_proves_a_public_read(tmp_path, capsys)
     def handler(request):
         path = request.url.path
         if path == "/app":
-            return httpx.Response(200, json={"slug": "holt-reader", "id": 123456})
+            return httpx.Response(200, json={"slug": "prscout-reader", "id": 123456})
         if path == "/graphql":
             return httpx.Response(200, json={"data": {
                 "repository": {"nameWithOwner": "pallets/flask",
@@ -314,7 +314,7 @@ def test_verify_command_names_the_app_and_proves_a_public_read(tmp_path, capsys)
                              GITHUB_APP_PRIVATE_KEY=PEM)
     assert github_app.main(settings, httpx.Client(transport=httpx.MockTransport(handler))) == 0
     out = capsys.readouterr().out
-    assert "holt-reader" in out and "4999" in out and "readable" in out
+    assert "prscout-reader" in out and "4999" in out and "readable" in out
     assert "ghs_" not in out and gh.jwts[0] not in out and "PRIVATE KEY" not in out
 
 

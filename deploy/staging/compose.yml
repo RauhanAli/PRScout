@@ -1,64 +1,65 @@
-# Holt staging stack at https://${STAGING_HOST} (default staging.githolt.com)
+# PRScout staging stack at https://${STAGING_HOST} (default staging.gitprscout.com)
 #
 # Run it through preview.sh (or see ../README.md). Compose project:
-# stage-holt-new (the name is from the site's first address and stays, so
+# stage-prscout-new (the name is from the site's first address and stays, so
 # the running stack and its database volume carry over). Only the edge
 # publishes a port, on 127.0.0.1, and a Cloudflare tunnel routes
 # STAGING_HOST to it.
 #
 #   edge (nginx, /__build) -> web (Next.js) x N -> server (FastAPI) -> db
 #
-# web runs HOLT_WEB_REPLICAS containers (default 2, as production), so a
+# web runs PRSCOUT_WEB_REPLICAS containers (default 2, as production), so a
 # load test here measures what production runs.
 #
-# STAGING_HOST is the one host setting: NEXT_PUBLIC_SITE_HOST, HOLT_WEB_URL
-# and AUTH_URL below are all written from it, and an old HOLT_WEB_URL or
+# STAGING_HOST is the one host setting: NEXT_PUBLIC_SITE_HOST, PRSCOUT_WEB_URL
+# and AUTH_URL below are all written from it, and an old PRSCOUT_WEB_URL or
 # NEXT_PUBLIC_SITE_HOST line in .env is ignored.
 #
 # Secrets come from .env next to this file (gitignored; make-env.sh writes
 # it); preview.sh adds the contact details and the staging-only sign-in keys
-# from ~/.config/holt/secrets.env.
-name: stage-holt-new
+# from ~/.config/prscout/secrets.env.
+name: stage-prscout-new
 
 x-stage-label: &stage-label
-  holt.stage: holt-new
+  prscout.stage: prscout-new
 
 services:
   db:
     image: postgres:16-alpine
     labels: *stage-label
     environment:
-      POSTGRES_USER: holt
-      POSTGRES_PASSWORD: ${HOLT_DB_PASSWORD:?run make-env.sh}
-      POSTGRES_DB: holt
+      POSTGRES_USER: prscout
+      POSTGRES_PASSWORD: ${PRSCOUT_DB_PASSWORD:?run make-env.sh}
+      POSTGRES_DB: prscout
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d:ro
     # max_connections, the most each client can hold open: two servers during
-    # a swap (HOLT_DB_POOL_SIZE 6, a health check's 1 and up to 3 locks each),
+    # a swap (PRSCOUT_DB_POOL_SIZE 6, a health check's 1 and up to 3 locks each),
     # a warm pass (7), two sets of up to three webs during a swap (5 each),
     # the paid-features service (15) and the migrations: 76 of 80 if all of it
     # happened at once (the two swaps never do). The reasoning is in
     # deploy/prod/compose.yml.
-    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=80"]
+    command:
+      ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=80"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U holt -d holt"]
+      test: ["CMD-SHELL", "pg_isready -U prscout -d prscout"]
       interval: 3s
       timeout: 3s
       retries: 30
     mem_limit: 256m
     restart: unless-stopped
 
-  # Applies web/drizzle/*.sql (Auth.js tables) to the holt_web database once
+  # Applies web/drizzle/*.sql (Auth.js tables) to the prscout_web database once
   # each, then exits. Uses the db image, so nothing extra is pulled.
   migrate-web:
     image: postgres:16-alpine
     labels: *stage-label
     environment:
       PGHOST: db
-      PGUSER: holt
-      PGPASSWORD: ${HOLT_DB_PASSWORD}
-      PGDATABASE: holt_web
+      PGUSER: prscout
+      PGPASSWORD: ${PRSCOUT_DB_PASSWORD}
+      PGDATABASE: prscout_web
     volumes:
       - ../../web/drizzle:/migrations:ro
       - ./migrate-web.sh:/migrate-web.sh:ro
@@ -68,14 +69,14 @@ services:
     mem_limit: 64m
     restart: "no"
 
-  # Brings the API's schema up to date (holt_server/migrations), then exits.
+  # Brings the API's schema up to date (prscout_server/migrations), then exits.
   # The server starts only after it succeeds.
   migrate-server:
-    image: stage-holt-new-server:latest
+    image: stage-prscout-new-server:latest
     labels: *stage-label
     environment:
-      DATABASE_URL: postgresql+asyncpg://holt:${HOLT_DB_PASSWORD}@db:5432/holt
-    command: ["python", "-m", "holt_server.migrate"]
+      DATABASE_URL: postgresql+asyncpg://prscout:${PRSCOUT_DB_PASSWORD}@db:5432/prscout
+    command: ["python", "-m", "prscout_server.migrate"]
     depends_on:
       db: { condition: service_healthy }
     mem_limit: 256m
@@ -86,14 +87,14 @@ services:
       context: ../..
       dockerfile: deploy/server/Dockerfile
       labels: *stage-label
-    image: stage-holt-new-server:latest
+    image: stage-prscout-new-server:latest
     labels: *stage-label
     environment:
-      HOLT_ENV: ${HOLT_ENV:-staging}
-      DATABASE_URL: postgresql+asyncpg://holt:${HOLT_DB_PASSWORD}@db:5432/holt
-      HOLT_INTERNAL_KEY: ${HOLT_INTERNAL_KEY:?run make-env.sh}
-      HOLT_SECRET_KEY: ${HOLT_SECRET_KEY:?run make-env.sh}
-      HOLT_WEB_URL: https://${STAGING_HOST:-staging.githolt.com}
+      PRSCOUT_ENV: ${PRSCOUT_ENV:-staging}
+      DATABASE_URL: postgresql+asyncpg://prscout:${PRSCOUT_DB_PASSWORD}@db:5432/prscout
+      PRSCOUT_INTERNAL_KEY: ${PRSCOUT_INTERNAL_KEY:?run make-env.sh}
+      PRSCOUT_SECRET_KEY: ${PRSCOUT_SECRET_KEY:?run make-env.sh}
+      PRSCOUT_WEB_URL: https://${STAGING_HOST:-staging.gitprscout.com}
       GITHUB_TOKENS: ${GITHUB_TOKENS}
       # The GitHub App (the maintainers' ops notes): set up, the server reads
       # GitHub as the app and GITHUB_TOKENS is not used. The key is mounted
@@ -102,63 +103,73 @@ services:
       GITHUB_APP_INSTALLATION_ID: ${GITHUB_APP_INSTALLATION_ID:-}
       GITHUB_APP_PRIVATE_KEY_FILE: ${GITHUB_APP_PRIVATE_KEY_FILE:+/run/secrets/github_app_key}
       # AI (preview.sh sets these from OPENAI_API_KEY): the model, and the
-      # hard budget for all AI on staging, holt-pro's included. 0 = AI off.
+      # hard budget for all AI on staging, prscout-pro's included. 0 = AI off.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-5-mini}
-      HOLT_AI_BUDGET_USD: ${HOLT_AI_BUDGET_USD:-0}
+      PRSCOUT_AI_BUDGET_USD: ${PRSCOUT_AI_BUDGET_USD:-0}
       # Paid features (compose.pro.yml). preview.sh sets both, empty when
       # the service isn't running, which turns paid features off.
-      HOLT_PRO_URL: ${HOLT_PRO_URL:-}
-      HOLT_PRO_KEY: ${HOLT_PRO_KEY:-}
+      PRSCOUT_PRO_URL: ${PRSCOUT_PRO_URL:-}
+      PRSCOUT_PRO_KEY: ${PRSCOUT_PRO_KEY:-}
       # PR watch (server/README.md, "PR watch"): off unless staging's .env
-      # says HOLT_PR_WATCH=1. Alert emails need RESEND_API_KEY, which
+      # says PRSCOUT_PR_WATCH=1. Alert emails need RESEND_API_KEY, which
       # preview.sh takes from the secrets file; without it none are sent.
-      HOLT_PR_WATCH: ${HOLT_PR_WATCH:-0}
+      PRSCOUT_PR_WATCH: ${PRSCOUT_PR_WATCH:-0}
       # Pass checkout in Razorpay TEST mode, every pass on sale: preview.sh
       # sets all of these from RAZORPAY_KEY_ID/SECRET in secrets.env, and
       # only when the key is a test key (rzp_test_). Off otherwise.
       # Production's compose has none of them.
-      HOLT_PAYMENTS_ENABLED: ${HOLT_PAYMENTS_ENABLED:-0}
-      HOLT_PASSES_ON_SALE: ${HOLT_PASSES_ON_SALE:-0}
+      PRSCOUT_PAYMENTS_ENABLED: ${PRSCOUT_PAYMENTS_ENABLED:-0}
+      PRSCOUT_PASSES_ON_SALE: ${PRSCOUT_PASSES_ON_SALE:-0}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       # Account emails (server/README.md, "Account emails"): the welcome, a
       # pass's receipt and the "ending" ones. Off unless staging's .env says
-      # HOLT_ACCOUNT_EMAILS=1; they need RESEND_API_KEY too.
-      HOLT_ACCOUNT_EMAILS: ${HOLT_ACCOUNT_EMAILS:-0}
-      HOLT_JOB_CONCURRENCY: ${HOLT_JOB_CONCURRENCY:-1}
+      # PRSCOUT_ACCOUNT_EMAILS=1; they need RESEND_API_KEY too.
+      PRSCOUT_ACCOUNT_EMAILS: ${PRSCOUT_ACCOUNT_EMAILS:-0}
+      PRSCOUT_JOB_CONCURRENCY: ${PRSCOUT_JOB_CONCURRENCY:-1}
       # Background workers (badges, warm passes) and the warm pass's reports
       # in flight: two, inside the 512m below.
-      HOLT_BADGE_CONCURRENCY: ${HOLT_BADGE_CONCURRENCY:-2}
-      HOLT_WARM_PARALLEL: ${HOLT_WARM_PARALLEL:-2}
+      PRSCOUT_BADGE_CONCURRENCY: ${PRSCOUT_BADGE_CONCURRENCY:-2}
+      PRSCOUT_WARM_PARALLEL: ${PRSCOUT_WARM_PARALLEL:-2}
       # Database connections this server keeps, for three job workers and
       # the page requests (see deploy/prod/compose.yml).
-      HOLT_DB_POOL_SIZE: ${HOLT_DB_POOL_SIZE:-6}
-      HOLT_DB_MAX_OVERFLOW: ${HOLT_DB_MAX_OVERFLOW:-0}
-      HOLT_DB_POOL_TIMEOUT: ${HOLT_DB_POOL_TIMEOUT:-10}
-      # Warm pass (python -m holt_server.warm) fills this cache for a day.
-      HOLT_STARTER_CACHE_HOURS: ${HOLT_STARTER_CACHE_HOURS:-24}
-      # Every report's evidence (holt_server/evidence_store.py), in staging's
-      # own directory, ~/.local/share/holt-staging/evidence, which preview.sh
+      PRSCOUT_DB_POOL_SIZE: ${PRSCOUT_DB_POOL_SIZE:-6}
+      PRSCOUT_DB_MAX_OVERFLOW: ${PRSCOUT_DB_MAX_OVERFLOW:-0}
+      PRSCOUT_DB_POOL_TIMEOUT: ${PRSCOUT_DB_POOL_TIMEOUT:-10}
+      # Warm pass (python -m prscout_server.warm) fills this cache for a day.
+      PRSCOUT_STARTER_CACHE_HOURS: ${PRSCOUT_STARTER_CACHE_HOURS:-24}
+      # Every report's evidence (prscout_server/evidence_store.py), in staging's
+      # own directory, ~/.local/share/prscout-staging/evidence, which preview.sh
       # makes. Off (and ./initdb mounted read-only in its place) under a
       # preview.sh installed before it did: re-run deploy/staging/install.sh.
-      HOLT_EVIDENCE_DIR: ${HOLT_STAGE_EVIDENCE_DIR:+/data/evidence}
-      HOLT_EVIDENCE_KEEP_DAYS: ${HOLT_EVIDENCE_KEEP_DAYS:-0}
+      PRSCOUT_EVIDENCE_DIR: ${PRSCOUT_STAGE_EVIDENCE_DIR:+/data/evidence}
+      PRSCOUT_EVIDENCE_KEEP_DAYS: ${PRSCOUT_EVIDENCE_KEEP_DAYS:-0}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
-      - ${HOLT_STAGE_EVIDENCE_DIR:-./initdb}:/data/evidence:${HOLT_STAGE_EVIDENCE_MODE:-ro}
+      - ${PRSCOUT_STAGE_EVIDENCE_DIR:-./initdb}:/data/evidence:${PRSCOUT_STAGE_EVIDENCE_MODE:-ro}
     secrets: [github_app_key]
-    group_add: ["${HOLT_GITHUB_APP_KEY_GID:-10001}", "${HOLT_STAGE_EVIDENCE_GID:-65534}"]
+    group_add:
+      [
+        "${PRSCOUT_GITHUB_APP_KEY_GID:-10001}",
+        "${PRSCOUT_STAGE_EVIDENCE_GID:-65534}",
+      ]
     depends_on:
       db: { condition: service_healthy }
       migrate-server: { condition: service_completed_successfully }
     # The image's own check, polled every second while it starts so
     # deploy/swap.sh can retire the old server as soon as this one is ready.
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -173,20 +184,20 @@ services:
       dockerfile: ../deploy/web/Dockerfile
       labels: *stage-label
       args:
-        NEXT_PUBLIC_SITE_HOST: ${STAGING_HOST:-staging.githolt.com}
+        NEXT_PUBLIC_SITE_HOST: ${STAGING_HOST:-staging.gitprscout.com}
         NEXT_PUBLIC_FREE_AI_QUOTA: ${NEXT_PUBLIC_FREE_AI_QUOTA:-3}
         # The policy pages. Required, so a missing value fails the build
         # instead of shipping the literal CONTACT_EMAIL / CONTACT_CITY.
-        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL:?CONTACT_EMAIL in ~/.config/holt/secrets.env (preview.sh maps it)}
-        NEXT_PUBLIC_CONTACT_CITY: ${NEXT_PUBLIC_CONTACT_CITY:?CONTACT_CITY in ~/.config/holt/secrets.env (preview.sh maps it)}
+        NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL:?CONTACT_EMAIL in ~/.config/prscout/secrets.env (preview.sh maps it)}
+        NEXT_PUBLIC_CONTACT_CITY: ${NEXT_PUBLIC_CONTACT_CITY:?CONTACT_CITY in ~/.config/prscout/secrets.env (preview.sh maps it)}
         # Staging must never be indexed; build time too, for prerendered pages.
         ROBOTS_NOINDEX: "1"
-    image: stage-holt-new-web:latest
+    image: stage-prscout-new-web:latest
     labels: *stage-label
     environment:
-      HOLT_API_URL: http://server:8000
-      HOLT_INTERNAL_KEY: ${HOLT_INTERNAL_KEY}
-      DATABASE_URL: postgres://holt:${HOLT_DB_PASSWORD}@db:5432/holt_web
+      PRSCOUT_API_URL: http://server:8000
+      PRSCOUT_INTERNAL_KEY: ${PRSCOUT_INTERNAL_KEY}
+      DATABASE_URL: postgres://prscout:${PRSCOUT_DB_PASSWORD}@db:5432/prscout_web
       AUTH_SECRET: ${AUTH_SECRET:?run make-env.sh}
       # Staging's own OAuth apps (STAGING_*_OAUTH_* in secrets.env, mapped by
       # preview.sh), never production's. Empty means that sign-in is off.
@@ -194,8 +205,8 @@ services:
       AUTH_GITHUB_SECRET: ${AUTH_GITHUB_SECRET:-}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
       AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
-      NEXT_PUBLIC_SITE_HOST: ${STAGING_HOST:-staging.githolt.com}
-      AUTH_URL: https://${STAGING_HOST:-staging.githolt.com}
+      NEXT_PUBLIC_SITE_HOST: ${STAGING_HOST:-staging.gitprscout.com}
+      AUTH_URL: https://${STAGING_HOST:-staging.gitprscout.com}
       NEXT_PUBLIC_CONTACT_EMAIL: ${NEXT_PUBLIC_CONTACT_EMAIL}
       NEXT_PUBLIC_CONTACT_CITY: ${NEXT_PUBLIC_CONTACT_CITY}
       # Read the visitor IP from CF-Connecting-IP / X-Forwarded-For. Safe only
@@ -207,15 +218,21 @@ services:
     depends_on:
       server: { condition: service_healthy }
       migrate-web: { condition: service_completed_successfully }
-    # As production (deploy/prod/compose.yml): HOLT_WEB_REPLICAS containers,
+    # As production (deploy/prod/compose.yml): PRSCOUT_WEB_REPLICAS containers,
     # 1 to 3, set in .env next to this file; the edge picks one per request.
     deploy:
-      replicas: ${HOLT_WEB_REPLICAS:-2}
+      replicas: ${PRSCOUT_WEB_REPLICAS:-2}
     # deploy/swap.sh starts the new web containers beside the old ones and
     # waits for this on every one before retiring the old ones. robots.txt
     # is rendered by Next.js but never calls the API.
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/robots.txt').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/robots.txt').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -226,7 +243,7 @@ services:
 
   # Front door: serves /__build (what's live) and proxies the rest to web.
   # Its config is a directory: preview.sh copies edge.conf into
-  # $HOLT_STAGE_EDGE_DIR/default.conf (~/.local/share/holt-staging/edge),
+  # $PRSCOUT_STAGE_EDGE_DIR/default.conf (~/.local/share/prscout-staging/edge),
   # checks it with nginx -t and reloads, so config changes go live without
   # restarting the edge. (A single-file mount of ./edge.conf kept the old
   # file after git replaced it.) Required, so a timer copy of preview.sh
@@ -236,9 +253,9 @@ services:
     image: nginx:1.27-alpine
     labels: *stage-label
     ports:
-      - "127.0.0.1:${HOLT_STAGE_PORT:-9110}:8080"
+      - "127.0.0.1:${PRSCOUT_STAGE_PORT:-9110}:8080"
     volumes:
-      - ${HOLT_STAGE_EDGE_DIR:?set by preview.sh; re-run deploy/staging/install.sh}:/etc/nginx/conf.d:ro
+      - ${PRSCOUT_STAGE_EDGE_DIR:?set by preview.sh; re-run deploy/staging/install.sh}:/etc/nginx/conf.d:ro
       - ./build:/srv/build:ro
     depends_on: [web]
     mem_limit: 32m

@@ -17,7 +17,7 @@
 ## Evidence and boundaries
 
 <!--
-Does this change what data Holt reads, what a model sees, how evidence ids
+Does this change what data PRScout reads, what a model sees, how evidence ids
 resolve, where the temporal cutoff applies, or how a verdict is computed?
 Write "No boundary changes" when none apply.
 -->

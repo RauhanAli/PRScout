@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import pytest
 
-from holt.agent import repo_kind_rules
-from holt.agent.findings import Findings
-from holt.agent.pipeline import NO_MODEL_METHOD, analyze
-from holt.agent.signals import build_threads, compute
-from holt.agent.verdict import classify
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import Window
+from prscout.agent import repo_kind_rules
+from prscout.agent.findings import Findings
+from prscout.agent.pipeline import NO_MODEL_METHOD, analyze
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.verdict import classify
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import Window
 
 REPOS = ["NixOS/nixpkgs", "is-a-dev/register", "space-wizards/space-station-14"]
 

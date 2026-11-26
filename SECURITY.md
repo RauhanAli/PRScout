@@ -1,6 +1,6 @@
 # Security policy
 
-Holt reads public GitHub data and can send selected evidence to a configured
+PRScout reads public GitHub data and can send selected evidence to a configured
 model provider. A vulnerability that exposes credentials, reads data outside
 the requested repository, bypasses the evidence boundary, enables unintended
 GitHub writes, or misrepresents a network action is in scope.
@@ -12,7 +12,7 @@ Older releases are not supported during the pre-1.0 period.
 
 ## Report a vulnerability privately
 
-Email **aahilminookhan@gmail.com** with the subject `[Holt security]`.
+Email **rauhanali2@gmail.com** with the subject `[PRScout security]`.
 
 Please include:
 

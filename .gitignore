@@ -4,6 +4,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .env
+.env.*
+!.env.example
+# Vercel and Railway CLI links (project ids, pulled env files).
+.vercel/
+.railway/
 data/
 AUDIT-*.md
 build/
@@ -22,7 +27,7 @@ node_modules/
 runs/
 
 # The interface keeps its history here. One machine, not project content.
-.holt/
+.prscout/
 
 # Kept in the working directory, deliberately never in the repository: the
 # self-assessment names credentials that appeared in working sessions.

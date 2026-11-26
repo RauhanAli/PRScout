@@ -11,10 +11,10 @@ import re
 
 import pytest
 
-from holt.agent import pipeline
-from holt.agent.findings import Findings
-from holt.agent.signals import Signals
-from holt.agent.verdict import (
+from prscout.agent import pipeline
+from prscout.agent.findings import Findings
+from prscout.agent.signals import Signals
+from prscout.agent.verdict import (
     Rule,
     classify,
     contested_kind,
@@ -23,9 +23,9 @@ from holt.agent.verdict import (
     legacy_trace,
     rule_codes,
 )
-from holt.evidence.fixtures import FixtureProvider
-from holt.report import Verdict
-from holt.types import Window
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.report import Verdict
+from prscout.types import Window
 
 JARGON = re.compile(
     r"repo_kind|=|rubber.?stamp|period read|waved through|unread|outsider|"

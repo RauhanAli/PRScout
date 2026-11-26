@@ -1,4 +1,4 @@
-"""The merge plan (holt_server/merge_plan.py) and its entitlement, against a
+"""The merge plan (prscout_server/merge_plan.py) and its entitlement, against a
 fake paid-features service.
 
 The service is an httpx.MockTransport: nothing touches the network.
@@ -17,8 +17,8 @@ from datetime import timedelta
 import httpx
 import pytest
 from conftest import ROOT, canned_report
-from holt_server import budget, engine, entitlements, merge_plan, pro
-from holt_server.db import (
+from prscout_server import budget, engine, entitlements, merge_plan, pro
+from prscout_server.db import (
     ENGINE_VERSION,
     AiBudget,
     AiRun,
@@ -33,10 +33,10 @@ from holt_server.db import (
 )
 from sqlalchemy import select
 
-from holt.agent import pipeline
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import ReplayModel
-from holt.types import T_CUTOFF, Window
+from prscout.agent import pipeline
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import ReplayModel
+from prscout.types import T_CUTOFF, Window
 
 KEY = "pro-secret-key-value"
 URL = "http://pro:8000"
@@ -129,7 +129,7 @@ def with_pro(h, fake: FakePro):
 
 @pytest.fixture
 def hp(make_harness, fake):
-    h = with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY), fake)
+    h = with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY), fake)
     seed(h)
     return h
 
@@ -208,7 +208,7 @@ def test_without_the_service_merge_plans_are_off(h):
 
 def test_with_ai_off_nothing_is_charged_or_asked(make_harness, fake):
     # Production today: the service may be configured, but the AI budget is 0.
-    h = with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY, HOLT_AI_BUDGET_USD=0), fake)
+    h = with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY, PRSCOUT_AI_BUDGET_USD=0), fake)
     seed(h)
     assert state(h)["available"] is False and state(h)["access"] is None
     r = ask(h)
@@ -217,8 +217,8 @@ def test_with_ai_off_nothing_is_charged_or_asked(make_harness, fake):
 
 
 def test_a_production_budget_without_the_owners_ok_stays_off(make_harness, fake):
-    h = with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY, HOLT_ENV="production",
-                              HOLT_AI_BUDGET_USD=5, HOLT_AI_BUDGET_OWNER_OK=False), fake)
+    h = with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY, PRSCOUT_ENV="production",
+                              PRSCOUT_AI_BUDGET_USD=5, PRSCOUT_AI_BUDGET_OWNER_OK=False), fake)
     seed(h)
     assert state(h)["available"] is False
     assert ask(h).status_code == 503 and fake.requests == []
@@ -235,7 +235,7 @@ def test_signed_out_can_read_the_state_but_not_ask(hp):
 
 def test_a_new_account_gets_three_free_merge_plans_and_no_ai_credits(make_harness, fake):
     # The shipped settings: no welcome AI credits, so nothing to claim either.
-    h = with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY, HOLT_SIGNUP_AI_CREDITS=0),
+    h = with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY, PRSCOUT_SIGNUP_AI_CREDITS=0),
                  fake)
     access = state(h, user="new")["access"]
     assert (access["allowed"], access["via"], access["cost"], access["left"]) == (
@@ -322,8 +322,8 @@ def test_a_plan_is_made_from_the_report_and_issues_and_kept(hp, fake):
 
     sent = fake.bodies()[0]
     assert fake.requests[0].url.path == "/v1/merge-plan"
-    assert fake.requests[0].headers["X-Holt-Pro-Key"] == KEY
-    assert fake.requests[0].headers["X-Holt-User"] == "u"
+    assert fake.requests[0].headers["X-prscout-Pro-Key"] == KEY
+    assert fake.requests[0].headers["X-prscout-User"] == "u"
     assert (sent["repo"], sent["days"], sent["refresh"]) == ("pallets/flask", 365, False)
     assert sent["report"]["repo"] == "pallets/flask" and sent["report"]["mode"] == "rules"
     assert len(sent["report"]["evidence"][0]["text"]) == 2000  # trimmed to what it accepts
@@ -490,7 +490,7 @@ def test_issues_for_pro_keeps_this_repos_best_twenty():
 
 
 def test_a_welcome_of_zero_starts_no_claim_clock_and_writes_no_ledger_row(make_harness):
-    h = make_harness(HOLT_SIGNUP_AI_CREDITS=0)
+    h = make_harness(PRSCOUT_SIGNUP_AI_CREDITS=0)
     h.get("/v1/me", user="n")
     user = rows(h, User, User.id == "n")[0]
     assert user.credits_granted_at is not None and user.last_claim_at is None
@@ -511,7 +511,7 @@ def test_waiting_jobs_show_in_the_state(hp, fake):
 
 
 def test_an_allowance_is_monthly_in_all_or_unlimited_never_two():
-    from holt_server import pricing
+    from prscout_server import pricing
     from pydantic import ValidationError
 
     assert pricing.PlanFeature(total=3).limit == 3
@@ -527,7 +527,7 @@ def test_an_allowance_is_monthly_in_all_or_unlimited_never_two():
 
 # --- the AI budget's hold on a failure ---------------------------------------------------
 
-# HOLT_AI_RUN_MAX_USD's default for the AI stages, and HOLT_AI_PRO_RUN_MAX_USD's
+# PRSCOUT_AI_RUN_MAX_USD's default for the AI stages, and PRSCOUT_AI_PRO_RUN_MAX_USD's
 # for the service, in micro-dollars.
 HOLD = 150_000
 
@@ -569,7 +569,7 @@ TRAJECTORY = ROOT / "fixtures" / "trajectories" / "NixOS__nixpkgs.jsonl"
 def replay(make_harness, fake: FakePro, **overrides):
     """A harness whose AI stages are the real engine over the committed
     fixtures, with the model's recorded answers: no network."""
-    h = with_pro(make_harness(HOLT_PRO_URL=URL, HOLT_PRO_KEY=KEY,
+    h = with_pro(make_harness(PRSCOUT_PRO_URL=URL, PRSCOUT_PRO_KEY=KEY,
                               OPENROUTER_API_KEY="sk-unused", **overrides), fake)
     h.svc.analysis_fn = engine.analyze
     h.svc.provider_factory = lambda repo, as_of: FixtureProvider(Window.PRE_T,
@@ -753,7 +753,7 @@ def test_the_hold_covers_the_stages_and_the_service(make_harness, fake):
 
 
 def test_a_budget_too_small_for_both_refuses_the_plan(make_harness, fake):
-    h = replay(make_harness, fake, HOLT_AI_BUDGET_USD=0.12)
+    h = replay(make_harness, fake, PRSCOUT_AI_BUDGET_USD=0.12)
     r = ask(h, repo=NIX)
     assert r.status_code == 503 and r.json()["error"]["code"] == "ai_unavailable"
     assert state(h, NIX)["access"]["left"] == 3 and fake.requests == []
@@ -767,7 +767,7 @@ def test_the_time_limit_covers_the_stages_and_the_service(make_harness, fake):
 
 
 def test_stages_past_their_limit_give_a_plan_without_ai(make_harness, fake):
-    h = replay(make_harness, fake, HOLT_JOB_TIMEOUT_AI=0.5)
+    h = replay(make_harness, fake, PRSCOUT_JOB_TIMEOUT_AI=0.5)
     h.svc.analysis_fn = h.engine  # the fake engine, held at its gate
     h.engine.gate.clear()
     fake.answer = httpx.Response(200, json={**NIX_PLAN, "ai": None, "note": None})

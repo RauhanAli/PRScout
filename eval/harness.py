@@ -24,11 +24,11 @@ from pathlib import Path
 
 from eval import baseline as baseline_solution
 from eval import baseline_matched
-from holt.agent.pipeline import analyze
-from holt.evidence.fixtures import FixtureProvider
-from holt.model import OpenAIModel, PatchModel, ReplayModel, TRAJECTORY_DIR
-from holt.report import Verdict
-from holt.types import Window
+from prscout.agent.pipeline import analyze
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.model import OpenAIModel, PatchModel, ReplayModel, TRAJECTORY_DIR
+from prscout.report import Verdict
+from prscout.types import Window
 
 POOL = Path("eval/pool.json")
 LABELS = Path("eval/results_labels.json")

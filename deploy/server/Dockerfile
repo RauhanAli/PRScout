@@ -1,4 +1,4 @@
-# Holt API server (server/) plus the engine it wraps (src/holt).
+# PRScout API server (server/) plus the engine it wraps (src/prscout).
 # Build context: the repository root.
 #   docker build -f deploy/server/Dockerfile .
 # The files it reads are the `!` lines of Dockerfile.dockerignore; staging's
@@ -13,19 +13,19 @@ WORKDIR /app
 # BuildKit cache mount: kept by the builder between builds, never in the image.
 COPY pyproject.toml uv.lock README.md LICENSE NOTICE ./
 COPY server/pyproject.toml server/pyproject.toml
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --package holt-server --no-install-workspace
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --package prscout-server --no-install-workspace
 
 COPY src/ src/
 COPY server/ server/
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --package holt-server --no-editable
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --package prscout-server --no-editable
 
 FROM python:3.12-slim
-RUN useradd --create-home --uid 10001 holt
+RUN useradd --create-home --uid 10001 prscout
 COPY --from=build /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1 HOST=0.0.0.0 PORT=8000
-USER holt
-WORKDIR /home/holt
+USER prscout
+WORKDIR /home/prscout
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \
   CMD python -c "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)" || exit 1
-CMD ["holt-server"]
+CMD ["prscout-server"]

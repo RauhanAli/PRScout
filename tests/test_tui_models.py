@@ -1,6 +1,6 @@
 """Choosing a model, and the ways that goes wrong.
 
-**Nothing here touches the network.** `HOLT_NO_NETWORK` is set for the whole
+**Nothing here touches the network.** `PRSCOUT_NO_NETWORK` is set for the whole
 module, and one of the tests asserts that the guard actually holds — listing a
 provider is a request to somebody's server, and testing a connection is a real
 inference call that, against a local endpoint, loads a model into RAM on the
@@ -17,8 +17,8 @@ import sys
 
 import pytest
 
-from holt import model as model_module
-from holt.tui import models
+from prscout import model as model_module
+from prscout.tui import models
 
 
 @pytest.fixture(autouse=True)
@@ -460,7 +460,7 @@ def test_the_pinned_models_come_first_and_legacy_ids_sink():
     ]
     ordered = [m.id for m in models.in_offer_order([models._model(i) for i in ids])]
 
-    # The two holt is pinned to, then the ones it can state a cost for.
+    # The two PRScout is pinned to, then the ones it can state a cost for.
     assert ordered[:2] == sorted([model_module.SMALL, model_module.LARGE])
     assert ordered.index("gpt-5") < ordered.index("gpt-4o")
     # Legacy and preview ids are last, but still selectable.

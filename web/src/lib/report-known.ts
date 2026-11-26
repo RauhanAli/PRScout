@@ -1,4 +1,4 @@
-// Does Holt have a report for this repository? The proxy asks before it lets
+// Does PRScout have a report for this repository? The proxy asks before it lets
 // a shared cache keep a signed-out report page (lib/edge-cache.ts): a repo
 // with no report gets a page that offers to run the check, with a ticket that
 // expires, and that page must never be kept.
@@ -37,7 +37,8 @@ export function reportKnownChecker({
         known.delete(key);
         if (found) known.set(key, now() + knownMs);
         // Map keeps insertion order: drop the oldest entries first.
-        while (known.size > maxEntries) known.delete(known.keys().next().value!);
+        while (known.size > maxEntries)
+          known.delete(known.keys().next().value!);
         return found;
       })
       .finally(() => inflight.delete(key));

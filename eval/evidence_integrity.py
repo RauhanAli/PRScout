@@ -39,7 +39,7 @@ findings whose citations do not resolve.
 
 Fidelity used to be guaranteed by nothing. Since Iteration 24 the pipeline drops
 a claim whose quotation is not in the record, using the *same* matcher this file
-measures with (`holt.agent.verify`), so the metric and the guarantee cannot
+measures with (`prscout.agent.verify`), so the metric and the guarantee cannot
 drift apart. What is measured here is still the model's raw output, not the
 filtered report -- so this remains an honest count of how often the model
 invents, and the line below it says how many of those the reader never sees.
@@ -54,12 +54,12 @@ import pathlib
 import re
 import statistics
 
-from holt.agent.stages import normalise_citation
+from prscout.agent.stages import normalise_citation
 # One matcher, imported rather than reimplemented: the number reported here is
 # the rule the pipeline enforces, not a second opinion about it.
-from holt.agent.verify import quote_supported, spoken_part
-from holt.evidence.fixtures import FixtureProvider
-from holt.types import Window
+from prscout.agent.verify import quote_supported, spoken_part
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.types import Window
 
 PR_REF = re.compile(r"(?:pr:[\w.\-]+/[\w.\-]+#(\d+)|#(\d{2,6}))")
 

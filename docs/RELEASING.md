@@ -1,4 +1,4 @@
-# Releasing Holt
+# Releasing PRScout
 
 This process is for project maintainers. Releases are built by GitHub Actions
 and authenticated to PyPI with OpenID Connect; no PyPI token is stored in the
@@ -9,13 +9,13 @@ repository.
 From the PyPI account's publishing settings, add a pending trusted publisher
 with these exact values:
 
-| Field | Value |
-|---|---|
-| PyPI project name | `holt-cli` |
-| GitHub owner | `holt-oss` |
-| GitHub repository | `holt` |
-| Workflow name | `publish.yml` |
-| Environment name | `pypi` |
+| Field             | Value         |
+| ----------------- | ------------- |
+| PyPI project name | `prscout-cli` |
+| GitHub owner      | `RauhanAli` |
+| GitHub repository | `PRScout`     |
+| Workflow name     | `publish.yml` |
+| Environment name  | `pypi`        |
 
 The pending publisher claims the project when the first trusted release is
 published. Do not create or store a long-lived upload token.

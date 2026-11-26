@@ -43,10 +43,13 @@ export function QuickCheck({ variant = "bar", className = "" }: { variant?: "bar
       onKeyDown={(e) => {
         if (e.key === "Escape" && bad) send({ type: "leave" });
       }}
-      className={`relative w-full items-center border border-line-strong bg-panel transition-colors focus-within:border-blue ${variant === "bar" ? "hidden max-w-md md:flex" : bar ? "hidden max-w-xl md:flex" : "flex max-w-md"} ${className}`}
+      className={`relative w-full items-center overflow-visible rounded-lg border border-line-strong bg-panel transition-[border-color,box-shadow] focus-within:border-blue focus-within:shadow-[0_0_0_3px_var(--ring)] ${variant === "bar" ? "hidden max-w-md md:flex" : bar ? "hidden max-w-xl md:flex" : "flex max-w-md"} ${className}`}
     >
       <label htmlFor={id} className="sr-only">Check a repo</label>
-      <span aria-hidden="true" className="pl-3 text-amber">$</span>
+      <svg aria-hidden="true" viewBox="0 0 16 16" className="ml-3 size-3.5 shrink-0 text-faint" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+        <circle cx="7" cy="7" r="4.75" />
+        <path d="m10.5 10.5 3.25 3.25" />
+      </svg>
       <input
         id={id}
         value={value}
@@ -56,13 +59,13 @@ export function QuickCheck({ variant = "bar", className = "" }: { variant?: "bar
         }}
         aria-invalid={bad || undefined}
         aria-describedby={bad ? `${id}-error` : undefined}
-        placeholder={bar ? "check a repo: owner/name" : "owner/name or a GitHub link"}
+        placeholder={bar ? "Check a repo: owner/name" : "owner/name or a GitHub link"}
         autoComplete="off"
         spellCheck={false}
-        className={`min-w-0 flex-1 bg-transparent px-2 outline-none placeholder:text-faint ${bar ? "py-1.5 text-[0.8rem]" : "py-3 text-[0.92rem]"}`}
+        className={`min-w-0 flex-1 bg-transparent px-2 outline-none placeholder:text-faint focus-visible:shadow-none ${bar ? "py-1.5 text-[0.8rem]" : "py-3 text-[0.92rem]"}`}
       />
-      {bar && !value && <kbd aria-hidden="true" className="mr-2 hidden border border-line-strong px-1.5 text-[0.72rem] leading-5 text-faint lg:block">/</kbd>}
-      <button type="submit" disabled={busy} className={`self-stretch border-l border-line-strong px-3 text-muted transition-colors hover:text-ink ${bar ? "text-[0.76rem]" : "text-[0.8rem]"}`}>{busy ? "opening…" : "check"}</button>
+      {bar && !value && <kbd aria-hidden="true" className="mr-2 hidden rounded border border-line-strong px-1.5 font-mono text-[0.7rem] leading-5 text-faint lg:block">/</kbd>}
+      <button type="submit" disabled={busy} className={`m-1 rounded-md bg-panel-2 px-3 font-medium text-ink transition-colors hover:bg-blue hover:text-on-accent ${bar ? "text-[0.76rem]" : "text-[0.8rem]"}`}>{busy ? "Opening…" : "Check"}</button>
       {bad && (
         <p id={`${id}-error`} role="alert" className="absolute left-0 top-full mt-1 border border-orange/50 bg-panel px-3 py-2 font-sans text-[0.82rem] text-orange shadow-card">
           Try owner/name or a github.com link.

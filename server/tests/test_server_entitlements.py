@@ -12,9 +12,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 import pytest
-from holt_server import credits, entitlements, pricing
-from holt_server.db import CreditEvent, CreditLot, Job, PlanUsage, User, now
-from holt_server.errors import ApiError
+from prscout_server import credits, entitlements, pricing
+from prscout_server.db import CreditEvent, CreditLot, Job, PlanUsage, User, now
+from prscout_server.errors import ApiError
 from sqlalchemy import select, update
 
 from conftest import make_settings
@@ -50,7 +50,7 @@ def pricing_file(tmp_path):
 
 @pytest.fixture
 def hp(make_harness, pricing_file, tmp_path):
-    h = make_harness(HOLT_PRICING_FILE=pricing_file, HOLT_ADMIN_USERS=f"{ADMIN}, other",
+    h = make_harness(PRSCOUT_PRICING_FILE=pricing_file, PRSCOUT_ADMIN_USERS=f"{ADMIN}, other",
                      OPENROUTER_API_KEY="sk-or-server")
     h.tmp_path = tmp_path
     return h
@@ -169,7 +169,7 @@ def test_a_broken_catalogue_is_refused(tmp_path, change, error):
 
 def test_a_missing_pricing_file_stops_startup(make_harness, tmp_path):
     with pytest.raises(ValueError, match="can't read the pricing file"):
-        make_harness(HOLT_PRICING_FILE=str(tmp_path / "missing.json"))
+        make_harness(PRSCOUT_PRICING_FILE=str(tmp_path / "missing.json"))
 
 
 # --- purchased credits ----------------------------------------------------------------
@@ -378,7 +378,7 @@ def test_a_lapsed_or_unknown_plan_is_free(hp):
 
 
 def cli(hp, pricing_file, capsys, *argv):
-    settings = make_settings(hp.tmp_path, HOLT_PRICING_FILE=pricing_file,
+    settings = make_settings(hp.tmp_path, PRSCOUT_PRICING_FILE=pricing_file,
                              DATABASE_URL=str(hp.svc.settings.database_url))
     code = credits.main(list(argv), settings=settings)
     out = capsys.readouterr()
@@ -420,7 +420,7 @@ def test_admin_view_is_only_for_listed_admins(hp):
     for path in ("/v1/admin/users", "/v1/admin/users/someone", "/v1/admin/pricing"):
         assert hp.get(path).status_code == 404
         assert hp.get(path, user="someone").status_code == 404
-        assert hp.client.get(path, headers={"X-Holt-User": ADMIN}).status_code == 401
+        assert hp.client.get(path, headers={"X-prscout-User": ADMIN}).status_code == 401
         assert hp.get(path, user=ADMIN).status_code == 200
 
 

@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from holt.agent import asks
-from holt.types import EvidenceRecord
+from prscout.agent import asks
+from prscout.types import EvidenceRecord
 
 T = datetime(2026, 9, 1, tzinfo=UTC)
 PR = "https://github.com/o/r/pull/"
@@ -156,7 +156,7 @@ def test_a_written_rule_to_disclose_ai(text):
 
 @pytest.mark.parametrize("text", [
     "Please report security vulnerabilities by responsible disclosure.",
-    "Holt uses AI to explain its reports.",
+    "PRScout uses AI to explain its reports.",
     "We require all use of AI in contributions to follow our AI Policy.",
     "AI tools are welcome as an aid, but you must fully understand the code.",
 ])

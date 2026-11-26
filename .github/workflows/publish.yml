@@ -36,8 +36,8 @@ jobs:
         run: |
           uv venv .release-venv
           uv pip install --python .release-venv/bin/python dist/*.whl
-          .release-venv/bin/python -c "import holt.tui.app"
-          .release-venv/bin/holt --help
+          .release-venv/bin/python -c "import prscout.tui.app"
+          .release-venv/bin/prscout --help
 
       - name: Upload distributions
         uses: actions/upload-artifact@v7.0.1
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/holt-cli
+      url: https://pypi.org/p/prscout-cli
     permissions:
       id-token: write
     steps:

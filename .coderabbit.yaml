@@ -53,7 +53,7 @@ reviews:
       "To fix before merging" is "Nothing".
     - "Not yet" when a short list of concrete fixes would make it "Yes".
     - "No" when the approach is wrong for this repository, for example a new
-      `holt` command or flag while the command line is feature-frozen, or a
+      `PRScout` command or flag while the command line is feature-frozen, or a
       change to the verdict rules with no `golden diff` output. Name the rule.
 
     What goes where:
@@ -99,8 +99,7 @@ reviews:
     drafts: false
     # Maintainers' and the dependency bot's pull requests are not reviewed; outside contributors' are.
     ignore_usernames:
-      - "aahil-khan"
-      - "anoushkawasthi"
+      - "RauhanAli"
       - "ips610"
       - "dependabot[bot]"
     # Empty means the default branch only (main).
@@ -149,25 +148,25 @@ reviews:
         internal enum names such as `not_viable` and statistics jargon such as
         "MCC" or "p-value".
         Never @-mention a person in a comment.
-    - path: "src/holt/agent/**"
+    - path: "src/prscout/agent/**"
       instructions: |
         The verdict is computed by fixed rules from verified findings. A model
         may explain a verdict but never chooses it.
         A change to the verdict rules, to a threshold, or to a signal the rules
         read changes what a report says. Such a pull request must:
         - show the output of `uv run python -m golden diff` in its description;
-        - bump `ENGINE_VERSION` in `src/holt/engine_version.py`.
+        - bump `ENGINE_VERSION` in `src/prscout/engine_version.py`.
         Flag any such change that lacks either one.
-    - path: "src/holt/**"
+    - path: "src/prscout/**"
       instructions: |
         - Every file read or write must pass `encoding="utf-8"`.
         - No paths relative to the current directory: the package must work
           when installed from PyPI, outside a clone. User data goes under the
           platform data directory.
         - The command line and the terminal interface are feature-frozen. Flag
-          a new `holt` command or flag; new features belong in `web/` and
+          a new `PRScout` command or flag; new features belong in `web/` and
           `server/`.
-        - Holt only reads from GitHub. Flag code that posts, comments, opens
+        - PRScout only reads from GitHub. Flag code that posts, comments, opens
           pull requests or contacts anyone.
     - path: "tests/**"
       instructions: |
@@ -247,17 +246,17 @@ reviews:
           it. Name the file and the behaviour with no test.
           Decide by reading the diff. Do not run the tests, and do not fail or
           answer "inconclusive" because you could not run them: CI runs them.
-      - name: "Follows Holt's project rules"
+      - name: "Follows PRScout's project rules"
         mode: warning
         instructions: |
           Fail if any of these is true, and name the rule and the file:
-          - The pull request adds a new `holt` command or command-line flag
-            under `src/holt/`. The command line and the terminal interface
+          - The pull request adds a new `PRScout` command or command-line flag
+            under `src/prscout/`. The command line and the terminal interface
             are feature-frozen.
           - The pull request changes the verdict rules, a threshold, or a
-            signal the rules read under `src/holt/agent/`, and its description
+            signal the rules read under `src/prscout/agent/`, and its description
             does not show the output of `uv run python -m golden diff`, or it
-            does not change `ENGINE_VERSION` in `src/holt/engine_version.py`.
+            does not change `ENGINE_VERSION` in `src/prscout/engine_version.py`.
           - The pull request adds code that posts, comments, opens pull
             requests or otherwise writes to GitHub.
           - The pull request changes an endpoint's request or response under

@@ -1,17 +1,17 @@
 # The golden set
 
 62 real repositories, recorded once from GitHub and replayed offline, that pin
-down what Holt's engine says about each one. Any change to the engine
+down what PRScout's engine says about each one. Any change to the engine
 (signals, rules, evidence handling) shows up here as a before/after table, and CI
 fails if a verdict or a count changes without being approved.
 
-| File | What | Written by |
-|---|---|---|
-| `repos.json` | Which repositories, the shape each covers, and for 10 of them the verdict a person checked by hand and why | hand |
-| `expected.json` | The engine's current verdict, deciding rules and counts per repository, plus every approved verdict change and its reason | `approve` |
-| `recordings/*.json.gz` | The evidence a live report read: the newest 200 pull requests (plus, for a busy repository, older ones reaching past the 14-day settle window) with their comments, reviews, merges and closes (v2 evidence), repository facts, releases, README and CONTRIBUTING, the stale bot's config, and the timing cohort (`timing:` records) | `record` |
+| File                   | What                                                                                                                                                                                                                                                                                                                                 | Written by |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| `repos.json`           | Which repositories, the shape each covers, and for 10 of them the verdict a person checked by hand and why                                                                                                                                                                                                                           | hand       |
+| `expected.json`        | The engine's current verdict, deciding rules and counts per repository, plus every approved verdict change and its reason                                                                                                                                                                                                            | `approve`  |
+| `recordings/*.json.gz` | The evidence a live report read: the newest 200 pull requests (plus, for a busy repository, older ones reaching past the 14-day settle window) with their comments, reviews, merges and closes (v2 evidence), repository facts, releases, README and CONTRIBUTING, the stale bot's config, and the timing cohort (`timing:` records) | `record`   |
 
-The replay is the free report as githolt.com computes it: no model, a 7-day
+The replay is the free report as gitprscout.com computes it: no model, a 7-day
 contributor, read at the moment the recording was made (so a PR opened an hour
 before capture is still "too new to judge", as it was live).
 

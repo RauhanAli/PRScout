@@ -1,6 +1,6 @@
 """Rates over decided pull requests, silent closes, drafts and spam, and dates.
 
-See src/holt/agent/rates.py for why each of these exists.
+See src/prscout/agent/rates.py for why each of these exists.
 """
 
 from __future__ import annotations
@@ -11,14 +11,14 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from golden import golden
-from holt.agent import pipeline, rates
-from holt.agent.findings import Findings
-from holt.agent.signals import build_threads, compute
-from holt.agent.verdict import classify, rule_codes
-from holt.evidence.fixtures import FixtureProvider
-from holt.evidence.provider import EvidenceProvider
-from holt.report import Verdict
-from holt.types import EvidenceRecord, Window
+from prscout.agent import pipeline, rates
+from prscout.agent.findings import Findings
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.verdict import classify, rule_codes
+from prscout.evidence.fixtures import FixtureProvider
+from prscout.evidence.provider import EvidenceProvider
+from prscout.report import Verdict
+from prscout.types import EvidenceRecord, Window
 
 NOW = datetime(2026, 9, 25, 12, tzinfo=UTC)
 OLD = rates.SETTLE_HOURS + 100  # hours: past the settle window
@@ -310,7 +310,7 @@ def test_click_rejected_ai_pull_requests_leave_the_counts():
 
 
 def test_the_reason_is_the_rule_that_overruled_the_merge_count():
-    from holt.agent.verdict import Rule
+    from prscout.agent.verdict import Rule
 
     rules = [Rule("Dates.", code="sample_period"), Rule("5 merged.", code="merges"),
              Rule("Only 5 of 171.", code="long_odds")]

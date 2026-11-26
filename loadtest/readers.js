@@ -1,4 +1,4 @@
-// Scenario 1, readers: people opening pages Holt already has. The landing
+// Scenario 1, readers: people opening pages PRScout already has. The landing
 // page, Discover, Find's shared default search, the examples, and cached
 // reports, with the number of virtual users stepped up (10, 50, 100, 200) and
 // each step held long enough to read its latency and error rate.
@@ -16,7 +16,13 @@ const { stages, windows } = ramp();
 
 export const options = {
   scenarios: {
-    readers: { executor: "ramping-vus", startVUs: 0, stages, gracefulRampDown: "5s", gracefulStop: "10s" },
+    readers: {
+      executor: "ramping-vus",
+      startVUs: 0,
+      stages,
+      gracefulRampDown: "5s",
+      gracefulStop: "10s",
+    },
   },
   thresholds: { ...keep(windows, PAGES), ...GIVE_UP },
   summaryTrendStats: TREND_STATS,
@@ -32,4 +38,9 @@ export default function (data) {
   view(data.mix, data.target, windowNow(windows));
 }
 
-export const handleSummary = summarise({ scenario: "readers", windows, pages: PAGES, withChecks: false });
+export const handleSummary = summarise({
+  scenario: "readers",
+  windows,
+  pages: PAGES,
+  withChecks: false,
+});

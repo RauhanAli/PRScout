@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from holt.agent.landing import MIN_ATTEMPTS, area_of, compute, render
-from holt.agent.signals import Thread
-from holt.types import T_CUTOFF
+from prscout.agent.landing import MIN_ATTEMPTS, area_of, compute, render
+from prscout.agent.signals import Thread
+from prscout.types import T_CUTOFF
 
 BEFORE = T_CUTOFF - timedelta(days=10)
 
@@ -150,9 +150,9 @@ def test_the_landing_section_is_identical_under_a_different_hash_seed():
 
     script = (
         "from datetime import timedelta;"
-        "from holt.agent.landing import compute, render;"
-        "from holt.agent.signals import Thread;"
-        "from holt.types import T_CUTOFF;"
+        "from prscout.agent.landing import compute, render;"
+        "from prscout.agent.signals import Thread;"
+        "from prscout.types import T_CUTOFF;"
         "b = T_CUTOFF - timedelta(days=10);"
         "tied = [f'z{i}/s' for i in range(1, 7)];"
         "ts = [Thread(key=f'pr:a/b#{i}', number=i, author=f'm{i}',"

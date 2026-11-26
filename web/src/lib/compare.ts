@@ -9,13 +9,17 @@ import type { Report, Stats, Verdict } from "./types.ts";
 export const MAX = 4;
 
 /** Repos from `?repos=` or `?add=` (commas or spaces; names or URLs), de-duplicated, at most MAX (or `max`, to see what was asked for past it). */
-export function parseList(v: string | string[] | undefined, max = MAX): string[] {
-  const raw = (Array.isArray(v) ? v.join(",") : v ?? "").split(/[,\s]+/);
+export function parseList(
+  v: string | string[] | undefined,
+  max = MAX,
+): string[] {
+  const raw = (Array.isArray(v) ? v.join(",") : (v ?? "")).split(/[,\s]+/);
   const out: string[] = [];
   for (const r of raw) {
     const ref = parseRepoInput(r);
     const name = ref && `${ref.owner}/${ref.repo}`;
-    if (name && !out.some((o) => o.toLowerCase() === name.toLowerCase())) out.push(name);
+    if (name && !out.some((o) => o.toLowerCase() === name.toLowerCase()))
+      out.push(name);
   }
   return out.slice(0, max);
 }
@@ -26,19 +30,25 @@ export function parseList(v: string | string[] | undefined, max = MAX): string[]
  * with a slash, a colon or other odd characters is left out (it isn't a name).
  */
 export function bareNames(v: string | string[] | undefined): string[] {
-  const raw = (Array.isArray(v) ? v.join(",") : v ?? "").split(/[,\s]+/);
+  const raw = (Array.isArray(v) ? v.join(",") : (v ?? "")).split(/[,\s]+/);
   const out: string[] = [];
   for (const r of raw) {
     const name = r.trim().toLowerCase();
     if (!name || parseRepoInput(r)) continue;
-    if (/^[a-z0-9][a-z0-9._-]{0,59}$/.test(name) && !out.includes(name)) out.push(name);
+    if (/^[a-z0-9][a-z0-9._-]{0,59}$/.test(name) && !out.includes(name))
+      out.push(name);
   }
   return out;
 }
 
 /** Which search result a typed name means: the most starred one named exactly that (results come most starred first), else the top one. */
-export function pickRepo(name: string, results: { repo: string }[]): string | null {
-  const exact = results.find((r) => r.repo.split("/")[1]?.toLowerCase() === name.toLowerCase());
+export function pickRepo(
+  name: string,
+  results: { repo: string }[],
+): string | null {
+  const exact = results.find(
+    (r) => r.repo.split("/")[1]?.toLowerCase() === name.toLowerCase(),
+  );
   return (exact ?? results[0])?.repo ?? null;
 }
 
@@ -47,19 +57,38 @@ export function compareHref(list: string[]): string {
 }
 
 /** Your saved repos not already in the list, newest saved first: one tap adds each. None once the list is full. */
-export function savedToAdd(saved: string[], list: string[], limit = 6): string[] {
+export function savedToAdd(
+  saved: string[],
+  list: string[],
+  limit = 6,
+): string[] {
   if (list.length >= MAX) return [];
   const inList = new Set(list.map((r) => r.toLowerCase()));
   return saved.filter((s) => !inList.has(s.toLowerCase())).slice(0, limit);
 }
 
 /** Well-known repos a report offers to compare itself with (report/compare-card.tsx). */
-export const EXAMPLE_POOL = ["pallets/flask", "psf/requests", "pytorch/pytorch", "home-assistant/core", "NixOS/nixpkgs", "django/django", "facebook/react", "microsoft/vscode"];
+export const EXAMPLE_POOL = [
+  "pallets/flask",
+  "psf/requests",
+  "pytorch/pytorch",
+  "home-assistant/core",
+  "NixOS/nixpkgs",
+  "django/django",
+  "facebook/react",
+  "microsoft/vscode",
+];
 
 /** One-tap comparisons people often want: the way in from an empty page. */
 export const SUGGESTIONS: { label: string; repos: string[] }[] = [
-  { label: "flask vs django vs fastapi", repos: ["pallets/flask", "django/django", "fastapi/fastapi"] },
-  { label: "react vs vue vs svelte", repos: ["facebook/react", "vuejs/core", "sveltejs/svelte"] },
+  {
+    label: "flask vs django vs fastapi",
+    repos: ["pallets/flask", "django/django", "fastapi/fastapi"],
+  },
+  {
+    label: "react vs vue vs svelte",
+    repos: ["facebook/react", "vuejs/core", "sveltejs/svelte"],
+  },
   { label: "rust vs go", repos: ["rust-lang/rust", "golang/go"] },
 ];
 
@@ -100,11 +129,30 @@ export function leaders(stats: (Stats | null)[]): Record<Lead, number[]> {
     return vals.flatMap((v, i) => (v === best ? [i] : []));
   };
   return {
-    merged: pick(stats.map((s) => (s ? share(s.outsider_merged, s.outsider_attempts) : null)), "high"),
-    reply: pick(stats.map((s) => s?.median_first_response_hours ?? null), "low"),
-    firstTimers: pick(stats.map((s) => s?.first_time_merged_authors ?? null), "high"),
-    silent: pick(stats.map((s) => (s ? share(s.no_reply, s.outsider_attempts) : null)), "low"),
-    closed: pick(stats.map((s) => (s ? share(s.closed_silently, s.outsider_attempts) : null)), "low"),
+    merged: pick(
+      stats.map((s) =>
+        s ? share(s.outsider_merged, s.outsider_attempts) : null,
+      ),
+      "high",
+    ),
+    reply: pick(
+      stats.map((s) => s?.median_first_response_hours ?? null),
+      "low",
+    ),
+    firstTimers: pick(
+      stats.map((s) => s?.first_time_merged_authors ?? null),
+      "high",
+    ),
+    silent: pick(
+      stats.map((s) => (s ? share(s.no_reply, s.outsider_attempts) : null)),
+      "low",
+    ),
+    closed: pick(
+      stats.map((s) =>
+        s ? share(s.closed_silently, s.outsider_attempts) : null,
+      ),
+      "low",
+    ),
   };
 }
 
@@ -117,7 +165,8 @@ export function leaders(stats: (Stats | null)[]): Record<Lead, number[]> {
  */
 export function compareTitle(cols: Checked[]): string {
   const checked = cols.filter((c) => c != null);
-  if (cols.length < 2 || checked.length < cols.length) return "Which one will review your pull request?";
+  if (cols.length < 2 || checked.length < cols.length)
+    return "Which one will review your pull request?";
   const top = (group: NonNullable<Checked>[]) => {
     const m = leaders(group.map((c) => c.stats)).merged;
     return m.length === 1 ? group[m[0]].repo : null;
@@ -126,14 +175,24 @@ export function compareTitle(cols: Checked[]): string {
   const long = checked.filter((c) => c.verdict === "long_shot");
   if (worth.length === 1) return `${worth[0].repo} is the one worth your time.`;
   if (worth.length > 1) {
-    const which = worth.length < checked.length ? `${worth.length} of these are` : checked.length === 2 ? "Both are" : `All ${checked.length} are`;
+    const which =
+      worth.length < checked.length
+        ? `${worth.length} of these are`
+        : checked.length === 2
+          ? "Both are"
+          : `All ${checked.length} are`;
     const t = top(worth);
-    return t ? `${which} worth your time; ${t} merges outsiders most often.` : `${which} worth your time.`;
+    return t
+      ? `${which} worth your time; ${t} merges outsiders most often.`
+      : `${which} worth your time.`;
   }
-  if (long.length === 1) return `${long[0].repo} is your best shot here, but still a long shot.`;
+  if (long.length === 1)
+    return `${long[0].repo} is your best shot here, but still a long shot.`;
   if (long.length > 1) {
     const t = top(long);
-    return t ? `No sure bets here; ${t} is the best of the long shots.` : "No sure bets here, only long shots.";
+    return t
+      ? `No sure bets here; ${t} is the best of the long shots.`
+      : "No sure bets here, only long shots.";
   }
   return "None of these looks like a good bet right now.";
 }
@@ -157,8 +216,11 @@ export interface Cell {
   tone?: "bad" | "none";
 }
 
-/** What the project is, how big and alive (#165's `about`), under the numbers Holt reads. Stars lead. */
-export const ABOUT_ROWS: { id: "stars" | "forks" | "issues" | "pushed" | "language"; label: string }[] = [
+/** What the project is, how big and alive (#165's `about`), under the numbers PRScout reads. Stars lead. */
+export const ABOUT_ROWS: {
+  id: "stars" | "forks" | "issues" | "pushed" | "language";
+  label: string;
+}[] = [
   { id: "stars", label: "Stars" },
   { id: "forks", label: "Forks" },
   { id: "issues", label: "Open issues" },
@@ -169,33 +231,70 @@ export const ABOUT_ROWS: { id: "stars" | "forks" | "issues" | "pushed" | "langua
 export type AboutId = (typeof ABOUT_ROWS)[number]["id"];
 
 /** One column's About cells; "–" where GitHub didn't say. An archived repo says so where the last push goes. */
-export function aboutCells(about: Report["about"], now: number): Record<AboutId, Cell & { lang?: string }> {
+export function aboutCells(
+  about: Report["about"],
+  now: number,
+): Record<AboutId, Cell & { lang?: string }> {
   const none: Cell = { main: "–", tone: "none" };
-  if (!about) return { stars: none, forks: none, issues: none, pushed: none, language: none };
-  const count = (n: number | null | undefined): Cell => (n == null ? none : { main: compactCount(n) });
+  if (!about)
+    return {
+      stars: none,
+      forks: none,
+      issues: none,
+      pushed: none,
+      language: none,
+    };
+  const count = (n: number | null | undefined): Cell =>
+    n == null ? none : { main: compactCount(n) };
   const lang = about.languages[0];
   return {
     stars: { main: compactCount(about.stars) },
     forks: count(about.forks),
     issues: count(about.open_issues),
-    pushed: about.archived ? { main: "archived", tone: "bad" } : about.pushed_at ? { main: timeAgo(about.pushed_at, now) || "–" } : none,
-    language: lang ? { main: lang.name, sub: share(lang.share), lang: lang.name } : none,
+    pushed: about.archived
+      ? { main: "archived", tone: "bad" }
+      : about.pushed_at
+        ? { main: timeAgo(about.pushed_at, now) || "–" }
+        : none,
+    language: lang
+      ? { main: lang.name, sub: share(lang.share), lang: lang.name }
+      : none,
   };
 }
 
 /** One column's cells, from what the report already says. */
-export function cells(report: Pick<Report, "stats" | "landing">): Record<Lead | "way", Cell> {
+export function cells(
+  report: Pick<Report, "stats" | "landing">,
+): Record<Lead | "way", Cell> {
   const s = report.stats;
   const n = s.outsider_attempts;
   const none: Cell = { main: "–", tone: "none" };
   const share = (k: number): Cell => (n > 0 ? { main: `${pct(k, n)}%` } : none);
   const top = report.landing[0];
   return {
-    merged: n > 0 ? { main: `${pct(s.outsider_merged, n)}%`, sub: `${s.outsider_merged} of ${n}` } : { main: "–", sub: "no outside PRs", tone: "none" },
-    reply: s.median_first_response_hours == null ? (n > 0 ? { main: "no replies", tone: "bad" } : none) : { main: humanHours(s.median_first_response_hours) },
-    firstTimers: { main: String(s.first_time_merged_authors), ...(s.first_time_merged_authors === 0 && n > 0 ? { tone: "bad" as const } : {}) },
+    merged:
+      n > 0
+        ? {
+            main: `${pct(s.outsider_merged, n)}%`,
+            sub: `${s.outsider_merged} of ${n}`,
+          }
+        : { main: "–", sub: "no outside PRs", tone: "none" },
+    reply:
+      s.median_first_response_hours == null
+        ? n > 0
+          ? { main: "no replies", tone: "bad" }
+          : none
+        : { main: humanHours(s.median_first_response_hours) },
+    firstTimers: {
+      main: String(s.first_time_merged_authors),
+      ...(s.first_time_merged_authors === 0 && n > 0
+        ? { tone: "bad" as const }
+        : {}),
+    },
     silent: share(s.no_reply),
     closed: share(s.closed_silently),
-    way: top ? { main: top.path.startsWith("(") ? top.path : `${top.path}/` } : { main: "none yet", tone: "none" },
+    way: top
+      ? { main: top.path.startsWith("(") ? top.path : `${top.path}/` }
+      : { main: "none yet", tone: "none" },
   };
 }

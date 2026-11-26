@@ -17,14 +17,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from holt import model as model_mod
-from holt.agent import narration, pipeline, stages
-from holt.agent import verdict as verdict_mod
-from holt.agent.findings import Findings
-from holt.agent.signals import build_threads
-from holt.agent.verify import automated_body, check_quotes, spoken_words
-from holt.model import ModelsConfig, OpenAIModel, OutputLimitReached, Usage
-from holt.types import EvidenceRecord
+from prscout import model as model_mod
+from prscout.agent import narration, pipeline, stages
+from prscout.agent import verdict as verdict_mod
+from prscout.agent.findings import Findings
+from prscout.agent.signals import build_threads
+from prscout.agent.verify import automated_body, check_quotes, spoken_words
+from prscout.model import ModelsConfig, OpenAIModel, OutputLimitReached, Usage
+from prscout.types import EvidenceRecord
 
 T0 = datetime(2026, 5, 1, tzinfo=UTC)
 
@@ -367,7 +367,7 @@ def test_stages_a_b_c_run_at_once_in_a_fixed_order_and_the_report_is_timed(caplo
     client = Parallel({"bottom_line": "You will wait; distinct_merged_authors is tiny.",
                        "what_the_evidence_shows": "Exactly 999 people were welcomed.",
                        "what_could_not_be_determined": ""})
-    with caplog.at_level("INFO", logger="holt.report"):
+    with caplog.at_level("INFO", logger="prscout.report"):
         assessment, trace = pipeline.analyze("a/b", Provider(mixed_repo()), client,
                                              as_of=T0 + timedelta(days=30))
     # Joined in the order A, B, C whatever order they finished in, so the

@@ -1,14 +1,22 @@
-// Builds dist/chrome and dist/firefox. HOLT_HOST (default githolt.com)
-// sets where reports come from, e.g. HOLT_HOST=localhost:20080 npm run build.
+// Builds dist/chrome and dist/firefox. PRSCOUT_HOST (default gitprscout.com)
+// sets where reports come from, e.g. PRSCOUT_HOST=localhost:20080 npm run build.
 import { build } from "esbuild";
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const host = process.env.HOLT_HOST || "githolt.com";
+const host = process.env.PRSCOUT_HOST || "gitprscout.com";
 if (!/^[a-z0-9.-]+(:\d{1,5})?$/i.test(host)) {
-  console.error(`HOLT_HOST must be a bare host name like holt.example.com, got "${host}"`);
+  console.error(
+    `PRSCOUT_HOST must be a bare host name like prscout.example.com, got "${host}"`,
+  );
   process.exit(1);
 }
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf-8"));
@@ -17,11 +25,17 @@ const hostPattern = `https://${host.replace(/:\d+$/, "")}/*`;
 function manifest(browser) {
   const m = {
     manifest_version: 3,
-    name: "Holt for GitHub",
-    short_name: "Holt",
+    name: "PRScout for GitHub",
+    short_name: "PRScout",
     version: pkg.version,
-    description: "See on any GitHub repo whether newcomers get their pull requests merged.",
-    icons: { 16: "icons/16.png", 32: "icons/32.png", 48: "icons/48.png", 128: "icons/128.png" },
+    description:
+      "See on any GitHub repo whether newcomers get their pull requests merged.",
+    icons: {
+      16: "icons/16.png",
+      32: "icons/32.png",
+      48: "icons/48.png",
+      128: "icons/128.png",
+    },
     permissions: [],
     host_permissions: ["https://github.com/*", hostPattern],
     content_scripts: [
@@ -37,9 +51,9 @@ function manifest(browser) {
     m.background = { scripts: ["background.js"] };
     m.browser_specific_settings = {
       gecko: {
-        id: "holt@githolt.com",
+        id: "PRScout@gitprscout.com",
         strict_min_version: "121.0",
-        // The owner/repo of GitHub pages you visit is sent to the Holt host.
+        // The owner/repo of GitHub pages you visit is sent to the PRScout host.
         data_collection_permissions: { required: ["browsingActivity"] },
       },
     };
@@ -55,18 +69,25 @@ for (const browser of ["chrome", "firefox"]) {
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   await build({
-    entryPoints: { content: join(root, "src/content.ts"), background: join(root, "src/background.ts") },
+    entryPoints: {
+      content: join(root, "src/content.ts"),
+      background: join(root, "src/background.ts"),
+    },
     outdir: out,
     bundle: true,
     format: "iife",
     target: browser === "firefox" ? "firefox121" : "chrome102",
     minify: false,
     legalComments: "none",
-    define: { __HOLT_HOST__: JSON.stringify(host) },
+    define: { __PRSCOUT_HOST__: JSON.stringify(host) },
     logLevel: "warning",
   });
   cpSync(join(root, "src/content.css"), join(out, "content.css"));
   cpSync(join(root, "icons"), join(out, "icons"), { recursive: true });
-  writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest(browser), null, 2) + "\n", "utf-8");
+  writeFileSync(
+    join(out, "manifest.json"),
+    JSON.stringify(manifest(browser), null, 2) + "\n",
+    "utf-8",
+  );
   console.log(`built dist/${browser} for ${host}`);
 }

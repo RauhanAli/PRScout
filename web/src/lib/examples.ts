@@ -19,14 +19,62 @@ export interface Example {
 }
 
 export const EXAMPLES: Example[] = [
-  { repo: "home-assistant/core", verdict: "viable", language: "Python", stars: 91_000, why: "Huge, and most outside PRs get merged." },
-  { repo: "kubernetes/kubernetes", verdict: "viable", language: "Go", stars: 128_000, why: "Outsiders get merged, though many wait for a reply." },
-  { repo: "react/react", verdict: "long_shot", language: "JavaScript", stars: 251_000, why: "Outsiders get merged, but most PRs get no reply." },
-  { repo: "sharkdp/bat", verdict: "long_shot", language: "Rust", stars: 61_000, why: "Outside fixes land, but most PRs go unanswered." },
-  { repo: "pallets/flask", verdict: "not_viable", language: "Python", stars: 75_000, why: "Famous, but few outside PRs get merged." },
-  { repo: "vercel/next.js", verdict: "not_viable", language: "JavaScript", stars: 143_000, why: "Busy, yet only 1 in 30 outside PRs got merged." },
-  { repo: "getsentry/sentry", verdict: "insufficient_evidence", language: "Python", stars: 45_000, why: "Too few outsiders tried recently. Holt won't guess." },
-  { repo: "tldraw/tldraw", verdict: "insufficient_evidence", language: "TypeScript", stars: 51_000, why: "Busy, but nearly every PR comes from its own team." },
+  {
+    repo: "home-assistant/core",
+    verdict: "viable",
+    language: "Python",
+    stars: 91_000,
+    why: "Huge, and most outside PRs get merged.",
+  },
+  {
+    repo: "kubernetes/kubernetes",
+    verdict: "viable",
+    language: "Go",
+    stars: 128_000,
+    why: "Outsiders get merged, though many wait for a reply.",
+  },
+  {
+    repo: "react/react",
+    verdict: "long_shot",
+    language: "JavaScript",
+    stars: 251_000,
+    why: "Outsiders get merged, but most PRs get no reply.",
+  },
+  {
+    repo: "sharkdp/bat",
+    verdict: "long_shot",
+    language: "Rust",
+    stars: 61_000,
+    why: "Outside fixes land, but most PRs go unanswered.",
+  },
+  {
+    repo: "pallets/flask",
+    verdict: "not_viable",
+    language: "Python",
+    stars: 75_000,
+    why: "Famous, but few outside PRs get merged.",
+  },
+  {
+    repo: "vercel/next.js",
+    verdict: "not_viable",
+    language: "JavaScript",
+    stars: 143_000,
+    why: "Busy, yet only 1 in 30 outside PRs got merged.",
+  },
+  {
+    repo: "getsentry/sentry",
+    verdict: "insufficient_evidence",
+    language: "Python",
+    stars: 45_000,
+    why: "Too few outsiders tried recently. PRScout won't guess.",
+  },
+  {
+    repo: "tldraw/tldraw",
+    verdict: "insufficient_evidence",
+    language: "TypeScript",
+    stars: 51_000,
+    why: "Busy, but nearly every PR comes from its own team.",
+  },
 ];
 
 export const EXAMPLES_PATH = "/examples";

@@ -24,7 +24,10 @@ export function landedPct(s: Contributions["summary"]): number | null {
 }
 
 /** Minutes until the refresh button works again (0 = now). */
-export function minutesLeft(nextRefreshAt: string | null, now = Date.now()): number {
+export function minutesLeft(
+  nextRefreshAt: string | null,
+  now = Date.now(),
+): number {
   if (!nextRefreshAt) return 0;
   const t = Date.parse(nextRefreshAt);
   if (!Number.isFinite(t) || t <= now) return 0;
@@ -32,15 +35,17 @@ export function minutesLeft(nextRefreshAt: string | null, now = Date.now()): num
 }
 
 export function cooldownLabel(mins: number): string {
-  return mins <= 0 ? "" : `you can refresh again in ${mins} minute${mins === 1 ? "" : "s"}`;
+  return mins <= 0
+    ? ""
+    : `you can refresh again in ${mins} minute${mins === 1 ? "" : "s"}`;
 }
 
-/** One sentence under the numbers about PRs opened after checking a repo on Holt. */
-export function foundViaHoltLine(n: number): string | null {
+/** One sentence under the numbers about PRs opened after checking a repo on PRScout. */
+export function foundViaPRScoutLine(n: number): string | null {
   if (n <= 0) return null;
   return n === 1
-    ? "1 of them you opened within 30 days of checking the repo on Holt."
-    : `${n} of them you opened within 30 days of checking the repo on Holt.`;
+    ? "1 of them you opened within 30 days of checking the repo on PRScout."
+    : `${n} of them you opened within 30 days of checking the repo on PRScout.`;
 }
 
 // --- Your pull requests, grouped by next move (the dashboard plan) ------------------
@@ -64,8 +69,10 @@ export interface PrGroups {
   notCounted: NotCounted[];
 }
 
-const decidedAt = (p: ContributionPR) => p.merged_at ?? p.closed_at ?? p.created_at;
-const newestDecided = (a: ContributionPR, b: ContributionPR) => decidedAt(b).localeCompare(decidedAt(a));
+const decidedAt = (p: ContributionPR) =>
+  p.merged_at ?? p.closed_at ?? p.created_at;
+const newestDecided = (a: ContributionPR, b: ContributionPR) =>
+  decidedAt(b).localeCompare(decidedAt(a));
 
 export function prGroups(pulls: ContributionPR[], now: number): PrGroups {
   const counted = pulls.filter((p) => p.counted);
@@ -74,7 +81,11 @@ export function prGroups(pulls: ContributionPR[], now: number): PrGroups {
   for (const p of pulls) {
     if (p.counted) continue;
     const k = p.repo.toLowerCase();
-    const row = out.get(k) ?? { repo: p.repo, because: p.not_counted_because ?? "you", pulls: [] };
+    const row = out.get(k) ?? {
+      repo: p.repo,
+      because: p.not_counted_because ?? "you",
+      pulls: [],
+    };
     row.pulls.push(p);
     out.set(k, row);
   }
@@ -93,9 +104,15 @@ export function prsTitle(g: PrGroups): string {
   const y = g.yours.length;
   if (y) return `It's *your turn* on ${y} PR${y === 1 ? "" : "s"}.`;
   const n = g.needs.length;
-  if (n) return n === 1 ? "1 PR is *waiting longer than usual.*" : `${n} PRs are *waiting longer than usual.*`;
+  if (n)
+    return n === 1
+      ? "1 PR is *waiting longer than usual.*"
+      : `${n} PRs are *waiting longer than usual.*`;
   const w = g.waiting.length;
-  if (w) return w === 1 ? "1 PR is *waiting for a reply.*" : `${w} PRs are *waiting for a reply.*`;
+  if (w)
+    return w === 1
+      ? "1 PR is *waiting for a reply.*"
+      : `${w} PRs are *waiting for a reply.*`;
   if (g.merged.length) return `${g.merged.length} merged. *Nothing needs you.*`;
   if (g.closed.length) return "Nothing open. *Time for the next one.*";
   return "No pull requests *yet.*";

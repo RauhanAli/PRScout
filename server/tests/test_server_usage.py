@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from holt_server.db import Usage
-from holt_server.usage import who_hash
+from prscout_server.db import Usage
+from prscout_server.usage import who_hash
 from sqlalchemy import select
 
 

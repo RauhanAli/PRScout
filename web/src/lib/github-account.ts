@@ -15,7 +15,7 @@ import { type MergeProof, readMergeProof, signInMove } from "./github-connect";
 /** Carries the choices made on the connect form (Settings → Accounts) through GitHub's sign-in page and back
  *  to /api/github/connect. Only ever set by the connect action, after the 18+
  *  box was ticked. */
-export const PENDING_COOKIE = "holt_connect";
+export const PENDING_COOKIE = "prscout_connect";
 /** Wide enough for the Auth.js callback (/api/auth) too: it reads the cookie to
  *  know a failed link belongs to the connect form, not to sign-in. */
 export const PENDING_COOKIE_PATH = "/api";
@@ -41,12 +41,17 @@ export async function unlinkGitHubIfNotSignIn(userId: string): Promise<void> {
     .where(and(eq(accounts.userId, userId), ne(accounts.provider, "github")))
     .limit(1);
   if (!other) return;
-  await db.delete(accounts).where(and(eq(accounts.userId, userId), eq(accounts.provider, "github")));
+  await db
+    .delete(accounts)
+    .where(and(eq(accounts.userId, userId), eq(accounts.provider, "github")));
 }
 
 /** The providers this person can sign in with ("github", "google"), for settings. */
 export async function signInProviders(userId: string): Promise<string[]> {
-  const rows = await db.select({ provider: accounts.provider }).from(accounts).where(eq(accounts.userId, userId));
+  const rows = await db
+    .select({ provider: accounts.provider })
+    .from(accounts)
+    .where(eq(accounts.userId, userId));
   return [...new Set(rows.map((r) => r.provider))].sort();
 }
 
@@ -55,7 +60,7 @@ export async function signInProviders(userId: string): Promise<string[]> {
 // having just confirmed the other one's sign-in.
 
 /** The proof, left by the Auth.js route when a link came back "taken". */
-export const MERGE_COOKIE = "holt_merge";
+export const MERGE_COOKIE = "prscout_merge";
 /** Only the Accounts page and its actions ever see it. */
 export const MERGE_COOKIE_PATH = "/settings/accounts";
 
@@ -66,16 +71,30 @@ export const MERGE_COOKIE_PATH = "/settings/accounts";
 export const confirmedGitHub = new AsyncLocalStorage<{ id?: string }>();
 
 /** This browser's proof, when it is the signed-in person's and still fresh. */
-export async function mergeProofFor(userId: string): Promise<MergeProof | null> {
-  return readMergeProof((await cookies()).get(MERGE_COOKIE)?.value, userId, authSecret(process.env));
+export async function mergeProofFor(
+  userId: string,
+): Promise<MergeProof | null> {
+  return readMergeProof(
+    (await cookies()).get(MERGE_COOKIE)?.value,
+    userId,
+    authSecret(process.env),
+  );
 }
 
-/** Whether `githubId` is the sign-in of a Holt account other than `userId`: one to merge. */
-export async function isAnotherAccountsSignIn(githubId: string, userId: string): Promise<boolean> {
+/** Whether `githubId` is the sign-in of a PRScout account other than `userId`: one to merge. */
+export async function isAnotherAccountsSignIn(
+  githubId: string,
+  userId: string,
+): Promise<boolean> {
   const [row] = await db
     .select({ userId: accounts.userId })
     .from(accounts)
-    .where(and(eq(accounts.provider, "github"), eq(accounts.providerAccountId, githubId)))
+    .where(
+      and(
+        eq(accounts.provider, "github"),
+        eq(accounts.providerAccountId, githubId),
+      ),
+    )
     .limit(1);
   return Boolean(row) && row.userId !== userId;
 }
@@ -88,19 +107,36 @@ export async function isAnotherAccountsSignIn(githubId: string, userId: string):
  * sign-in it had (those weren't proven). If the server refuses or can't be
  * reached, nothing here is kept either. False when nothing was merged.
  */
-export async function mergeGitHubAccount(githubId: string, into: string): Promise<boolean> {
+export async function mergeGitHubAccount(
+  githubId: string,
+  into: string,
+): Promise<boolean> {
   const github = eq(accounts.provider, "github");
   try {
     await db.transaction(async (tx) => {
       const signIns = await tx
-        .select({ userId: accounts.userId, githubId: accounts.providerAccountId })
+        .select({
+          userId: accounts.userId,
+          githubId: accounts.providerAccountId,
+        })
         .from(accounts)
-        .where(and(github, or(eq(accounts.providerAccountId, githubId), eq(accounts.userId, into))))
+        .where(
+          and(
+            github,
+            or(
+              eq(accounts.providerAccountId, githubId),
+              eq(accounts.userId, into),
+            ),
+          ),
+        )
         .for("update");
       const move = signInMove(githubId, into, signIns);
       if (move === "done") return;
       if (move === "refuse") throw new Error("not a sign-in to merge");
-      await tx.update(accounts).set({ userId: into }).where(and(github, eq(accounts.providerAccountId, githubId)));
+      await tx
+        .update(accounts)
+        .set({ userId: into })
+        .where(and(github, eq(accounts.providerAccountId, githubId)));
       await tx.delete(sessions).where(eq(sessions.userId, move.from));
       await tx.delete(accounts).where(eq(accounts.userId, move.from));
       await tx.delete(users).where(eq(users.id, move.from));
@@ -109,7 +145,7 @@ export async function mergeGitHubAccount(githubId: string, into: string): Promis
     });
     return true;
   } catch (e) {
-    console.error("[holt] merging accounts failed:", (e as Error).message);
+    console.error("[PRScout] merging accounts failed:", (e as Error).message);
     return false;
   }
 }

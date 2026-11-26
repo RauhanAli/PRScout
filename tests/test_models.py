@@ -14,8 +14,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from holt import model as model_mod
-from holt.model import (
+from prscout import model as model_mod
+from prscout.model import (
     SMALL,
     AnthropicModel,
     ModelsConfig,
@@ -128,7 +128,7 @@ def test_local_server_needs_no_api_key(tmp_path, monkeypatch):
     assert client._client.base_url.host == "localhost"
 
 
-AZURE_V1 = "https://holt-test.openai.azure.com/openai/v1/"
+AZURE_V1 = "https://prscout-test.openai.azure.com/openai/v1/"
 
 
 def test_azure_calls_its_v1_endpoint_with_the_key_and_openai_parameters(tmp_path, monkeypatch):
@@ -223,7 +223,7 @@ def test_cli_models_warns_when_config_diverges_from_the_recorded_defaults(
     tmp_path, monkeypatch, capsys
 ):
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    from holt.cli import main
+    from prscout.cli import main
 
     assert main(["models"]) == 0
     out = capsys.readouterr().out

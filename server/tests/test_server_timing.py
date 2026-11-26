@@ -6,11 +6,11 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from conftest import STATS, canned_report
-from holt.types import EvidenceRecord
-from holt_server import report as report_mod
-from holt_server import schema
+from prscout.types import EvidenceRecord
+from prscout_server import report as report_mod
+from prscout_server import schema
 
-from holt.report import Assessment, Verdict
+from prscout.report import Assessment, Verdict
 
 
 def served(timing: dict | None, median: float | None = 14.0, asks=()) -> schema.Report:
@@ -98,7 +98,7 @@ def test_build_carries_timing_and_the_stale_ask():
                                    opened + timedelta(hours=3),
                                    {"author": "m", "author_association": "MEMBER",
                                     "body": "Thanks!"})]
-    from holt.agent.signals import build_threads, compute
+    from prscout.agent.signals import build_threads, compute
 
     signals = compute(build_threads(records), NOW, 14 * 24.0)
     assessment = Assessment(repo="o/r", verdict=Verdict.VIABLE, summary="", as_of=NOW)

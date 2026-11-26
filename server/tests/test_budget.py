@@ -7,8 +7,8 @@ from a fresh one for 7, with the note redone, instead of a second run.
 
 from __future__ import annotations
 
-from holt.agent.verdict import slow_note
-from holt_server.report import retime
+from prscout.agent.verdict import slow_note
+from prscout_server.report import retime
 
 MEDIAN = 277.5  # efcore: first replies take ~11.6 days
 

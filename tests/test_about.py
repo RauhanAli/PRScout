@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from holt.about import about_from_meta, about_lines, compact, help_links, readme_line
+from prscout.about import about_from_meta, about_lines, compact, help_links, readme_line
 
 
 # --- readme_line ----------------------------------------------------------------

@@ -16,7 +16,11 @@ export function parseSort(v: string | string[] | undefined): DiscoverSort {
   return SORTS.some((x) => x.id === s) ? (s as DiscoverSort) : "welcoming";
 }
 
-const SPECIAL: Record<string, string> = { "c++": "cpp", "c#": "csharp", "f#": "fsharp" };
+const SPECIAL: Record<string, string> = {
+  "c++": "cpp",
+  "c#": "csharp",
+  "f#": "fsharp",
+};
 
 /** GitHub's language name -> the path segment: "C++" -> "cpp", "Jupyter Notebook" -> "jupyter-notebook". */
 export function languageSlug(name: string): string {
@@ -27,21 +31,38 @@ export function languageSlug(name: string): string {
 /** The language a slug stands for, among the ones the server offers; null if none. */
 export function languageFromSlug(slug: string, names: string[]): string | null {
   const s = slug.trim().toLowerCase();
-  return names.find((n) => languageSlug(n) === s || languageSlug(n) === encodeURIComponent(s)) ?? null;
+  return (
+    names.find(
+      (n) => languageSlug(n) === s || languageSlug(n) === encodeURIComponent(s),
+    ) ?? null
+  );
 }
 
-export function boardTitle(sort: DiscoverSort, language: string | null): string {
+export function boardTitle(
+  sort: DiscoverSort,
+  language: string | null,
+): string {
   const lang = language ? `${language} ` : "";
-  if (sort === "stars") return `The biggest ${lang}repos Holt has checked`;
-  if (sort === "trending") return language ? `${language} repos people checked most this week` : "Repos people checked most this week";
+  if (sort === "stars") return `The biggest ${lang}repos PRScout has checked`;
+  if (sort === "trending")
+    return language
+      ? `${language} repos people checked most this week`
+      : "Repos people checked most this week";
   return `Most welcoming ${lang}repos`;
 }
 
-export function emptyText(sort: DiscoverSort, language: string | null, topic: string | null, trendingMin: number): string {
+export function emptyText(
+  sort: DiscoverSort,
+  language: string | null,
+  topic: string | null,
+  trendingMin: number,
+): string {
   const repo = `${language ? `${language} ` : ""}repo${topic ? ` tagged "${topic}"` : ""}`;
-  if (sort === "trending") return `No ${repo} has been checked by ${trendingMin} or more people this week yet.`;
-  if (sort === "welcoming") return `No ${repo} Holt has checked is worth your time yet.`;
-  return `Holt hasn't checked a ${repo} yet.`;
+  if (sort === "trending")
+    return `No ${repo} has been checked by ${trendingMin} or more people this week yet.`;
+  if (sort === "welcoming")
+    return `No ${repo} PRScout has checked is worth your time yet.`;
+  return `PRScout hasn't checked a ${repo} yet.`;
 }
 
 /**
@@ -49,18 +70,31 @@ export function emptyText(sort: DiscoverSort, language: string | null, topic: st
  * the topic, then the language, then go back to most welcoming. With nothing
  * to drop, check a repo (it joins the boards once it has a verdict).
  */
-export function widenBoard(opts: { sort: DiscoverSort; language: string | null; topic: string | null }): { href: string; label: string }[] {
+export function widenBoard(opts: {
+  sort: DiscoverSort;
+  language: string | null;
+  topic: string | null;
+}): { href: string; label: string }[] {
   const { sort, language, topic } = opts;
   const out: { href: string; label: string }[] = [];
-  if (topic) out.push({ href: boardHref({ sort, language }), label: "all topics" });
-  if (language) out.push({ href: boardHref({ sort, topic }), label: "any language" });
-  if (sort !== "welcoming") out.push({ href: boardHref({ language, topic }), label: "most welcoming" });
+  if (topic)
+    out.push({ href: boardHref({ sort, language }), label: "all topics" });
+  if (language)
+    out.push({ href: boardHref({ sort, topic }), label: "any language" });
+  if (sort !== "welcoming")
+    out.push({ href: boardHref({ language, topic }), label: "most welcoming" });
   return out.length ? out : [{ href: "/", label: "check a repo" }];
 }
 
 /** The board's path: /discover or /discover/<language>, with sort and topic kept. */
-export function boardHref(opts: { sort?: DiscoverSort; language?: string | null; topic?: string | null }): string {
-  const path = opts.language ? `/discover/${languageSlug(opts.language)}` : "/discover";
+export function boardHref(opts: {
+  sort?: DiscoverSort;
+  language?: string | null;
+  topic?: string | null;
+}): string {
+  const path = opts.language
+    ? `/discover/${languageSlug(opts.language)}`
+    : "/discover";
   const q = new URLSearchParams();
   if (opts.sort && opts.sort !== "welcoming") q.set("sort", opts.sort);
   if (opts.topic) q.set("topic", opts.topic);

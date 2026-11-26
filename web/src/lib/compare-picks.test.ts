@@ -1,10 +1,26 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { MAX } from "./compare.ts";
-import { addPick, comparePicksHref, createPickStore, PICKS_KEY, readPicks, removePick, SENT_KEY, shortName, tickState, togglePick } from "./compare-picks.ts";
+import {
+  addPick,
+  comparePicksHref,
+  createPickStore,
+  PICKS_KEY,
+  readPicks,
+  removePick,
+  SENT_KEY,
+  shortName,
+  tickState,
+  togglePick,
+} from "./compare-picks.ts";
 import { safeCallback } from "./safe-url.ts";
 
-const FOUR = ["pallets/flask", "django/django", "psf/requests", "rust-lang/rust"];
+const FOUR = [
+  "pallets/flask",
+  "django/django",
+  "psf/requests",
+  "rust-lang/rust",
+];
 
 function fakeStorage(init: Record<string, string> = {}) {
   const data = new Map(Object.entries(init));
@@ -18,9 +34,15 @@ function fakeStorage(init: Record<string, string> = {}) {
 
 test("a pick is added once, whatever its case", () => {
   assert.deepEqual(addPick([], "pallets/flask"), ["pallets/flask"]);
-  assert.deepEqual(addPick(["pallets/flask"], "Pallets/Flask"), ["pallets/flask"]);
+  assert.deepEqual(addPick(["pallets/flask"], "Pallets/Flask"), [
+    "pallets/flask",
+  ]);
   assert.deepEqual(togglePick(["pallets/flask"], "PALLETS/flask"), []);
-  assert.deepEqual(removePick(FOUR, "Django/Django"), ["pallets/flask", "psf/requests", "rust-lang/rust"]);
+  assert.deepEqual(removePick(FOUR, "Django/Django"), [
+    "pallets/flask",
+    "psf/requests",
+    "rust-lang/rust",
+  ]);
 });
 
 test("four at most: a fifth is not added, and its tick says so", () => {
@@ -36,14 +58,29 @@ test("four at most: a fifth is not added, and its tick says so", () => {
 
 test("the bar's names leave the owner out unless two picks share a name", () => {
   assert.equal(shortName("pallets/flask", FOUR), "flask");
-  assert.equal(shortName("vuejs/core", ["vuejs/core", "home-assistant/core"]), "vuejs/core");
+  assert.equal(
+    shortName("vuejs/core", ["vuejs/core", "home-assistant/core"]),
+    "vuejs/core",
+  );
   assert.equal(shortName("vuejs/core"), "core");
 });
 
 test("what storage holds is read back as real repos only, without duplicates, four at most", () => {
-  assert.deepEqual(readPicks(JSON.stringify(["pallets/flask", "Pallets/Flask", 7, "nope", "psf/requests"])), ["pallets/flask", "psf/requests"]);
+  assert.deepEqual(
+    readPicks(
+      JSON.stringify([
+        "pallets/flask",
+        "Pallets/Flask",
+        7,
+        "nope",
+        "psf/requests",
+      ]),
+    ),
+    ["pallets/flask", "psf/requests"],
+  );
   assert.deepEqual(readPicks(JSON.stringify([...FOUR, "golang/go"])), FOUR);
-  for (const bad of [null, "", "{", '"a/b"', "{}"]) assert.deepEqual(readPicks(bad), []);
+  for (const bad of [null, "", "{", '"a/b"', "{}"])
+    assert.deepEqual(readPicks(bad), []);
 });
 
 test("picks persist: a new store over the same storage starts from them", () => {
@@ -53,14 +90,19 @@ test("picks persist: a new store over the same storage starts from them", () => 
   a.toggle("django/django");
   a.toggle("pallets/flask");
   a.toggle("psf/requests");
-  assert.deepEqual(createPickStore(() => storage).get(), ["django/django", "psf/requests"]);
+  assert.deepEqual(createPickStore(() => storage).get(), [
+    "django/django",
+    "psf/requests",
+  ]);
   a.clear();
   assert.equal(storage.data.has(PICKS_KEY), false);
   assert.deepEqual(createPickStore(() => storage).get(), []);
 });
 
 test("the store tells its listeners only when the list changed, and keeps one array between changes", () => {
-  const store = createPickStore(() => fakeStorage({ [PICKS_KEY]: JSON.stringify(FOUR) }));
+  const store = createPickStore(() =>
+    fakeStorage({ [PICKS_KEY]: JSON.stringify(FOUR) }),
+  );
   let calls = 0;
   const off = store.subscribe(() => calls++);
   const before = store.get();
@@ -84,10 +126,15 @@ test("storage that throws leaves the picks in memory", () => {
 
 test("signed in, Compare opens with the picks; signed out, sign-in comes back to the same list", () => {
   const two = ["pallets/flask", "django/django"];
-  assert.equal(comparePicksHref(two, true), "/compare?repos=pallets/flask,django/django");
+  assert.equal(
+    comparePicksHref(two, true),
+    "/compare?repos=pallets/flask,django/django",
+  );
   const href = comparePicksHref(two, false);
   assert.ok(href.startsWith("/signin?callbackUrl="));
-  const callback = new URL(href, "http://holt.invalid").searchParams.get("callbackUrl");
+  const callback = new URL(href, "http://prscout.invalid").searchParams.get(
+    "callbackUrl",
+  );
   assert.equal(callback, "/compare?repos=pallets/flask,django/django");
   // The sign-in page accepts it as it is.
   assert.equal(safeCallback(callback), callback);

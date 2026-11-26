@@ -4,8 +4,8 @@ in repo_meta, served with GET /v1/reports (never stored with the report)."""
 from __future__ import annotations
 
 from conftest import canned_report
-from holt_server import discover, github
-from holt_server.db import RepoMeta, Report, now
+from prscout_server import discover, github
+from prscout_server.db import RepoMeta, Report, now
 from test_server_discover import add, lookup_with
 
 REPO = "pallets/flask"

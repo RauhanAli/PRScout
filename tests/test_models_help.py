@@ -1,11 +1,11 @@
-"""holt models --help names a working example for each common provider (issue #20)
+"""prscout models --help names a working example for each common provider (issue #20)
 and names every provider in PROVIDER_PRESETS (issue #277)."""
 
 import pytest
 
-from holt import cli
-from holt.model import PROVIDER_PRESETS
-from holt.models_help import MODELS_HELP_EPILOG, MODELS_HELP_PROVIDERS
+from prscout import cli
+from prscout.model import PROVIDER_PRESETS
+from prscout.models_help import MODELS_HELP_EPILOG, MODELS_HELP_PROVIDERS
 
 
 def test_models_help_names_an_example_per_common_provider(capsys):

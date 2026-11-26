@@ -14,7 +14,7 @@ export default function Error({ retry }: { error: Error & { digest?: string }; r
         <CatFace mood="startled" className="app-empty-cat" />
         <h1 className="app-h1 mt-5">Something broke on our side.</h1>
         <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-          <button type="button" onClick={() => retry()} className="btn-primary">try again</button>
+          <button type="button" onClick={() => retry()} className="btn-primary">Try again</button>
           <Link href="/" className="text-link text-[0.9rem]">home</Link>
         </div>
       </div>

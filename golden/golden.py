@@ -31,11 +31,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from holt.agent.pipeline import analyze_without_model
-from holt.agent.verdict import DEFAULT_CONTRIBUTOR_DAYS, rule_codes
-from holt.evidence.fixtures import content_hash, record_from_dict, record_to_dict, redact_records
-from holt.evidence.provider import EvidenceProvider
-from holt.types import EvidenceRecord, Window
+from prscout.agent.pipeline import analyze_without_model
+from prscout.agent.verdict import DEFAULT_CONTRIBUTOR_DAYS, rule_codes
+from prscout.evidence.fixtures import content_hash, record_from_dict, record_to_dict, redact_records
+from prscout.evidence.provider import EvidenceProvider
+from prscout.types import EvidenceRecord, Window
 
 HERE = Path(__file__).resolve().parent
 REPOS = HERE / "repos.json"
@@ -119,7 +119,7 @@ class RecordingProvider(EvidenceProvider):
 
 def record(repos: list[str], root: Path = RECORDINGS, force: bool = False) -> int:
     """Capture each repository live, now. Returns the number that failed."""
-    from holt.evidence.github_graphql import GitHubGraphQL, LiveGitHubProvider
+    from prscout.evidence.github_graphql import GitHubGraphQL, LiveGitHubProvider
 
     transport = GitHubGraphQL()
     failed = 0
@@ -159,7 +159,7 @@ def timing_records(transport: Any, repo: str, cutoff: datetime,
     the timing cohort (or a note that the recording's own pages cover it).
     Returns the records and the points the cohort search cost.
     """
-    from holt.evidence.github_graphql import (
+    from prscout.evidence.github_graphql import (
         PAGE_SIZE,
         project_stale,
         read_timing,
@@ -199,7 +199,7 @@ def without_timing(records: Iterable[EvidenceRecord]) -> list[EvidenceRecord]:
 def record_timing(repos: list[str], root: Path = RECORDINGS) -> int:
     """Add (or redo) engine 7's timing evidence in existing recordings, as of
     each one's own cutoff. Returns the number that failed."""
-    from holt.evidence.github_graphql import GitHubGraphQL
+    from prscout.evidence.github_graphql import GitHubGraphQL
 
     transport = GitHubGraphQL()
     failed = 0

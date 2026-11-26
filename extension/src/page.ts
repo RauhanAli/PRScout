@@ -34,7 +34,9 @@ export function createPageController(doc: Document, lookup: LookupFn) {
     const key = repoKey(r);
     let p = starters.get(key);
     if (!p) {
-      p = lookup("starter-issues", r).catch((): Lookup<StarterIssues> => ({ state: "error" }));
+      p = lookup("starter-issues", r).catch(
+        (): Lookup<StarterIssues> => ({ state: "error" }),
+      );
       p.then((res) => settledStarters.set(key, res));
       starters.set(key, p);
     }
@@ -55,7 +57,7 @@ export function createPageController(doc: Document, lookup: LookupFn) {
     const known = settledReports.get(key);
     const chip = ensureChip(doc, r, known ?? { state: "loading" });
     if (chip && known) {
-      if (chip.dataset.holtState !== known.state) updateChip(chip, r, known);
+      if (chip.dataset.prscoutState !== known.state) updateChip(chip, r, known);
     } else if (chip) {
       work.push(
         getReport(r).then((res) => {
@@ -73,7 +75,8 @@ export function createPageController(doc: Document, lookup: LookupFn) {
       } else {
         work.push(
           getStarters(r).then((res) => {
-            if (res.state === "found") markStarterIssues(doc, r, res.data.issues ?? []);
+            if (res.state === "found")
+              markStarterIssues(doc, r, res.data.issues ?? []);
           }),
         );
       }

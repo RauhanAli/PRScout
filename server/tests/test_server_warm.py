@@ -6,8 +6,8 @@ import sys
 import types
 
 import pytest
-from holt_server import warm
-from holt_server.db import BADGE_PRIORITY, FindCache, Job, StarterCache
+from prscout_server import warm
+from prscout_server.db import BADGE_PRIORITY, FindCache, Job, StarterCache
 
 
 @pytest.fixture(autouse=True)
@@ -17,7 +17,7 @@ def quick_polling(monkeypatch):
 
 @pytest.fixture
 def starter_mod(monkeypatch):
-    mod = types.ModuleType("holt.starter")
+    mod = types.ModuleType("prscout.starter")
     mod.calls = {"find": 0, "issues": 0}
 
     def find(languages, topics, hacktoberfest, token, limit, screen=None, progress=None,
@@ -30,7 +30,7 @@ def starter_mod(monkeypatch):
         return [{"number": 1, "title": "t"}]
 
     mod.find, mod.starter_issues = find, starter_issues
-    monkeypatch.setitem(sys.modules, "holt.starter", mod)
+    monkeypatch.setitem(sys.modules, "prscout.starter", mod)
     return mod
 
 
@@ -94,7 +94,7 @@ def test_full_pass_then_nothing_left_to_do(h, starter_mod):
 
 
 def test_warmed_pages_cost_visitors_nothing(make_harness, starter_mod):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=1, HOLT_ANON_READ_RATE_PER_HOUR=1)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=1, PRSCOUT_ANON_READ_RATE_PER_HOUR=1)
     budget(h, 5000)
     run(h, ["octo/one", "octo/two"])
     calls = dict(starter_mod.calls)
@@ -123,7 +123,7 @@ def test_budget_is_rechecked_before_every_report(h, starter_mod):
 
 
 def test_rate_limited_job_stops_the_pass(h, starter_mod):
-    from holt_server.errors import ApiError
+    from prscout_server.errors import ApiError
 
     budget(h, 5000)
     h.engine.error = ApiError("rate_limited", "slow down", retry_after=60)
@@ -154,7 +154,7 @@ def test_dry_run_changes_nothing(h, starter_mod):
 def test_a_dry_run_prints_a_plan_that_fits_a_screen(h, monkeypatch):
     from datetime import timedelta
 
-    from holt_server.db import Report, WarmFailure, now
+    from prscout_server.db import Report, WarmFailure, now
 
     from conftest import canned_report
 
@@ -177,7 +177,7 @@ def test_a_dry_run_prints_a_plan_that_fits_a_screen(h, monkeypatch):
     run(h, ["octo/one", "octo/two", "octo/three", "octo/four", *new], dry_run=True,
         starter=False, meta=False, finds=False, say=lines.append)
     assert lines == [
-        "reports older than 20 hours are read again (HOLT_WARM_MAX_AGE_HOURS)",
+        "reports older than 20 hours are read again (PRSCOUT_WARM_MAX_AGE_HOURS)",
         "4 seeds have no report yet and go first",
         "1 seeds skipped as recently failed; 0 that failed before go last",
         "would analyse new/r0", "would analyse new/r1", "would analyse new/r2",
@@ -233,9 +233,9 @@ def test_repeated_timeouts_stop_the_pass(h, starter_mod, monkeypatch):
 def test_seed_list_ships_inside_the_package():
     from pathlib import Path
 
-    import holt_server
+    import prscout_server
 
-    assert warm.SEEDS.is_relative_to(Path(holt_server.__file__).parent)
+    assert warm.SEEDS.is_relative_to(Path(prscout_server.__file__).parent)
     assert warm.SEEDS.is_file()
 
 
@@ -289,7 +289,7 @@ def short_jobs(monkeypatch):
 
 def test_keeps_warm_parallel_reports_in_flight(make_harness, short_jobs):
     # A badge lane wider than the pass: the pass is what keeps it at three.
-    h = make_harness(HOLT_BADGE_CONCURRENCY=5, HOLT_WARM_PARALLEL=3)
+    h = make_harness(PRSCOUT_BADGE_CONCURRENCY=5, PRSCOUT_WARM_PARALLEL=3)
     budget(h, 5000)
     held = Held(h, hold_until=3)  # each waits until three are running
     result = run(h, MANY, starter=False, meta=False, finds=False)
@@ -299,7 +299,7 @@ def test_keeps_warm_parallel_reports_in_flight(make_harness, short_jobs):
 
 
 def test_peoples_checks_still_go_before_queued_warm_reports(make_harness, short_jobs):
-    h = make_harness(HOLT_JOB_CONCURRENCY=1, HOLT_BADGE_CONCURRENCY=1, HOLT_WARM_PARALLEL=3)
+    h = make_harness(PRSCOUT_JOB_CONCURRENCY=1, PRSCOUT_BADGE_CONCURRENCY=1, PRSCOUT_WARM_PARALLEL=3)
     budget(h, 5000)
     held = Held(h)
     try:
@@ -324,7 +324,7 @@ def test_peoples_checks_still_go_before_queued_warm_reports(make_harness, short_
 
 
 def test_budget_guard_counts_the_reports_in_flight(make_harness, short_jobs):
-    h = make_harness(HOLT_BADGE_CONCURRENCY=3, HOLT_WARM_PARALLEL=3)
+    h = make_harness(PRSCOUT_BADGE_CONCURRENCY=3, PRSCOUT_WARM_PARALLEL=3)
     held = Held(h)
     checks = []
 
@@ -360,7 +360,7 @@ def test_wait_for_budget_waits_instead_of_stopping(h, monkeypatch):
 def test_closed_and_dormant_seeds_go_last(h):
     from datetime import timedelta
 
-    from holt_server.db import ENGINE_VERSION, RepoMeta, Report, now
+    from prscout_server.db import ENGINE_VERSION, RepoMeta, Report, now
 
     from conftest import canned_report
 

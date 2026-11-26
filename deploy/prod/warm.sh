@@ -22,13 +22,13 @@
 #   deploy/prod/warm.sh --status        is it running? last lines, and how far it is
 #                                       (seeds skipped as recently failed, seeds to go)
 #
-# Jobs go through the normal queue at badge priority, HOLT_WARM_PARALLEL (3)
+# Jobs go through the normal queue at badge priority, PRSCOUT_WARM_PARALLEL (3)
 # in flight at once (--parallel N to change it), so user requests always run
 # first. Only one pass runs at a time (the pass's advisory lock), so a pass
 # started by an older deploy keeps going until it ends or is stopped.
-# A tier's age is the server's HOLT_REFRESH_WEEKLY_HOURS (168) or
-# HOLT_REFRESH_MONTHLY_HOURS (720), which compose.yml passes; without --tier
-# a pass reads again every report over HOLT_WARM_MAX_AGE_HOURS (20) old. The
+# A tier's age is the server's PRSCOUT_REFRESH_WEEKLY_HOURS (168) or
+# PRSCOUT_REFRESH_MONTHLY_HOURS (720), which compose.yml passes; without --tier
+# a pass reads again every report over PRSCOUT_WARM_MAX_AGE_HOURS (20) old. The
 # pass's first line says which.
 # Run it after the first deploy (an empty cache) and after a long outage.
 set -euo pipefail
@@ -38,7 +38,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 NAME="$PROJECT-warm"
 sha="$(cat "$STATE/current" 2>/dev/null || true)"
 [[ -n "$sha" ]] || { echo "nothing deployed yet (no $STATE/current)"; exit 1; }
-export HOLT_SRC="$STATE/src" HOLT_TAG="$sha" HOLT_PROD_HOME="$STATE" HOLT_PROD_PROJECT="$PROJECT"
+export PRSCOUT_SRC="$STATE/src" PRSCOUT_TAG="$sha" PRSCOUT_PROD_HOME="$STATE" PRSCOUT_PROD_PROJECT="$PROJECT"
 compose() { docker compose -p "$PROJECT" -f "$here/compose.yml" --env-file "$STATE/.env" "$@"; }
 
 case "${1:-}" in
@@ -61,12 +61,12 @@ esac
 load_prod_env
 
 if [[ " $* " == *" --dry-run "* ]]; then
-    compose run --rm --no-deps server python -m holt_server.warm "$@"; exit $?
+    compose run --rm --no-deps server python -m prscout_server.warm "$@"; exit $?
 fi
 
 if docker ps -q --filter "name=^$NAME$" | grep -q .; then
     echo "a warm pass is already running (warm.sh --logs)"; exit 0
 fi
 docker rm -f "$NAME" >/dev/null 2>&1 || true
-compose run -d --no-deps --name "$NAME" --label "holt.stack=$PROJECT" server python -m holt_server.warm "$@" >/dev/null
+compose run -d --no-deps --name "$NAME" --label "prscout.stack=$PROJECT" server python -m prscout_server.warm "$@" >/dev/null
 echo "warm pass started in container $NAME (warm.sh --logs to follow, --status for the summary)"

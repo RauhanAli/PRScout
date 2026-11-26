@@ -149,9 +149,9 @@ class Process:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", required=True, help="file for the samples, one JSON object per line")
-    ap.add_argument("--stack", default="stage-holt-new", help="the Compose project to watch")
-    ap.add_argument("--db-user", default="holt")
-    ap.add_argument("--db-name", default="holt", help="the API server's database, for the job queue")
+    ap.add_argument("--stack", default="stage-prscout-new", help="the Compose project to watch")
+    ap.add_argument("--db-user", default="prscout")
+    ap.add_argument("--db-name", default="prscout", help="the API server's database, for the job queue")
     ap.add_argument("--interval", type=float, default=5.0, help="seconds between samples")
     ap.add_argument("--stop-pid", type=int, default=0, help="interrupt this process when a limit is passed")
     ap.add_argument("--max-load", type=float, default=20.0, help="the host's 1-minute load")

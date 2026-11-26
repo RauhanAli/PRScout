@@ -16,21 +16,21 @@ export function ErrorPanel({ error, repo, onRetry, retryHref }: { error: ApiErro
       <div className="mt-5 flex flex-wrap gap-3">
         {account && (
           <>
-            {repo && <Link href={`/${repo}`} className="btn-primary">back to the report</Link>}
-            {error.code === "quota_exceeded" && <Link href="/pricing" className="btn-ghost">see Pro</Link>}
+            {repo && <Link href={`/${repo}`} className="btn-primary">Back to the report</Link>}
+            {error.code === "quota_exceeded" && <Link href="/pricing" className="btn-ghost">See Pro</Link>}
           </>
         )}
         {(error.code === "unauthorized" || error.code === "needs_key") && (
-          <Link href={`/signin${repo ? `?callbackUrl=${encodeURIComponent(`/${repo}?mode=ai`)}` : ""}`} className="btn-primary">sign in</Link>
+          <Link href={`/signin${repo ? `?callbackUrl=${encodeURIComponent(`/${repo}?mode=ai`)}` : ""}`} className="btn-primary">Sign in</Link>
         )}
         {(error.code === "upstream" || error.code === "internal" || error.code === "rate_limited") &&
           (onRetry ? (
-            <button type="button" onClick={onRetry} className="btn-primary">try again</button>
+            <button type="button" onClick={onRetry} className="btn-primary">Try again</button>
           ) : (
-            <a href={retryHref ?? (repo ? `/${repo}` : "/")} className="btn-primary">try again</a>
+            <a href={retryHref ?? (repo ? `/${repo}` : "/")} className="btn-primary">Try again</a>
           ))}
         {(error.code === "not_found" || error.code === "invalid_repo") && (
-          <Link href="/" className="btn-primary">check a different repo</Link>
+          <Link href="/" className="btn-primary">Check a different repo</Link>
         )}
       </div>
     </div>

@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from holt.agent.findings import Findings
-from holt.agent.verify import check_quotes, verify
-from holt.evidence.fixtures import FixtureProvider, write_fixture
-from holt.types import T_CUTOFF, EvidenceRecord, Window
+from prscout.agent.findings import Findings
+from prscout.agent.verify import check_quotes, verify
+from prscout.evidence.fixtures import FixtureProvider, write_fixture
+from prscout.types import T_CUTOFF, EvidenceRecord, Window
 
 BEFORE = T_CUTOFF - timedelta(days=1)
 
@@ -146,7 +146,7 @@ def test_the_quote_check_cannot_change_a_verdict():
     re-run."""
     import inspect
 
-    from holt.agent import verdict
+    from prscout.agent import verdict
 
     source = inspect.getsource(verdict.classify)
     assert "quote" not in source

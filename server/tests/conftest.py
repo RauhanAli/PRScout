@@ -15,16 +15,16 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from holt_server.errors import not_found_repo
-from holt_server.main import create_app
-from holt_server.services import Services
-from holt_server.settings import Settings
+from prscout_server.errors import not_found_repo
+from prscout_server.main import create_app
+from prscout_server.services import Services
+from prscout_server.settings import Settings
 
-from holt import model
+from prscout import model
 
 ROOT = Path(__file__).resolve().parents[2]
 KEY = "test-internal-key"
-H = {"X-Holt-Internal-Key": KEY}
+H = {"X-prscout-Internal-Key": KEY}
 
 KNOWN = {r.lower(): r for r in (
     "pallets/flask", "NixOS/nixpkgs", "octo/one", "octo/two", "octo/three", "octo/four",
@@ -91,8 +91,8 @@ class FakeDetails:
 def _database_per_xdist_worker() -> None:
     """Under pytest-xdist every harness would drop the tables another worker is
     using, so each worker gets its own database next to the one in
-    HOLT_TEST_DATABASE_URL (`holt` -> `holt_gw0`, ...), created on first use."""
-    url = os.environ.get("HOLT_TEST_DATABASE_URL")
+    PRSCOUT_TEST_DATABASE_URL (`PRScout` -> `prscout_gw0`, ...), created on first use."""
+    url = os.environ.get("PRSCOUT_TEST_DATABASE_URL")
     worker = os.environ.get("PYTEST_XDIST_WORKER")
     if not url or not worker or not url.startswith("postgresql"):
         return
@@ -116,7 +116,7 @@ def _database_per_xdist_worker() -> None:
             await conn.close()
 
     asyncio.run(create())
-    os.environ["HOLT_TEST_DATABASE_URL"] = base.set(database=name).render_as_string(
+    os.environ["PRSCOUT_TEST_DATABASE_URL"] = base.set(database=name).render_as_string(
         hide_password=False)
 
 
@@ -125,24 +125,24 @@ _database_per_xdist_worker()
 
 def make_settings(tmp_path: Path, **overrides: Any) -> Settings:
     values = {
-        # Set HOLT_TEST_DATABASE_URL to run against a real Postgres (e.g. the
+        # Set PRSCOUT_TEST_DATABASE_URL to run against a real Postgres (e.g. the
         # one in server/compose.yml; CI does). Its tables are dropped for every
         # harness, and the app's startup migrates it from empty.
-        "DATABASE_URL": os.environ.get("HOLT_TEST_DATABASE_URL")
-        or f"sqlite+aiosqlite:///{tmp_path / 'holt.db'}",
-        "HOLT_INTERNAL_KEY": KEY,
-        "HOLT_SECRET_KEY": "a test passphrase",
+        "DATABASE_URL": os.environ.get("PRSCOUT_TEST_DATABASE_URL")
+        or f"sqlite+aiosqlite:///{tmp_path / 'prscout.db'}",
+        "PRSCOUT_INTERNAL_KEY": KEY,
+        "PRSCOUT_SECRET_KEY": "a test passphrase",
         "GITHUB_TOKENS": "tok1,tok2",
         "OPENROUTER_API_KEY": "",
         # AI is off without a budget; most tests are about something else.
         # test_server_ai_budget.py sets its own.
-        "HOLT_AI_BUDGET_USD": 1000,
-        "HOLT_AI_BUDGET_OWNER_OK": True,
-        "HOLT_ANON_RATE_PER_HOUR": 100,
-        "HOLT_USER_RATE_PER_HOUR": 100,
+        "PRSCOUT_AI_BUDGET_USD": 1000,
+        "PRSCOUT_AI_BUDGET_OWNER_OK": True,
+        "PRSCOUT_ANON_RATE_PER_HOUR": 100,
+        "PRSCOUT_USER_RATE_PER_HOUR": 100,
         # The welcome AI credits from before the merge plan's free taste
         # (default 0 now); the AI report tests are written around them.
-        "HOLT_SIGNUP_AI_CREDITS": 3,
+        "PRSCOUT_SIGNUP_AI_CREDITS": 3,
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)
@@ -182,9 +182,9 @@ class Harness:
     def headers(user: str | None = None, ip: str | None = "10.0.0.1") -> dict[str, str]:
         h = dict(H)
         if user:
-            h["X-Holt-User"] = user
+            h["X-prscout-User"] = user
         if ip:
-            h["X-Holt-Client-Ip"] = ip
+            h["X-prscout-Client-Ip"] = ip
         return h
 
     def wait(self, job_id: str, kind: str = "analyses", timeout: float = 30.0) -> dict:
@@ -199,7 +199,7 @@ class Harness:
 
 @pytest.fixture(autouse=True)
 def pinned_model_defaults():
-    """The server never opts into a user's model choice (`holt models`), so
+    """The server never opts into a user's model choice (`prscout models`), so
     every test runs on the pinned defaults. One left behind by an engine test
     in the same pytest-xdist worker would make the replayed AI stages miss
     their recording, which is keyed by model."""
@@ -215,7 +215,7 @@ def make_harness(tmp_path):
     def build(run_jobs: bool = True, **overrides: Any) -> Harness:
         settings = make_settings(tmp_path, **overrides)
         services = Services(settings)
-        if os.environ.get("HOLT_TEST_DATABASE_URL"):
+        if os.environ.get("PRSCOUT_TEST_DATABASE_URL"):
             import asyncio
 
             async def reset():

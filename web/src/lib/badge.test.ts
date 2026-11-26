@@ -11,25 +11,55 @@ test("only a passing repo is offered a badge", () => {
 });
 
 test("snippets point at the badge and the report", () => {
-  const s = badgeSnippets("https://githolt.com", "pallets/flask");
-  assert.equal(s.markdown, "[![Holt](https://githolt.com/badge/pallets/flask.svg)](https://githolt.com/pallets/flask)");
-  assert.equal(s.html, '<a href="https://githolt.com/pallets/flask"><img src="https://githolt.com/badge/pallets/flask.svg" alt="Holt"></a>');
+  const s = badgeSnippets("https://gitprscout.com", "pallets/flask");
+  assert.equal(
+    s.markdown,
+    "[![PRScout](https://gitprscout.com/badge/pallets/flask.svg)](https://gitprscout.com/pallets/flask)",
+  );
+  assert.equal(
+    s.html,
+    '<a href="https://gitprscout.com/pallets/flask"><img src="https://gitprscout.com/badge/pallets/flask.svg" alt="PRScout"></a>',
+  );
 });
 
 test("advice follows the rule that decided the verdict", () => {
-  assert.deepEqual(whatWouldChangeIt({ verdict: "viable", rule_codes: ["merges"] }), []);
-  const ignored = whatWouldChangeIt({ verdict: "not_viable", rule_codes: ["ignored"] });
+  assert.deepEqual(
+    whatWouldChangeIt({ verdict: "viable", rule_codes: ["merges"] }),
+    [],
+  );
+  const ignored = whatWouldChangeIt({
+    verdict: "not_viable",
+    rule_codes: ["ignored"],
+  });
   assert.match(ignored[0], /Reply to pull requests from newcomers/);
   // The decider is the last rule; earlier ones are context.
-  const slow = whatWouldChangeIt({ verdict: "not_viable", rule_codes: ["merges", "slow"] });
+  const slow = whatWouldChangeIt({
+    verdict: "not_viable",
+    rule_codes: ["merges", "slow"],
+  });
   assert.match(slow[0], /first reply/);
-  assert.match(whatWouldChangeIt({ verdict: "insufficient_evidence", rule_codes: ["no_attempts"] }).join(" "), /good first issue/);
-  assert.match(whatWouldChangeIt({ verdict: "long_shot", rule_codes: ["merges", "mostly_silent"] })[0], /no reply/);
+  assert.match(
+    whatWouldChangeIt({
+      verdict: "insufficient_evidence",
+      rule_codes: ["no_attempts"],
+    }).join(" "),
+    /good first issue/,
+  );
+  assert.match(
+    whatWouldChangeIt({
+      verdict: "long_shot",
+      rule_codes: ["merges", "mostly_silent"],
+    })[0],
+    /no reply/,
+  );
 });
 
 test("unknown or missing rule codes get general advice", () => {
   for (const rule_codes of [[], ["something_new"], undefined]) {
-    const out = whatWouldChangeIt({ verdict: "not_viable", rule_codes: rule_codes as string[] });
+    const out = whatWouldChangeIt({
+      verdict: "not_viable",
+      rule_codes: rule_codes as string[],
+    });
     assert.ok(out.length > 0 && !out.join(" ").includes("_"));
   }
 });

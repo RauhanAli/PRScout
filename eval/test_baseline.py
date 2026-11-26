@@ -15,10 +15,10 @@ from pathlib import Path
 import pytest
 
 from eval import baseline
-from holt.evidence.fixtures import FixtureProvider, write_fixture
-from holt.model import Usage, call_key
-from holt.report import Verdict
-from holt.types import T_CUTOFF, EvidenceRecord, Window
+from prscout.evidence.fixtures import FixtureProvider, write_fixture
+from prscout.model import Usage, call_key
+from prscout.report import Verdict
+from prscout.types import T_CUTOFF, EvidenceRecord, Window
 
 BEFORE = T_CUTOFF - timedelta(days=1)
 

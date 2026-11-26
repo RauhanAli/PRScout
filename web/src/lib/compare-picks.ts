@@ -5,13 +5,14 @@
 import { compareHref, MAX, parseList } from "./compare.ts";
 import { signInHref } from "./gate.ts";
 
-export const PICKS_KEY = "holt:compare-picks";
+export const PICKS_KEY = "prscout:compare-picks";
 /** Set when a signed-out reader leaves for sign-in with their picks in the callback. */
-export const SENT_KEY = "holt:compare-sent";
+export const SENT_KEY = "prscout:compare-sent";
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-export const hasPick = (list: readonly string[], repo: string) => list.some((r) => same(r, repo));
+export const hasPick = (list: readonly string[], repo: string) =>
+  list.some((r) => same(r, repo));
 export const isFull = (list: readonly string[]) => list.length >= MAX;
 
 /** The list with `repo` added: unchanged when it's already there or the list is full. */
@@ -37,7 +38,9 @@ export function tickState(list: readonly string[], repo: string): TickState {
 /** The name without its owner, for the bar; the owner stays when two picks share a name. */
 export function shortName(repo: string, list: readonly string[] = []): string {
   const name = repo.split("/")[1] ?? repo;
-  return list.some((r) => !same(r, repo) && same(r.split("/")[1] ?? r, name)) ? repo : name;
+  return list.some((r) => !same(r, repo) && same(r.split("/")[1] ?? r, name))
+    ? repo
+    : name;
 }
 
 /** What storage holds, read back: only real owner/name pairs, no duplicates, at most MAX. Anything else is an empty list. */
@@ -45,14 +48,19 @@ export function readPicks(raw: string | null | undefined): string[] {
   if (!raw) return [];
   try {
     const v: unknown = JSON.parse(raw);
-    return Array.isArray(v) ? parseList(v.filter((x): x is string => typeof x === "string")) : [];
+    return Array.isArray(v)
+      ? parseList(v.filter((x): x is string => typeof x === "string"))
+      : [];
   } catch {
     return [];
   }
 }
 
 /** "Compare N →": the compare page, through sign-in (and back to the same list) when signed out. */
-export function comparePicksHref(list: readonly string[], signedIn: boolean): string {
+export function comparePicksHref(
+  list: readonly string[],
+  signedIn: boolean,
+): string {
   const to = compareHref([...list]);
   return signedIn ? to : signInHref(to);
 }
@@ -99,7 +107,8 @@ export function createPickStore(storage: () => Storage | null): PickStore {
   };
   const set = (next: string[]) => {
     const now = load();
-    if (next.length === now.length && next.every((r, i) => r === now[i])) return;
+    if (next.length === now.length && next.every((r, i) => r === now[i]))
+      return;
     list = next;
     try {
       if (next.length) store()?.setItem(PICKS_KEY, JSON.stringify(next));

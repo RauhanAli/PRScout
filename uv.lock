@@ -8,8 +8,8 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "holt-cli",
-    "holt-server",
+    "prscout-cli",
+    "prscout-server",
 ]
 
 [[package]]
@@ -434,7 +434,7 @@ wheels = [
 ]
 
 [[package]]
-name = "holt-cli"
+name = "prscout-cli"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
@@ -446,7 +446,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "holt-server" },
+    { name = "prscout-server" },
     { name = "pytest" },
     { name = "pytest-xdist" },
 ]
@@ -461,13 +461,13 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "holt-server", editable = "server" },
+    { name = "prscout-server", editable = "server" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-xdist", specifier = ">=3.8" },
 ]
 
 [[package]]
-name = "holt-server"
+name = "prscout-server"
 version = "0.1.0"
 source = { editable = "server" }
 dependencies = [
@@ -475,7 +475,7 @@ dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "fastapi" },
-    { name = "holt-cli" },
+    { name = "prscout-cli" },
     { name = "httpx" },
     { name = "prometheus-client" },
     { name = "pydantic-settings" },
@@ -491,7 +491,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "asyncpg", specifier = ">=0.29" },
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "holt-cli", editable = "." },
+    { name = "prscout-cli", editable = "." },
     { name = "httpx", specifier = ">=0.27" },
     { name = "prometheus-client", specifier = ">=0.20" },
     { name = "pydantic-settings", specifier = ">=2.4" },

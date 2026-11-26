@@ -9,10 +9,10 @@ import types
 from datetime import timedelta
 
 import pytest
-from holt.starter import RULES_VERSION
+from prscout.starter import RULES_VERSION
 from conftest import STATS, canned_report
-from holt_server import discover
-from holt_server.db import FindCache, RepoMeta, Report, now
+from prscout_server import discover
+from prscout_server.db import FindCache, RepoMeta, Report, now
 from sqlalchemy import update
 
 LANGS = ["python", "javascript", "typescript", "go", "rust"]
@@ -20,7 +20,7 @@ LANGS = ["python", "javascript", "typescript", "go", "rust"]
 
 @pytest.fixture
 def finder(monkeypatch):
-    mod = types.ModuleType("holt.starter")
+    mod = types.ModuleType("prscout.starter")
     calls = []
     gate = threading.Event()
     gate.set()
@@ -37,7 +37,7 @@ def finder(monkeypatch):
         return []
 
     mod.find, mod.starter_issues = find, starter_issues
-    monkeypatch.setitem(sys.modules, "holt.starter", mod)
+    monkeypatch.setitem(sys.modules, "prscout.starter", mod)
     return types.SimpleNamespace(calls=calls, gate=gate)
 
 
@@ -46,7 +46,7 @@ def find(h, ip="10.0.0.1", **body):
 
 
 def test_clicking_through_language_chips_keeps_the_work_budget(make_harness, finder):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=5)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=5)
     for lang in LANGS:  # the first visitor pays for each search once
         h.wait(find(h, ip="1.1.1.1", languages=[lang]).json()["job_id"], kind="find")
     h2 = h  # a second visitor, with a much smaller budget in effect
@@ -73,7 +73,7 @@ def test_profiles_are_normalised(h, finder):
 
 
 def test_joining_an_in_flight_search_is_free(make_harness, finder):
-    h = make_harness(HOLT_ANON_RATE_PER_HOUR=1)
+    h = make_harness(PRSCOUT_ANON_RATE_PER_HOUR=1)
     finder.gate.clear()
     try:
         first = find(h, ip="3.3.3.3", languages=["go"])
@@ -99,7 +99,7 @@ def test_cache_expires_after_six_hours(h, finder):
 
 
 def test_a_search_cached_before_issues_said_who_is_on_them_runs_again():
-    from holt_server.db import ENGINE_VERSION
+    from prscout_server.db import ENGINE_VERSION
 
     def row(issue):
         return FindCache(key="k", params={"engine_version": ENGINE_VERSION,
@@ -112,7 +112,7 @@ def test_a_search_cached_before_issues_said_who_is_on_them_runs_again():
 
 @pytest.mark.parametrize("rules", [None, RULES_VERSION - 1])
 def test_a_search_older_starter_rules_picked_runs_again(rules):
-    from holt_server.db import ENGINE_VERSION
+    from prscout_server.db import ENGINE_VERSION
 
     params = {"engine_version": ENGINE_VERSION}
     if rules is not None:
@@ -148,7 +148,7 @@ def details(results):
     return {r["repo"]: (r["description"], r["language"], r["stars"]) for r in results}
 
 
-def test_results_carry_the_repo_details_holt_already_has(h, finder):
+def test_results_carry_the_repo_details_prscout_already_has(h, finder):
     # The finder knows nothing about a repo beyond its screen; `repo_meta` does.
     add(h, meta("Octo/Go-0", description="A tool.", language="Go", stars=321))
     done = h.wait(find(h, languages=["go"]).json()["job_id"], kind="find")
@@ -179,7 +179,7 @@ def test_a_cached_search_picks_up_details_that_arrived_later(h, finder):
 
 
 def test_the_warm_pass_fetches_details_for_found_repos(h, finder):
-    from holt_server import discover
+    from prscout_server import discover
 
     h.wait(find(h, languages=["go"]).json()["job_id"], kind="find")
     add(h, meta("octo/go-0", language="Go"))
@@ -188,7 +188,7 @@ def test_the_warm_pass_fetches_details_for_found_repos(h, finder):
 
 
 def queued_reports(h):
-    from holt_server.db import Job
+    from prscout_server.db import Job
     from sqlalchemy import select
 
     async def go():
@@ -207,7 +207,7 @@ def settle(h, n):
 
 
 def test_a_search_queues_reports_for_its_top_results_only(h, finder, monkeypatch):
-    from holt_server import jobs
+    from prscout_server import jobs
 
     monkeypatch.setattr(jobs, "FOUND_PER_SEARCH", 2)
     h.wait(find(h, languages=["go"]).json()["job_id"], kind="find")
@@ -215,7 +215,7 @@ def test_a_search_queues_reports_for_its_top_results_only(h, finder, monkeypatch
 
 
 def test_a_long_background_queue_stops_searches_queueing_more(h, finder, monkeypatch):
-    from holt_server import jobs
+    from prscout_server import jobs
 
     monkeypatch.setattr(jobs, "FOUND_QUEUE_MAX", 0)
     h.wait(find(h, languages=["go"]).json()["job_id"], kind="find")
@@ -237,7 +237,7 @@ def test_found_repos_without_a_report_get_one_queued(h, finder):
     # gets a background rules report: its "report →" link then has something
     # to show (beets was "Worth your time" on /hacktoberfest, "not checked yet"
     # on its report page).
-    from holt_server.db import BADGE_PRIORITY, ENGINE_VERSION, Job, Report
+    from prscout_server.db import BADGE_PRIORITY, ENGINE_VERSION, Job, Report
     from sqlalchemy import select
 
     add(h, Report(repo="octo/go-1", repo_key="octo/go-1", mode="rules", days=30,

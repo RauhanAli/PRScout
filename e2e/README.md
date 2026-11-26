@@ -1,8 +1,8 @@
-# Holt e2e smoke tests
+# PRScout e2e smoke tests
 
-Playwright smoke tests against a deployed Holt, at phone (390×844) and
+Playwright smoke tests against a deployed PRScout, at phone (390×844) and
 desktop (1440×900) sizes. The default target is staging,
-https://staging.githolt.com (`STAGING_HOST` names another staging host,
+https://staging.gitprscout.com (`STAGING_HOST` names another staging host,
 `BASE_URL` any other site). They use **rules mode only** and never start an
 AI report.
 
@@ -51,7 +51,7 @@ set over the DevTools protocol, then `lighthouse --port`). Lighthouse's
 Both are needed together; one alone stops the run with a message. A token
 Access doesn't accept stops the run before any test, saying so. Without
 either variable nothing changes. Staging's own run gets them from
-`~/.config/holt/secrets.env` (see `deploy/README.md`, "Behind Cloudflare
+`~/.config/prscout/secrets.env` (see `deploy/README.md`, "Behind Cloudflare
 Access").
 
 What they check:

@@ -15,9 +15,9 @@ from pathlib import Path
 
 import pytest
 
-from holt.evidence.fixtures import FixtureProvider, redact_records, write_fixture
-from holt.evidence.redact import CREDENTIAL_PATTERNS, MARKER, redact_payload
-from holt.types import T_CUTOFF, EvidenceRecord, Window
+from prscout.evidence.fixtures import FixtureProvider, redact_records, write_fixture
+from prscout.evidence.redact import CREDENTIAL_PATTERNS, MARKER, redact_payload
+from prscout.types import T_CUTOFF, EvidenceRecord, Window
 
 BEFORE = T_CUTOFF - timedelta(days=1)
 LIVE_LOOKING_PAT = "ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"

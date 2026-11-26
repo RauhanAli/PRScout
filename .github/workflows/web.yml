@@ -45,7 +45,7 @@ jobs:
               - '.github/workflows/web.yml'
             api:
               - 'server/**'
-              - 'src/holt/**'
+              - 'src/prscout/**'
               - 'web/src/lib/api-schema.ts'
               - 'web/package-lock.json'
               - '.github/workflows/web.yml'
@@ -60,7 +60,7 @@ jobs:
     env:
       # No secrets: the build uses the mock API and placeholder contact details.
       MOCK_API: "1"
-      HOLT_ALLOW_PLACEHOLDER_CONTACT: "1"
+      PRSCOUT_ALLOW_PLACEHOLDER_CONTACT: "1"
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v7.0.1

@@ -1,18 +1,18 @@
 # Local Postgres for Auth.js users and sessions.
-# The project name comes from $COMPOSE_PROJECT_NAME; the host port from HOLT_DB_PORT.
+# The project name comes from $COMPOSE_PROJECT_NAME; the host port from PRSCOUT_DB_PORT.
 services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: holt
-      POSTGRES_PASSWORD: holt
-      POSTGRES_DB: holt
+      POSTGRES_USER: prscout
+      POSTGRES_PASSWORD: prscout
+      POSTGRES_DB: prscout
     ports:
-      - "127.0.0.1:${HOLT_DB_PORT:-5432}:5432"
+      - "127.0.0.1:${PRSCOUT_DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U holt -d holt"]
+      test: ["CMD-SHELL", "pg_isready -U prscout -d prscout"]
       interval: 2s
       timeout: 3s
       retries: 20

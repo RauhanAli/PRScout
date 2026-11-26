@@ -11,11 +11,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from holt.agent import rates
-from holt.agent.findings import Findings
-from holt.agent.signals import build_threads, compute
-from holt.agent.verdict import classify, rule_codes
-from holt.types import EvidenceRecord
+from prscout.agent import rates
+from prscout.agent.findings import Findings
+from prscout.agent.signals import build_threads, compute
+from prscout.agent.verdict import classify, rule_codes
+from prscout.types import EvidenceRecord
 
 NOW = datetime(2026, 9, 25, 12, tzinfo=UTC)
 OLD = rates.SETTLE_HOURS + 24 * 60  # hours: long settled

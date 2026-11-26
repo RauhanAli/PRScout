@@ -1,15 +1,15 @@
-// Records Holt demo clips with Playwright's video capture.
+// Records PRScout demo clips with Playwright's video capture.
 //
 //   node scripts/record-demo/record.mjs [desktop|phone|trick ...]
 //
 // Env:
-//   HOLT_URL        site to record (default https://staging.githolt.com)
+//   PRSCOUT_URL        site to record (default https://staging.gitprscout.com)
 //   OUT_DIR         where raw .webm files go (default scripts/record-demo/out)
 //   PLAYWRIGHT_CORE path to a playwright-core package (default: resolve it, then ~/.local/share/cx-tools)
 //   CHROMIUM_PATH   browser binary (default: newest cached headless shell in ~/.cache/ms-playwright)
 //   STAGING_CF_ACCESS_CLIENT_ID / STAGING_CF_ACCESS_CLIENT_SECRET
 //                   a Cloudflare Access service token, when the site is behind Access. It is
-//                   traded for Access's cookie, which only ever goes to HOLT_URL's host
+//                   traded for Access's cookie, which only ever goes to PRSCOUT_URL's host
 //                   (e2e/access.mjs).
 //
 // One browser, one clip at a time; the browser is always closed. Then run
@@ -21,19 +21,27 @@ import path from "node:path";
 import { accessCookie, accessToken } from "../../e2e/access.mjs";
 
 const require = createRequire(import.meta.url);
-const HOLT_URL = (process.env.HOLT_URL || "https://staging.githolt.com").replace(/\/$/, "");
-const HOST = new URL(HOLT_URL).host;
-const OUT = path.resolve(process.env.OUT_DIR || path.join(path.dirname(new URL(import.meta.url).pathname), "out"));
+const PRSCOUT_URL = (
+  process.env.PRSCOUT_URL || "https://staging.gitprscout.com"
+).replace(/\/$/, "");
+const HOST = new URL(PRSCOUT_URL).host;
+const OUT = path.resolve(
+  process.env.OUT_DIR ||
+    path.join(path.dirname(new URL(import.meta.url).pathname), "out"),
+);
 const REPO_URL = "https://github.com/pallets/flask";
 const token = accessToken();
-const ACCESS = token ? await accessCookie(HOLT_URL, token) : null;
+const ACCESS = token ? await accessCookie(PRSCOUT_URL, token) : null;
 
 /** fetch() for the site; behind Access, the cookie goes along, and only to the site's host. */
 async function siteFetch(url, init = {}) {
   if (!ACCESS) return fetch(url, init);
   for (let hops = 0; hops < 10; hops++) {
     const ours = new URL(url).hostname === ACCESS.domain;
-    const headers = { ...init.headers, ...(ours ? { Cookie: `${ACCESS.name}=${ACCESS.value}` } : {}) };
+    const headers = {
+      ...init.headers,
+      ...(ours ? { Cookie: `${ACCESS.name}=${ACCESS.value}` } : {}),
+    };
     const res = await fetch(url, { ...init, headers, redirect: "manual" });
     const to = res.headers.get("location");
     if (res.status < 300 || res.status >= 400 || !to) return res;
@@ -43,7 +51,14 @@ async function siteFetch(url, init = {}) {
 }
 
 function loadPlaywright() {
-  const candidates = [process.env.PLAYWRIGHT_CORE, "playwright-core", path.join(os.homedir(), ".local/share/cx-tools/node_modules/playwright-core")];
+  const candidates = [
+    process.env.PLAYWRIGHT_CORE,
+    "playwright-core",
+    path.join(
+      os.homedir(),
+      ".local/share/cx-tools/node_modules/playwright-core",
+    ),
+  ];
   for (const c of candidates.filter(Boolean)) {
     try {
       return require(c);
@@ -60,7 +75,13 @@ function chromiumPath() {
     .filter((d) => d.startsWith("chromium_headless_shell-"))
     .sort()
     .reverse()
-    .map((d) => path.join(cache, d, "chrome-headless-shell-linux64/chrome-headless-shell"))
+    .map((d) =>
+      path.join(
+        cache,
+        d,
+        "chrome-headless-shell-linux64/chrome-headless-shell",
+      ),
+    )
     .find((p) => fs.existsSync(p));
   if (!found) throw new Error("no cached Chromium; set CHROMIUM_PATH");
   return found;
@@ -77,19 +98,26 @@ async function smoothScrollTo(page, selector, offset = 90) {
   await page.evaluate(
     ([sel, off]) => {
       const el = document.querySelector(sel);
-      if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - off, behavior: "smooth" });
+      if (el)
+        window.scrollTo({
+          top: el.getBoundingClientRect().top + window.scrollY - off,
+          behavior: "smooth",
+        });
     },
     [selector, offset],
   );
 }
 
 async function smoothScrollBy(page, dy) {
-  await page.evaluate((d) => window.scrollBy({ top: d, behavior: "smooth" }), dy);
+  await page.evaluate(
+    (d) => window.scrollBy({ top: d, behavior: "smooth" }),
+    dy,
+  );
 }
 
 /** landing → paste a GitHub URL → report → starter issues → /hacktoberfest (Python). */
 async function mainFlow(page, mobile) {
-  await page.goto(HOLT_URL, { waitUntil: "networkidle" });
+  await page.goto(PRSCOUT_URL, { waitUntil: "networkidle" });
   await wait(page, 2200);
   const input = page.locator("#repo-input");
   await input.click();
@@ -107,7 +135,9 @@ async function mainFlow(page, mobile) {
   await wait(page, 3500);
   await smoothScrollBy(page, mobile ? 700 : 450);
   await wait(page, 2500);
-  await page.goto(`${HOLT_URL}/hacktoberfest?lang=python`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${PRSCOUT_URL}/hacktoberfest?lang=python`, {
+    waitUntil: "domcontentloaded",
+  });
   const waitFrom = at();
   await page.waitForSelector("text=Pick one of these", { timeout: 180_000 });
   // Keep ~2 s of "searching…", cut the rest.
@@ -121,7 +151,8 @@ async function mainFlow(page, mobile) {
 
 /** A drawn address bar: swap github.com for our host, then land on the real page. */
 async function trickFlow(page) {
-  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const esc = (s) =>
+    s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
   await page.setContent(`<!doctype html><html><body style="margin:0;background:#0d0e0e;color:#e7e5dc;font:34px 'JetBrains Mono','DejaVu Sans Mono',ui-monospace,monospace;display:grid;place-items:center;height:100vh">
     <div style="width:min(1180px,94vw)">
       <p style="color:#a3a39b;font-size:26px;margin:0 0 26px">Already on GitHub? Change one word.</p>
@@ -144,11 +175,16 @@ async function trickFlow(page) {
     h.style.color = "#69c7a6";
   });
   for (const ch of HOST) {
-    await page.evaluate((c) => (document.getElementById("h").textContent += c), esc(ch));
+    await page.evaluate(
+      (c) => (document.getElementById("h").textContent += c),
+      esc(ch),
+    );
     await wait(page, 70);
   }
   await wait(page, 1100);
-  await page.goto(`${HOLT_URL}/github.com/pallets/flask`, { waitUntil: "networkidle" });
+  await page.goto(`${PRSCOUT_URL}/github.com/pallets/flask`, {
+    waitUntil: "networkidle",
+  });
   await page.waitForSelector("#issues", { timeout: 120_000 });
   await wait(page, 4000);
 }
@@ -165,12 +201,18 @@ async function record(chromium, exe, name, sizeKey, flow) {
       isMobile: s.mobile,
       hasTouch: s.mobile,
       colorScheme: "dark",
-      recordVideo: { dir, size: { width: s.viewport.width * s.scale, height: s.viewport.height * s.scale } },
+      recordVideo: {
+        dir,
+        size: {
+          width: s.viewport.width * s.scale,
+          height: s.viewport.height * s.scale,
+        },
+      },
     });
     if (ACCESS) await ctx.addCookies([ACCESS]);
     await ctx.addInitScript(() => {
       try {
-        localStorage.setItem("holt-theme", "dark");
+        localStorage.setItem("prscout-theme", "dark");
       } catch {}
     });
     const page = await ctx.newPage();
@@ -196,15 +238,24 @@ async function record(chromium, exe, name, sizeKey, flow) {
  * find, and the server rate-limits anonymous work per IP.
  */
 async function warm() {
-  const url = `${HOLT_URL}/hacktoberfest?lang=python`;
-  const html = await siteFetch(url).then((r) => r.text()).catch(() => "");
-  if (html.includes("Pick one of these")) return console.log("warm: find already cached");
-  if (html.includes("Too many checks")) throw new Error("staging is rate-limiting this IP; try again later");
+  const url = `${PRSCOUT_URL}/hacktoberfest?lang=python`;
+  const html = await siteFetch(url)
+    .then((r) => r.text())
+    .catch(() => "");
+  if (html.includes("Pick one of these"))
+    return console.log("warm: find already cached");
+  if (html.includes("Too many checks"))
+    throw new Error("staging is rate-limiting this IP; try again later");
   const job = html.match(/jobId\\?"?:\\?"([A-Za-z0-9_-]{1,64})/)?.[1];
-  if (!job) return console.log("warm: no job id found; recording will show the wait");
-  const res = await siteFetch(`${HOLT_URL}/api/find/${job}/events`, { signal: AbortSignal.timeout(180_000) }).catch(() => null);
+  if (!job)
+    return console.log("warm: no job id found; recording will show the wait");
+  const res = await siteFetch(`${PRSCOUT_URL}/api/find/${job}/events`, {
+    signal: AbortSignal.timeout(180_000),
+  }).catch(() => null);
   const text = res ? await res.text().catch(() => "") : "";
-  console.log(`warm: find ${job} ${text.includes("event: done") ? "done" : "did not finish"}`);
+  console.log(
+    `warm: find ${job} ${text.includes("event: done") ? "done" : "did not finish"}`,
+  );
 }
 
 /** Seconds (from the start of the clip) to cut: long waits for data. */
@@ -216,7 +267,12 @@ await warm();
 const { chromium } = loadPlaywright();
 const exe = chromiumPath();
 fs.mkdirSync(OUT, { recursive: true });
-const want = process.argv.slice(2).length ? process.argv.slice(2) : ["desktop", "phone", "trick"];
-if (want.includes("desktop")) await record(chromium, exe, "demo-desktop", "desktop", mainFlow);
-if (want.includes("phone")) await record(chromium, exe, "demo-phone", "phone", mainFlow);
-if (want.includes("trick")) await record(chromium, exe, "url-trick", "desktop", trickFlow);
+const want = process.argv.slice(2).length
+  ? process.argv.slice(2)
+  : ["desktop", "phone", "trick"];
+if (want.includes("desktop"))
+  await record(chromium, exe, "demo-desktop", "desktop", mainFlow);
+if (want.includes("phone"))
+  await record(chromium, exe, "demo-phone", "phone", mainFlow);
+if (want.includes("trick"))
+  await record(chromium, exe, "url-trick", "desktop", trickFlow);

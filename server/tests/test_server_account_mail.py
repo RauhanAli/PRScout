@@ -11,8 +11,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from holt_server import account_email, account_mail, alerts, mailer, payments
-from holt_server.db import AccountEmail, AccountMail, Order, PlanEvent, User, now
+from prscout_server import account_email, account_mail, alerts, mailer, payments
+from prscout_server.db import AccountEmail, AccountMail, Order, PlanEvent, User, now
 from sqlalchemy import select
 
 from test_server_contributions import call
@@ -25,7 +25,7 @@ NOON = datetime(2026, 10, 10, 10, tzinfo=UTC)
 
 @pytest.fixture
 def hm(make_harness):
-    h = make_harness(HOLT_ACCOUNT_EMAILS=True, HOLT_PR_WATCH=True)
+    h = make_harness(PRSCOUT_ACCOUNT_EMAILS=True, PRSCOUT_PR_WATCH=True)
     h.svc.mailer = h.outbox = FakeMailer()
     return h
 
@@ -84,7 +84,7 @@ def pro(h, expires: datetime, user="u1", actor="payment") -> None:
 def unsubscribe_token(msg: mailer.Message) -> str:
     assert msg.headers["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
     return msg.headers["List-Unsubscribe"].removeprefix(
-        "<https://githolt.com/api/alerts/unsubscribe?t=").removesuffix(">")
+        "<https://gitprscout.com/api/alerts/unsubscribe?t=").removesuffix(">")
 
 
 # --- the welcome ----------------------------------------------------------------------------
@@ -93,11 +93,11 @@ def unsubscribe_token(msg: mailer.Message) -> str:
 def test_a_first_sign_in_gets_one_welcome_ever(hm):
     assert sign_in(hm, first=True).status_code == 204
     [msg] = hm.outbox.sent
-    assert (msg.to, msg.subject) == (YOU, "Welcome to Holt")
-    for link in ("https://githolt.com", "https://githolt.com/find",
-                 "https://githolt.com/settings/alerts"):
+    assert (msg.to, msg.subject) == (YOU, "Welcome to PRScout")
+    for link in ("https://gitprscout.com", "https://gitprscout.com/find",
+                 "https://gitprscout.com/settings/alerts"):
         assert f'href="{link}"' in msg.html and link in msg.text
-    assert f"https://githolt.com/alerts/unsubscribe?t={unsubscribe_token(msg)}" in msg.text
+    assert f"https://gitprscout.com/alerts/unsubscribe?t={unsubscribe_token(msg)}" in msg.text
     assert log(hm) == [("u1", "welcome", "sent")]
     # Signing in again, the scheduled run, even a second "first": nothing more.
     sign_in(hm)
@@ -121,7 +121,7 @@ def test_the_welcome_is_not_sent_a_day_late(hm):
 
 
 def test_the_welcome_leaves_alerts_out_while_pr_watch_is_off(make_harness):
-    h = make_harness(HOLT_ACCOUNT_EMAILS=True)
+    h = make_harness(PRSCOUT_ACCOUNT_EMAILS=True)
     h.svc.mailer = h.outbox = FakeMailer()
     sign_in(h, first=True)
     [msg] = h.outbox.sent
@@ -134,7 +134,7 @@ def test_the_address_is_the_one_from_sign_in(hm, caplog):
     assert sign_in(hm, email="not an address").status_code == 400
     # No address reported and none on the alert settings: nothing to send to,
     # and the log says so.
-    with caplog.at_level("INFO", logger="holt_server.account_mail"):
+    with caplog.at_level("INFO", logger="prscout_server.account_mail"):
         sign_in(hm, email=None, first=True)
     assert hm.outbox.sent == [] and log(hm) == []
     assert "1 waiting for a sign-in address" in caplog.text
@@ -199,7 +199,7 @@ def test_an_alert_emails_token_and_an_account_emails_token_are_not_the_same(hm):
     watcher(hm, now() + timedelta(days=10))
     sign_in(hm)
     async def alert_token(s):
-        from holt_server.db import AlertSettings
+        from prscout_server.db import AlertSettings
         row = await s.get(AlertSettings, "u1")
         return alerts.unsubscribe_token(hm.svc.settings.secret_key, "u1", row.unsubscribe_nonce)
     r = hm.post("/v1/alerts/unsubscribe", {"token": call(hm, alert_token)})
@@ -234,7 +234,7 @@ def paid(h, user="u1", order_id="o1", payment="pay_A1") -> bool:
 
 
 def receipt_subject(h, user: str) -> str:
-    return "You're on Holt Pro"
+    return "You're on PRScout Pro"
 
 
 def pro_until(h, user: str) -> str:
@@ -257,11 +257,11 @@ def test_a_paid_pass_gets_a_receipt_once(hm):
     for line in ("You're on Pro.", f"Your pass is live through {pro_until(hm, 'u1')}.",
                  "Here's what you've got:", "30 merge plans a month. Get your first PR ",
                  "PR alerts. We'll let you know ",
-                 "Make a merge plan: https://githolt.com",
-                 "Turn on PR alerts: https://githolt.com/settings/alerts",
+                 "Make a merge plan: https://gitprscout.com",
+                 "Turn on PR alerts: https://gitprscout.com/settings/alerts",
                  "₹99 · 1 month pass · paid ", " · one-time, no auto-renewal",
                  "Payment ID pay_A1 (keep it for refunds)",
-                 "Refund policy: https://githolt.com/refunds"):
+                 "Refund policy: https://gitprscout.com/refunds"):
         assert line in msg.text
     # The payment details are small print, under the one solid button.
     assert msg.html.count('class="h-btn"') == 1
@@ -285,11 +285,11 @@ def test_a_session_from_before_these_emails_still_gets_its_receipt(hm):
     settle(hm)
     assert hm.outbox.sent == []
     paid(hm, user="old")
-    assert [(m.to, m.subject) for m in hm.outbox.sent] == [(YOU, "You're on Holt Pro")]
+    assert [(m.to, m.subject) for m in hm.outbox.sent] == [(YOU, "You're on PRScout Pro")]
 
 
 def test_a_receipt_goes_out_past_the_margin_the_other_emails_keep(make_harness):
-    h = make_harness(HOLT_ACCOUNT_EMAILS=True, HOLT_ALERT_EMAIL_DAILY_LIMIT=6)
+    h = make_harness(PRSCOUT_ACCOUNT_EMAILS=True, PRSCOUT_ALERT_EMAIL_DAILY_LIMIT=6)
     h.svc.mailer = h.outbox = FakeMailer()
     sign_in(h)
     paid(h)
@@ -334,7 +334,7 @@ def test_two_days_before_and_once_when_they_end(hm):
     assert msg.subject == "Your free PR alerts end on 12 October"
     assert "You've had 14 days of alerts." in msg.text
     assert "No worries. Reports, Find, and your pull requests page are still free." in msg.text
-    assert "https://githolt.com/me/contributions" in msg.text
+    assert "https://gitprscout.com/me/contributions" in msg.text
     # No pass is on sale here: no link to pricing.
     assert "pricing" not in msg.text + msg.html
     assert unsubscribe_token(msg)
@@ -343,7 +343,7 @@ def test_two_days_before_and_once_when_they_end(hm):
     ended = hm.outbox.sent[1]
     assert ended.subject == "Your free PR alerts have ended"
     assert "Your 14 days of PR alerts are up." in ended.text
-    assert "As of 12 October, Holt has stopped watching your open PRs" in ended.text
+    assert "As of 12 October, PRScout has stopped watching your open PRs" in ended.text
     assert run(hm, ends + timedelta(days=1)).sent == 0
     assert [k for _, k, _ in log(hm)] == ["trial_ending", "trial_ended"]
 
@@ -364,19 +364,19 @@ def test_no_trial_emails_for_someone_a_pass_covers_or_with_alerts_off(hm):
 
 
 def test_the_pricing_link_is_there_only_while_a_pass_is_on_sale():
-    f = account_email.Frame(YOU, "https://githolt.com", "https://githolt.com/alerts/unsubscribe?t=x")
-    kw = dict(day="12 October", days=14, prs_url="https://githolt.com/me/contributions")
-    on = account_email.trial_ended_email(f, pricing_url="https://githolt.com/pricing", **kw)
+    f = account_email.Frame(YOU, "https://gitprscout.com", "https://gitprscout.com/alerts/unsubscribe?t=x")
+    kw = dict(day="12 October", days=14, prs_url="https://gitprscout.com/me/contributions")
+    on = account_email.trial_ended_email(f, pricing_url="https://gitprscout.com/pricing", **kw)
     off = account_email.trial_ended_email(f, pricing_url=None, **kw)
-    assert "Want the alerts back? Get them with Holt Pro:\nhttps://githolt.com/pricing" in on.text
-    assert ('Want the alerts back? <a class="h-link" href="https://githolt.com/pricing"'
-            in on.html and ">Get them with Holt Pro</a>." in on.html)
-    assert "The rest of Holt is still free: Reports, Find, and your pull requests page." in on.text
-    assert "pricing" not in off.text + off.html and "Holt Pro" not in off.text
+    assert "Want the alerts back? Get them with PRScout Pro:\nhttps://gitprscout.com/pricing" in on.text
+    assert ('Want the alerts back? <a class="h-link" href="https://gitprscout.com/pricing"'
+            in on.html and ">Get them with PRScout Pro</a>." in on.html)
+    assert "The rest of PRScout is still free: Reports, Find, and your pull requests page." in on.text
+    assert "pricing" not in off.text + off.html and "PRScout Pro" not in off.text
     assert "The rest is still free. Reports, Find, and your pull requests page." in off.text
-    ending = account_email.trial_ending_email(f, pricing_url="https://githolt.com/pricing", **kw)
-    assert ("If you want to keep the alerts running, Holt Pro has you covered:\n"
-            "https://githolt.com/pricing") in ending.text
+    ending = account_email.trial_ending_email(f, pricing_url="https://gitprscout.com/pricing", **kw)
+    assert ("If you want to keep the alerts running, PRScout Pro has you covered:\n"
+            "https://gitprscout.com/pricing") in ending.text
     assert "Everything else is still yours." in ending.text
     plain = account_email.trial_ending_email(f, pricing_url=None, **kw)
     assert "No worries. Reports, Find, and your pull requests page are still free." in plain.text
@@ -405,10 +405,10 @@ def test_three_days_before_a_pass_ends_and_again_for_the_next_pass(hm):
     assert run(hm, NOON - timedelta(hours=1)).sent == 0
     assert run(hm, NOON).sent == 1
     [msg] = hm.outbox.sent
-    assert msg.subject == "Your Holt Pro pass ends on 13 October"
+    assert msg.subject == "Your PRScout Pro pass ends on 13 October"
     assert "No renewal, no surprise charge. It was a one-time pass." in msg.text
     assert "Reports, Find, and your pull requests page will keep working." in msg.text
-    assert "Open Holt: https://githolt.com/me" in msg.text and unsubscribe_token(msg)
+    assert "Open PRScout: https://gitprscout.com/me" in msg.text and unsubscribe_token(msg)
     assert run(hm, NOON + timedelta(days=1)).sent == 0
     # Another pass moves the end: that end gets its own email, three days before.
     later = ends + timedelta(days=30)
@@ -419,10 +419,10 @@ def test_three_days_before_a_pass_ends_and_again_for_the_next_pass(hm):
 
 
 def test_a_pass_on_sale_is_the_ending_emails_button():
-    f = account_email.Frame(YOU, "https://githolt.com", "https://githolt.com/alerts/unsubscribe?t=x")
-    on = account_email.pass_ending_email(f, day="13 October", open_url="https://githolt.com/me",
-                                         pricing_url="https://githolt.com/pricing")
-    assert "If you want another pass:\nhttps://githolt.com/pricing" in on.text
+    f = account_email.Frame(YOU, "https://gitprscout.com", "https://gitprscout.com/alerts/unsubscribe?t=x")
+    on = account_email.pass_ending_email(f, day="13 October", open_url="https://gitprscout.com/me",
+                                         pricing_url="https://gitprscout.com/pricing")
+    assert "If you want another pass:\nhttps://gitprscout.com/pricing" in on.text
     assert "Nothing will renew and you won't be charged again. It was a one-time pass." in on.text
     assert on.html.count('class="h-btn"') == 1 and "get another pass →" in on.html
 
@@ -475,14 +475,14 @@ def test_every_message_has_its_own_idempotency_key(hm):
     sign_in(hm, first=True)
     paid(hm)
     keys = [m.idempotency_key for m in hm.outbox.sent]
-    assert len(set(keys)) == 2 and all(k.startswith("holt-account-") for k in keys)
+    assert len(set(keys)) == 2 and all(k.startswith("prscout-account-") for k in keys)
 
 
 # --- off --------------------------------------------------------------------------------------
 
 
 def test_nothing_is_sent_with_the_switch_off(make_harness):
-    h = make_harness(HOLT_PR_WATCH=True, RESEND_API_KEY="re_test")
+    h = make_harness(PRSCOUT_PR_WATCH=True, RESEND_API_KEY="re_test")
     h.svc.mailer = h.outbox = FakeMailer()
     assert sign_in(h, first=True).status_code == 204
     watcher(h, now() + timedelta(days=1), user="u2")
@@ -494,7 +494,7 @@ def test_nothing_is_sent_with_the_switch_off(make_harness):
 
 
 def test_nothing_is_sent_without_the_provider_key(make_harness):
-    h = make_harness(HOLT_ACCOUNT_EMAILS=True, HOLT_PR_WATCH=True)
+    h = make_harness(PRSCOUT_ACCOUNT_EMAILS=True, PRSCOUT_PR_WATCH=True)
     assert h.svc.mailer is None
     sign_in(h, first=True)
     paid(h)
@@ -505,7 +505,7 @@ def test_nothing_is_sent_without_the_provider_key(make_harness):
 
 
 def test_the_lab_serves_every_email_outside_production(make_harness):
-    h = make_harness(HOLT_ENV="staging")
+    h = make_harness(PRSCOUT_ENV="staging")
     emails = h.get("/v1/lab/emails").json()["emails"]
     assert [e["kind"] for e in emails] == [
         "welcome", "receipt", "trial_ending", "trial_ending", "trial_ended", "trial_ended",
@@ -513,7 +513,7 @@ def test_the_lab_serves_every_email_outside_production(make_harness):
     for e in emails:
         assert e["html"].startswith("<!doctype html>") and e["text"] and e["subject"]
         assert "(=^•ω•^=)" in e["html"] and "<img" not in e["html"]
-    assert make_harness(HOLT_ENV="production").get("/v1/lab/emails").status_code == 404
+    assert make_harness(PRSCOUT_ENV="production").get("/v1/lab/emails").status_code == 404
     assert h.client.get("/v1/lab/emails").status_code == 401  # the internal key
 
 
@@ -557,22 +557,22 @@ def test_the_html_and_the_text_say_the_same(make_harness):
 
 
 def test_the_welcome_has_alerts_while_pr_watch_is_on():
-    f = account_email.Frame(YOU, "https://githolt.com", "https://githolt.com/alerts/unsubscribe?t=x")
-    out = account_email.welcome_email(f, "https://githolt.com", "https://githolt.com/find",
-                                      "https://githolt.com/settings/alerts")
+    f = account_email.Frame(YOU, "https://gitprscout.com", "https://gitprscout.com/alerts/unsubscribe?t=x")
+    out = account_email.welcome_email(f, "https://gitprscout.com", "https://gitprscout.com/find",
+                                      "https://gitprscout.com/settings/alerts")
     assert ("Turn on PR alerts: we'll let you know when a maintainer replies to one of your "
-            "PRs.\nhttps://githolt.com/settings/alerts") in out.text
+            "PRs.\nhttps://gitprscout.com/settings/alerts") in out.text
     # Addresses are in backticks in the text only.
-    assert "replace `github.com` with `githolt.com` in its address." in out.text
-    assert "replace github.com with githolt.com in its address." in out.html
+    assert "replace `github.com` with `gitprscout.com` in its address." in out.text
+    assert "replace github.com with gitprscout.com in its address." in out.html
     assert "`" not in out.html
 
 
 def test_a_receipt_says_only_what_the_pass_gives():
-    f = account_email.Frame(YOU, "https://githolt.com")
+    f = account_email.Frame(YOU, "https://gitprscout.com")
     kw = dict(pass_name="1 month", amount="₹99", paid_on="1 Oct", payment="pay_1",
-              plan_url="https://githolt.com", alerts_url=None,
-              refunds_url="https://githolt.com/refunds")
+              plan_url="https://gitprscout.com", alerts_url=None,
+              refunds_url="https://gitprscout.com/refunds")
     forever = account_email.receipt_email(f, until=None, merge_plans=30, alerts=False, **kw)
     assert forever.preheader == "Your Pro pass is live. Here's what you get."
     assert "Your pass is live.\n\nHere's what you've got:" in forever.text
@@ -581,15 +581,15 @@ def test_a_receipt_says_only_what_the_pass_gives():
                                        **kw)
     assert bare.preheader == "Your Pro pass is live through 31 October."
     assert "Here's what you've got" not in bare.text + bare.html
-    assert "Open Holt: https://githolt.com" in bare.text
+    assert "Open PRScout: https://gitprscout.com" in bare.text
 
 
 def test_text_from_outside_is_escaped():
-    f = account_email.Frame('a"<b>@example.com', "https://githolt.com", "https://x/?a=1&b=2")
+    f = account_email.Frame('a"<b>@example.com', "https://gitprscout.com", "https://x/?a=1&b=2")
     out = account_email.receipt_email(
         f, pass_name="<i>1 month</i>", amount="₹99", paid_on="1 Oct", until="31 October",
-        merge_plans=30, alerts=True, payment="pay_<x>", plan_url="https://githolt.com",
-        alerts_url=None, refunds_url="https://githolt.com/refunds")
+        merge_plans=30, alerts=True, payment="pay_<x>", plan_url="https://gitprscout.com",
+        alerts_url=None, refunds_url="https://gitprscout.com/refunds")
     assert "<i>" not in out.html and "pay_<x>" not in out.html
     assert "&lt;i&gt;1 month&lt;/i&gt;" in out.html and "a&quot;&lt;b&gt;@example.com" in out.html
 
@@ -602,7 +602,7 @@ def test_money():
 
 
 def test_samples_go_to_the_users_own_address_and_never_in_production(make_harness):
-    h = make_harness(HOLT_ENV="staging", HOLT_PR_WATCH=True)
+    h = make_harness(PRSCOUT_ENV="staging", PRSCOUT_PR_WATCH=True)
     h.svc.mailer = h.outbox = FakeMailer()
     send = lambda user: h.client.portal.call(  # noqa: E731
         lambda: account_mail.send_samples(h.svc, user))
@@ -611,7 +611,7 @@ def test_samples_go_to_the_users_own_address_and_never_in_production(make_harnes
     sign_in(h)
     assert send("u1") == 11
     assert {m.to for m in h.outbox.sent} == {YOU} and log(h) == []
-    prod = make_harness(HOLT_ENV="production")
+    prod = make_harness(PRSCOUT_ENV="production")
     prod.svc.mailer = FakeMailer()
     with pytest.raises(ValueError, match="production"):
         prod.client.portal.call(lambda: account_mail.send_samples(prod.svc, "u1"))

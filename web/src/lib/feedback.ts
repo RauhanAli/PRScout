@@ -23,9 +23,11 @@ export function parseFeedback(body: unknown): FeedbackInput | null {
   const b = body as Record<string, unknown>;
   const repo = typeof b.repo === "string" ? b.repo.trim() : "";
   const days = Number(b.days ?? 7);
-  const generated = typeof b.generated_at === "string" ? b.generated_at.trim() : "";
+  const generated =
+    typeof b.generated_at === "string" ? b.generated_at.trim() : "";
   if (!REPO.test(repo)) return null;
-  if (b.mode !== undefined && b.mode !== "rules" && b.mode !== "ai") return null;
+  if (b.mode !== undefined && b.mode !== "rules" && b.mode !== "ai")
+    return null;
   if (!Number.isInteger(days) || days < 1 || days > 90) return null;
   if (!generated || generated.length > 40) return null;
   if (b.vote !== "up" && b.vote !== "down") return null;
@@ -46,6 +48,11 @@ export function cleanReason(reason: unknown): string | null {
 }
 
 /** Where the browser remembers its own answer, per report version. */
-export function feedbackKey(repo: string, mode: string, days: number, generatedAt: string): string {
-  return `holt:feedback:${repo.toLowerCase()}|${mode}|${days}|${generatedAt}`;
+export function feedbackKey(
+  repo: string,
+  mode: string,
+  days: number,
+  generatedAt: string,
+): string {
+  return `prscout:feedback:${repo.toLowerCase()}|${mode}|${days}|${generatedAt}`;
 }

@@ -62,7 +62,7 @@ export function PasteBox({
           e.preventDefault();
           go(value);
         }}
-        className="group relative grid grid-cols-1 border border-line-strong bg-panel transition-colors focus-within:border-blue sm:grid-cols-[1fr_auto]"
+        className="group relative grid grid-cols-1 rounded-xl border border-line-strong bg-panel shadow-soft transition-[border-color,box-shadow] focus-within:border-blue focus-within:shadow-[0_0_0_4px_var(--ring)] sm:grid-cols-[1fr_auto]"
       >
         <label htmlFor={id} className="sr-only">{label}</label>
         <input
