@@ -11,6 +11,7 @@ import { and, eq, gt, sql } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { db } from "@/db";
 import { passwordResets, passwords, sessions, users } from "@/db/schema";
+import { secureSessionCookie, sessionCookieName } from "./auth-url";
 import { normalizeEmail } from "./credentials";
 import { clear, take } from "./limits";
 import { clientIpFrom } from "./client-ip";
@@ -27,24 +28,19 @@ const RESET_MINUTES = 60;
 
 // --- the session cookie ---------------------------------------------------------------
 
-/** Auth.js's rule: https (AUTH_URL first, else the proxy's header) gets the __Secure- cookie. */
+/** Auth.js's rule (lib/auth-url.ts), so auth() reads the cookie written here. */
 async function secureCookies(): Promise<boolean> {
-  const env = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
-  if (env) return new URL(env).protocol === "https:";
-  const proto = (await headers())
-    .get("x-forwarded-proto")
-    ?.split(",")[0]
-    ?.trim();
-  return proto === "https";
+  return secureSessionCookie(process.env, (await headers()).get("x-forwarded-proto"));
 }
 
 export async function startSession(userId: string): Promise<void> {
   const sessionToken = randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + SESSION_DAYS * 86_400_000);
-  await db.insert(sessions).values({ sessionToken, userId, expires });
+  // Before the row: a broken AUTH_URL fails here, leaving no session behind.
   const secure = await secureCookies();
+  await db.insert(sessions).values({ sessionToken, userId, expires });
   (await cookies()).set(
-    secure ? "__Secure-authjs.session-token" : "authjs.session-token",
+    sessionCookieName(secure),
     sessionToken,
     {
       httpOnly: true,

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { authUrlProblem } from "./src/lib/auth-url";
 
 // The policy pages (/terms, /privacy, /refunds, /contact) render these, and
 // they are prerendered at build time. A production build must not bake in
@@ -16,6 +17,14 @@ if (
       );
     }
   }
+}
+
+// A malformed AUTH_URL ("example.com" with no https://, quotes around it)
+// breaks every sign-in and session lookup at runtime while the site looks
+// fine. Stop the build instead, so the deploy never goes live with it.
+{
+  const problem = authUrlProblem(process.env);
+  if (problem) throw new Error(problem);
 }
 
 const dev = process.env.NODE_ENV !== "production";

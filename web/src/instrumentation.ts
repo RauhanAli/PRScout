@@ -1,3 +1,5 @@
+import { authUrlProblem } from "./lib/auth-url";
+
 // Runs once when the server starts (not during `next build`).
 export function register() {
   if (process.env.NODE_ENV !== "production" || process.env.NEXT_PHASE === "phase-production-build") return;
@@ -13,4 +15,8 @@ export function register() {
     (k) => !process.env[k],
   );
   if (missing.length) throw new Error(`Missing in production: ${missing.join(", ")} (see web/.env.example).`);
+  // A malformed AUTH_URL otherwise fails every sign-in and session lookup with
+  // "Invalid URL" while the site looks up (lib/auth-url.ts).
+  const problem = authUrlProblem(process.env);
+  if (problem) throw new Error(problem);
 }
