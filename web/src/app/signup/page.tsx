@@ -6,7 +6,7 @@ import { SignUpForm } from "@/components/auth/auth-forms";
 import { AuthShell, OrRule } from "@/components/auth/auth-shell";
 import { afterSignIn } from "@/lib/home";
 import { currentUser } from "@/lib/session";
-import { PROVIDER_ICONS, ProviderButtons, type Provider } from "../signin/provider-buttons";
+import { ProviderButtons, type Provider } from "../signin/provider-buttons";
 
 export const metadata: Metadata = { title: "Create your account", robots: { index: false } };
 
@@ -24,7 +24,6 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
     .map((id) => ({
       id,
       name: NAMES[id],
-      icon: PROVIDER_ICONS[id],
       action: async () => {
         "use server";
         await signIn(id, { redirectTo: callbackUrl });

@@ -10,7 +10,6 @@ import { afterSignIn } from "@/lib/home";
 import { currentUser } from "@/lib/session";
 import { SIGN_IN_HEADING, signInHeading, signInNotice } from "@/lib/signin";
 import {
-  PROVIDER_ICONS,
   ProviderButtons,
   type Provider,
 } from "./provider-buttons";
@@ -55,7 +54,6 @@ export default async function SignInPage({
     configured.has(p.id),
   ).map((p) => ({
     ...p,
-    icon: PROVIDER_ICONS[p.id],
     action: async () => {
       "use server";
       await signIn(p.id, { redirectTo: callbackUrl });
